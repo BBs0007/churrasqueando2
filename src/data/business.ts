@@ -3,13 +3,13 @@ export const BUSINESS = {
   name: "Churrasqueando",
   slogan: "A darle!",
   // Número de WhatsApp de la empresa (formato internacional, sin +)
-  whatsapp: "59178228446",
+  whatsapp: "59175358008",
   // Ubicación del local (para la opción "Recoger en el local")
   pickup: {
     label: "Local Churrasqueando",
-    address: "Santa Cruz de la Sierra, Bolivia",
-    lat: -17.783327,
-    lng: -63.182140,
+    address: "Al frente del Condominio, Carretera Norte, 1/2 Km 10, Santa Cruz de la Sierra (8R8V+CW)",
+    lat: -17.6839375,
+    lng: -63.15518750000001,
   },
   hours: "Mar a Dom · 10:00 - 22:00",
 };

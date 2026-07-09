@@ -102,7 +102,7 @@ async function sendWhatsApp(params: {
 type AutoSendResult = { toBusiness: boolean; toCustomer: boolean };
 
 async function trySendWhatsApp(data: OrderInput, message: string): Promise<AutoSendResult> {
-  const businessNumber = process.env.BUSINESS_WHATSAPP || "59178228446";
+  const businessNumber = process.env.BUSINESS_WHATSAPP || "59175358008";
 
   // Pedido completo al número de la empresa
   const toBusiness = await sendWhatsApp({
@@ -122,7 +122,7 @@ export const submitOrder = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }): Promise<OrderResult> => {
     const message = buildMessage(data);
-    const businessNumber = process.env.BUSINESS_WHATSAPP || "59178228446";
+    const businessNumber = process.env.BUSINESS_WHATSAPP || "59175358008";
     const { toBusiness } = await trySendWhatsApp(data, message);
     const businessWhatsappUrl = `https://wa.me/${businessNumber}?text=${encodeURIComponent(message)}`;
     return {
