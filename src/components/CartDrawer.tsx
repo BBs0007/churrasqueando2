@@ -10,6 +10,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { isKgProduct } from "@/lib/units";
 
 export function CartDrawer() {
   const { items, isOpen, setOpen, setQuantity, removeItem, totalPrice, totalItems } = useCart();
@@ -40,11 +41,18 @@ export function CartDrawer() {
                 key={product.id}
                 className="flex gap-3 rounded-xl border border-border/70 bg-card p-2"
               >
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-16 w-16 shrink-0 rounded-lg object-cover"
-                />
+                {product.image ? (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-secondary/40 text-[10px] uppercase text-muted-foreground">
+                    Sin foto
+                  </div>
+                )}
+
                 <div className="flex flex-1 flex-col">
                   <p className="font-cond text-sm font-semibold uppercase leading-tight text-foreground">
                     {product.name}
@@ -61,8 +69,8 @@ export function CartDrawer() {
                       >
                         <Minus className="h-3.5 w-3.5" />
                       </button>
-                      <span className="font-cond w-6 text-center text-sm font-semibold">
-                        {quantity}
+                      <span className="font-cond w-10 text-center text-sm font-semibold">
+                        {quantity}{isKgProduct(product.unit) ? " kg" : ""}
                       </span>
                       <button
                         aria-label="Agregar uno"

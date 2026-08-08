@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Flame, MapPin, ChevronDown } from "lucide-react";
+import { ShoppingBag, Flame, MapPin, ChevronDown, User } from "lucide-react";
 import logo from "@/assets/logo-churrasqueando.png";
 import { sections, getSectionCategories } from "@/data/sections";
 import { useCart } from "@/contexts/CartContext";
@@ -26,11 +26,23 @@ export function Header() {
           />
           <div className="leading-none">
             <p className="font-display text-xl tracking-wide text-foreground">CHURRASQUEANDO</p>
-            <p className="font-cond text-xs uppercase tracking-[0.3em] text-primary">A darle!</p>
+            <p className="font-cond text-xs uppercase tracking-[0.3em] text-primary">MOMENTO QUE SE SABOREAN!</p>
           </div>
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
+          <button
+            onClick={() => scrollTo("best-sellers")}
+            className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-primary transition-colors hover:bg-secondary"
+          >
+            Best Sellers
+          </button>
+          <button
+            onClick={() => scrollTo("combos-seccion")}
+            className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            Combos
+          </button>
           {sections.map((section) => (
             <div key={section.id} className="group relative">
               <button
@@ -60,27 +72,52 @@ export function Header() {
             to="/sucursales"
             className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
-            Sucursales
+            PUNTOS DE VENTAS
+          </Link>
+          <Link
+            to="/cuenta"
+            className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-primary transition-colors hover:bg-secondary"
+          >
+            CLUB
           </Link>
         </nav>
 
-        <Button
-          variant="default"
-          onClick={() => setOpen(true)}
-          className="relative font-cond font-semibold uppercase tracking-wide"
-        >
-          <ShoppingBag className="h-4 w-4" />
-          <span className="hidden sm:inline">Pedido</span>
-          {totalItems > 0 && (
-            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground">
-              {totalItems}
-            </span>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link to="/cuenta" className="lg:hidden">
+            <Button variant="outline" size="icon" aria-label="Mi cuenta del Club">
+              <User className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Button
+            variant="default"
+            onClick={() => setOpen(true)}
+            className="relative font-cond font-semibold uppercase tracking-wide"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            <span className="hidden sm:inline">Pedido</span>
+            {totalItems > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground">
+                {totalItems}
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 lg:hidden no-scrollbar">
         <Flame className="h-4 w-4 shrink-0 text-primary" />
+        <button
+          onClick={() => scrollTo("best-sellers")}
+          className="font-cond shrink-0 rounded-full bg-gradient-fire px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
+        >
+          Best Sellers
+        </button>
+        <button
+          onClick={() => scrollTo("combos-seccion")}
+          className="font-cond shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-wide text-secondary-foreground"
+        >
+          Combos
+        </button>
         {sections.map((section) => (
           <button
             key={section.id}
@@ -94,7 +131,7 @@ export function Header() {
           to="/sucursales"
           className="font-cond flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
         >
-          <MapPin className="h-3 w-3" /> Sucursales
+          <MapPin className="h-3 w-3" /> PUNTOS DE VENTAS
         </Link>
       </div>
     </header>

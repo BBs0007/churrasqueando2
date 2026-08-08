@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
   Loader2,
   MapPin,
   Store,
+  Truck,
   CheckCircle2,
   MessageCircle,
   ShoppingBag,
@@ -13,12 +14,22 @@ import {
 import { useCart } from "@/contexts/CartContext";
 import { CURRENCY } from "@/data/products";
 import { BUSINESS } from "@/data/business";
+import { BOLIVIA, DEPARTAMENTOS } from "@/data/bolivia";
 import { submitOrder, type OrderResult } from "@/lib/order.functions";
+import { recordOrder } from "@/lib/club.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { MapPicker, type LatLng } from "@/components/MapPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import logo from "@/assets/logo-churrasqueando.png";
 
 export const Route = createFileRoute("/checkout")({
@@ -47,22 +58,38 @@ function Checkout() {
   const { items, totalPrice, totalItems, clear } = useCart();
   const navigate = useNavigate();
   const submit = useServerFn(submitOrder);
+  const saveOrder = useServerFn(recordOrder);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup" | "province">("delivery");
   const [location, setLocation] = useState<LatLng | null>(null);
   const [address, setAddress] = useState("");
+  const [department, setDepartment] = useState<string>("");
+  const [province, setProvince] = useState<string>("");
+  const [town, setTown] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OrderResult | null>(null);
+  const [earnedPoints, setEarnedPoints] = useState<number | null>(null);
+
+  const provincesList = useMemo(
+    () => (department ? Object.keys(BOLIVIA[department] ?? {}) : []),
+    [department],
+  );
+  const townsList = useMemo(
+    () => (department && province ? BOLIVIA[department]?.[province] ?? [] : []),
+    [department, province],
+  );
 
   const canSubmit =
     name.trim() &&
     phone.trim().length >= 7 &&
     items.length > 0 &&
-    (deliveryType === "pickup" || location || address.trim());
+    (deliveryType === "pickup" ||
+      (deliveryType === "delivery" && (location || address.trim())) ||
+      (deliveryType === "province" && department && province && town));
 
   const handleSubmit = async () => {
     setError(null);
@@ -73,9 +100,17 @@ function Checkout() {
           customerName: name.trim(),
           customerPhone: phone.trim(),
           deliveryType,
-          address: deliveryType === "delivery" ? address.trim() : undefined,
-          lat: location?.lat,
-          lng: location?.lng,
+          address:
+            deliveryType === "delivery"
+              ? address.trim()
+              : deliveryType === "province"
+                ? address.trim() || undefined
+                : undefined,
+          lat: deliveryType === "delivery" ? location?.lat : undefined,
+          lng: deliveryType === "delivery" ? location?.lng : undefined,
+          department: deliveryType === "province" ? department : undefined,
+          province: deliveryType === "province" ? province : undefined,
+          town: deliveryType === "province" ? town : undefined,
           notes: notes.trim() || undefined,
           items: items.map((i) => ({
             name: i.product.name,
@@ -87,6 +122,38 @@ function Checkout() {
         },
       });
       setResult(res);
+
+      // Si el cliente tiene sesión, guardamos el pedido y sumamos sus puntos del Club.
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          const saved = await saveOrder({
+            data: {
+              customerName: name.trim(),
+              customerPhone: phone.trim(),
+              deliveryType,
+              address: address.trim() || null,
+              lat: deliveryType === "delivery" ? location?.lat ?? null : null,
+              lng: deliveryType === "delivery" ? location?.lng ?? null : null,
+              department: deliveryType === "province" ? department : null,
+              province: deliveryType === "province" ? province : null,
+              town: deliveryType === "province" ? town : null,
+              notes: notes.trim() || null,
+              items: items.map((i) => ({
+                name: i.product.name,
+                quantity: i.quantity,
+                price: i.product.price,
+                unit: i.product.unit,
+              })),
+              total: totalPrice,
+            },
+          });
+          setEarnedPoints(saved.points);
+        }
+      } catch {
+        /* el pedido por WhatsApp ya se envió; los puntos se pueden ajustar manualmente */
+      }
+
       clear();
       if (!res.autoSent) {
         window.open(buildWhatsappUrl(res), "_blank");
@@ -99,7 +166,13 @@ function Checkout() {
   };
 
   if (result) {
-    return <SuccessView result={result} onHome={() => navigate({ to: "/" })} />;
+    return (
+      <SuccessView
+        result={result}
+        earnedPoints={earnedPoints}
+        onHome={() => navigate({ to: "/" })}
+      />
+    );
   }
 
   if (items.length === 0) {
@@ -152,7 +225,7 @@ function Checkout() {
 
           {/* Entrega */}
           <Section title="2. ¿Cómo lo quieres recibir?">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <OptionCard
                 active={deliveryType === "delivery"}
                 onClick={() => setDeliveryType("delivery")}
@@ -166,6 +239,13 @@ function Checkout() {
                 icon={<Store className="h-5 w-5" />}
                 title="Recoger en el local"
                 desc={BUSINESS.pickup.address}
+              />
+              <OptionCard
+                active={deliveryType === "province"}
+                onClick={() => setDeliveryType("province")}
+                icon={<Truck className="h-5 w-5" />}
+                title="Envíos a provincias"
+                desc="Departamento, provincia y pueblo"
               />
             </div>
 
@@ -192,6 +272,97 @@ function Checkout() {
                 </p>
                 <p>{BUSINESS.pickup.address}</p>
                 <p className="mt-1">{BUSINESS.hours}</p>
+              </div>
+            )}
+
+            {deliveryType === "province" && (
+              <div className="mt-4 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label>Departamento</Label>
+                    <Select
+                      value={department}
+                      onValueChange={(v) => {
+                        setDepartment(v);
+                        setProvince("");
+                        setTown("");
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Elige departamento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPARTAMENTOS.map((d) => (
+                          <SelectItem key={d} value={d}>
+                            {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Provincia</Label>
+                    <Select
+                      value={province}
+                      onValueChange={(v) => {
+                        setProvince(v);
+                        setTown("");
+                      }}
+                      disabled={!department}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={department ? "Elige provincia" : "Elige departamento primero"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {provincesList.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Pueblo / Municipio</Label>
+                    <Select
+                      value={town}
+                      onValueChange={setTown}
+                      disabled={!province || townsList.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            !province
+                              ? "Elige provincia primero"
+                              : townsList.length === 0
+                                ? "Sin pueblos registrados"
+                                : "Elige pueblo"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {townsList.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="prov-ref">Referencia / Dirección exacta (opcional)</Label>
+                  <Input
+                    id="prov-ref"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Zona, calle, punto de referencia..."
+                    maxLength={160}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Coordinaremos por WhatsApp el costo y la empresa de encomienda para tu envío.
+                </p>
               </div>
             )}
           </Section>
@@ -258,7 +429,15 @@ function Checkout() {
   );
 }
 
-function SuccessView({ result, onHome }: { result: OrderResult; onHome: () => void }) {
+function SuccessView({
+  result,
+  onHome,
+  earnedPoints,
+}: {
+  result: OrderResult;
+  onHome: () => void;
+  earnedPoints: number | null;
+}) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-background px-4 py-12 text-center">
       <CheckCircle2 className="h-16 w-16 text-primary" />
@@ -268,6 +447,19 @@ function SuccessView({ result, onHome }: { result: OrderResult; onHome: () => vo
           ? "Recibimos tu pedido. Te contactaremos por WhatsApp para coordinar el pago y la entrega."
           : "Abrimos WhatsApp con tu pedido. Envíalo y te contactaremos para coordinar el pago y la entrega."}
       </p>
+
+      {earnedPoints !== null ? (
+        <p className="rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-foreground">
+          Sumaste <span className="font-semibold text-primary">{earnedPoints} puntos</span> al Club
+          Churrasqueando con esta compra.
+        </p>
+      ) : (
+        <Link to="/auth" className="text-sm text-primary hover:underline">
+          Crea tu cuenta gratis del Club y suma puntos con cada compra
+        </Link>
+      )}
+
+
 
 
       {!result.autoSent && (

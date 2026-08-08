@@ -1,43 +1,72 @@
+// Solo fotos reales de producto. Los productos sin foto muestran un marcador
+// hasta que se suba la imagen real.
+import realCheddarJalaAsset from "@/assets/real-cheddar-jalapeno.jpg";
+import realBifeAnchoAsset from "@/assets/real-bife-ancho-bc.jpg";
+import realColitaCuadrilAsset from "@/assets/real-colita-cuadril-bc.jpg";
+import realCowboyAsset from "@/assets/real-cowboy-churras.jpg";
+import realFraldinhaAsset from "@/assets/real-fraldinha-bc.jpg";
+import realDulcePicanteAsset from "@/assets/real-dulce-picante.jpg";
+import realMatambreMielAsset from "@/assets/real-matambre-miel.jpg";
+import realBrisketMuzzaAsset from "@/assets/real-brisket-muzza.jpg";
+import realPanCheeseburgerAsset from "@/assets/real-pan-cheeseburger.jpg";
+import realPanTradicionalAsset from "@/assets/real-pan-tradicional.jpg";
+import realHierbaMuzzaAsset from "@/assets/real-hierba-muzza.jpg";
+import realAlbahacaProvoloneAsset from "@/assets/real-albahaca-provolone.jpg";
+import realTradicionalCerdoAsset from "@/assets/real-tradicional-cerdo.jpg";
+import realCapresseAsset from "@/assets/real-capresse.jpg";
+import realBifeChorizoPcAsset from "@/assets/real-bife-chorizo-pc.jpg";
+import realCarnePicadaAsset from "@/assets/real-carne-picada.jpg";
+import realCarneMolidaAsset from "@/assets/real-carne-molida.jpg";
+import realPuntaSBcAsset from "@/assets/real-punta-s-bc.jpg";
+import realCorazonCuadrilChAsset from "@/assets/real-corazon-cuadril-ch.jpg";
+import realCostilla1erChAsset from "@/assets/real-costilla-1er-ch.jpg";
+import realEntranaChAsset from "@/assets/real-entrana-ch.jpg";
+import realLomoGrandeBcAsset from "@/assets/real-lomo-grande-bc.jpg";
+import realLingBrisketChAsset from "@/assets/real-ling-brisket-ch.jpg";
+import realMatambreTradicionalAsset from "@/assets/real-matambre-tradicional.jpg";
+import realOjoBifeChAsset from "@/assets/real-ojo-bife-ch.jpg";
+import realPanesBritoAsset from "@/assets/real-panes-brito.jpg";
+import realPuntaSChAsset from "@/assets/real-punta-s-ch.jpg";
+import realBifeChorizoChAsset from "@/assets/real-bife-chorizo-ch.jpg";
+import realTapequeAsset from "@/assets/real-tapeque-carnes.jpg";
+import realLlajuaSuaveAsset from "@/assets/real-llajua-suave-trato.jpg";
+import realLlajuaExtraPicanteAsset from "@/assets/real-llajua-extra-picante-trato.jpg";
+import realPalAsauAsset from "@/assets/real-pal-asau.jpg";
+import realChimichurriAsset from "@/assets/real-chimichurri-churrasquero.jpg";
 
-import cheddar from "@/assets/prod-cheddar.jpg";
-import panLinguica from "@/assets/prod-pan-linguica.jpg";
-import matambre from "@/assets/prod-matambre.jpg";
-import salsa from "@/assets/prod-salsa.jpg";
-import carbon from "@/assets/prod-carbon.jpg";
-import imgPicana from "@/assets/cut-picana.jpg";
-import imgPunta from "@/assets/cut-punta.jpg";
-import imgFraldinha from "@/assets/cut-fraldinha.jpg";
-import imgBifeChorizo from "@/assets/cut-bife-chorizo.jpg";
-import imgOjoBife from "@/assets/cut-ojo-bife.jpg";
-import imgPollerita from "@/assets/cut-pollerita.jpg";
-import imgColitaCuadril from "@/assets/cut-colita-cuadril.jpg";
-import imgMolleja from "@/assets/cut-molleja.jpg";
-import imgEntrecostilla from "@/assets/cut-entrecostilla.jpg";
-import imgAranita from "@/assets/cut-aranita.jpg";
-import imgEntrana from "@/assets/cut-entrana.jpg";
-import imgCorazonCuadril from "@/assets/cut-corazon-cuadril.jpg";
-import imgBifeOjo from "@/assets/cut-bife-ojo.jpg";
-import imgCostilla from "@/assets/cut-costilla.jpg";
-import imgBrisket from "@/assets/brisket-churrasquera.jpg";
-import imgPackCompleto from "@/assets/pack-completo-linguicas.jpg";
-import imgRealCheddarJala from "@/assets/real-cheddar-jalapeno.jpg";
-import imgRealBifeAncho from "@/assets/real-bife-ancho-bc.jpg";
-import imgRealColitaCuadril from "@/assets/real-colita-cuadril-bc.jpg";
-import imgRealCowboy from "@/assets/real-cowboy-churras.jpg";
-import imgRealFraldinha from "@/assets/real-fraldinha-bc.jpg";
-import imgRealDulcePicante from "@/assets/real-dulce-picante.jpg";
-import imgRealMatambreMiel from "@/assets/real-matambre-miel.jpg";
-import imgRealBrisketMuzza from "@/assets/real-brisket-muzza.jpg";
-import imgRealPanCheeseburger from "@/assets/real-pan-cheeseburger.jpg";
-import imgRealPanTradicional from "@/assets/real-pan-tradicional.jpg";
-import imgRealHierbaMuzza from "@/assets/real-hierba-muzza.jpg";
-import imgRealAlbahacaProvolone from "@/assets/real-albahaca-provolone.jpg";
-import imgRealTradicionalCerdo from "@/assets/real-tradicional-cerdo.jpg";
-import imgRealCapresse from "@/assets/real-capresse.jpg";
-import imgRealBifeChorizoPc from "@/assets/real-bife-chorizo-pc.jpg";
-import imgRealCarnePicada from "@/assets/real-carne-picada.jpg";
-import imgRealCarneMolida from "@/assets/real-carne-molida.jpg";
-import imgRealPuntaSBc from "@/assets/real-punta-s-bc.jpg";
+const imgRealCheddarJala = realCheddarJalaAsset;
+const imgRealBifeAncho = realBifeAnchoAsset;
+const imgRealColitaCuadril = realColitaCuadrilAsset;
+const imgRealCowboy = realCowboyAsset;
+const imgRealFraldinha = realFraldinhaAsset;
+const imgRealDulcePicante = realDulcePicanteAsset;
+const imgRealMatambreMiel = realMatambreMielAsset;
+const imgRealBrisketMuzza = realBrisketMuzzaAsset;
+const imgRealPanCheeseburger = realPanCheeseburgerAsset;
+const imgRealPanTradicional = realPanTradicionalAsset;
+const imgRealHierbaMuzza = realHierbaMuzzaAsset;
+const imgRealAlbahacaProvolone = realAlbahacaProvoloneAsset;
+const imgRealTradicionalCerdo = realTradicionalCerdoAsset;
+const imgRealCapresse = realCapresseAsset;
+const imgRealBifeChorizoPc = realBifeChorizoPcAsset;
+const imgRealCarnePicada = realCarnePicadaAsset;
+const imgRealCarneMolida = realCarneMolidaAsset;
+const imgRealPuntaSBc = realPuntaSBcAsset;
+const imgRealCorazonCuadrilCh = realCorazonCuadrilChAsset;
+const imgRealCostilla1erCh = realCostilla1erChAsset;
+const imgRealEntranaCh = realEntranaChAsset;
+const imgRealLomoGrandeBc = realLomoGrandeBcAsset;
+const imgRealLingBrisketCh = realLingBrisketChAsset;
+const imgRealMatambreTradicional = realMatambreTradicionalAsset;
+const imgRealOjoBifeCh = realOjoBifeChAsset;
+const imgRealPanesBrito = realPanesBritoAsset;
+const imgRealPuntaSCh = realPuntaSChAsset;
+const imgRealBifeChorizoCh = realBifeChorizoChAsset;
+const imgRealTapeque = realTapequeAsset;
+const imgRealLlajuaSuave = realLlajuaSuaveAsset;
+const imgRealLlajuaExtraPicante = realLlajuaExtraPicanteAsset;
+const imgRealPalAsau = realPalAsauAsset;
+const imgRealChimichurri = realChimichurriAsset;
 
 export type Product = {
   id: string;
@@ -45,7 +74,8 @@ export type Product = {
   price: number;
   unit: string;
   description: string;
-  image: string;
+  image?: string;
+  hoverImage?: string;
 };
 
 export type Category = {
@@ -57,20 +87,21 @@ export type Category = {
 
 export const CURRENCY = "Bs";
 
-export const categories: Category[] = [
+const rawCategories: Category[] = [
   {
     id: "cortes-beef-club",
     name: "Cortes de Beef Club",
     tagline: "Carne premium · Precio x kg",
     products: [
-      { id: "bc-picana", name: "Picaña", price: 164, unit: "1 - 1,2 kg", description: "Corte premium Beef Club. Peso aprox. 1 a 1,2 kg.", image: imgPicana },
+      { id: "bc-picana", name: "Picaña", price: 164, unit: "1 - 1,2 kg", description: "Corte premium Beef Club. Peso aprox. 1 a 1,2 kg." },
       { id: "bc-punta-s", name: "Punta de S", price: 139, unit: "1 - 1,5 kg", description: "Corte premium Beef Club. Peso aprox. 1 a 1,5 kg.", image: imgRealPuntaSBc },
       { id: "bc-fraldinha", name: "Fraldinha", price: 85, unit: "1,2 - 3 kg", description: "Corte premium Beef Club. Peso aprox. 1,2 a 3 kg.", image: imgRealFraldinha },
-      { id: "bc-bife-chorizo", name: "Bife de Chorizo", price: 90, unit: "2 - 3,5 kg", description: "Corte premium Beef Club. Peso aprox. 2 a 3,5 kg.", image: imgBifeChorizo },
+      { id: "bc-bife-chorizo", name: "Bife de Chorizo", price: 90, unit: "2 - 3,5 kg", description: "Corte premium Beef Club. Peso aprox. 2 a 3,5 kg." },
+      { id: "bc-lomo-grande", name: "Lomo Grande", price: 90, unit: "2 - 3,5 kg", description: "Lomo grande Beef Club, un nuevo concepto en carnes. Peso aprox. 2 a 3,5 kg.", image: imgRealLomoGrandeBc },
       { id: "bc-ojo-bife", name: "Ojo de Bife", price: 90, unit: "2 - 3,5 kg", description: "Corte premium Beef Club. Peso aprox. 2 a 3,5 kg.", image: imgRealBifeAncho },
-      { id: "bc-pollerita", name: "Pollerita s/hueso", price: 80, unit: "2 - 4,5 kg", description: "Corte premium Beef Club. Peso aprox. 2 a 4,5 kg.", image: imgPollerita },
+      { id: "bc-pollerita", name: "Pollerita s/hueso", price: 80, unit: "2 - 4,5 kg", description: "Corte premium Beef Club. Peso aprox. 2 a 4,5 kg." },
       { id: "bc-colita-cuadril", name: "Colita de Cuadril", price: 82, unit: "1 - 1,9 kg", description: "Corte premium Beef Club. Peso aprox. 1 a 1,9 kg.", image: imgRealColitaCuadril },
-      { id: "bc-molleja", name: "Molleja", price: 57, unit: "1 - 1,5 kg", description: "Corte premium Beef Club. Peso aprox. 1 a 1,5 kg.", image: imgMolleja },
+      { id: "bc-molleja", name: "Molleja", price: 57, unit: "1 - 1,5 kg", description: "Corte premium Beef Club. Peso aprox. 1 a 1,5 kg." },
     ],
   },
   {
@@ -79,11 +110,11 @@ export const categories: Category[] = [
     tagline: "Carne premium · Precio x kg",
     products: [
       { id: "pc-bife-chorizo", name: "Bife de Chorizo", price: 107, unit: "2 - 3,5 kg", description: "Corte premium Procarnes. Peso aprox. 2 a 3,5 kg.", image: imgRealBifeChorizoPc },
-      { id: "pc-punta-s", name: "Punta de S", price: 120, unit: "1 - 1,7 kg", description: "Corte premium Procarnes. Peso aprox. 1 a 1,7 kg.", image: imgPunta },
-      { id: "pc-entrecostilla", name: "Entrecostilla", price: 90, unit: "1 - 1,7 kg", description: "Corte premium Procarnes. Peso aprox. 1 a 1,7 kg.", image: imgEntrecostilla },
-      { id: "pc-aranita", name: "Arañita", price: 82, unit: "0,5 - 1 kg", description: "Corte premium Procarnes. Peso aprox. 0,5 a 1 kg.", image: imgAranita },
-      { id: "pc-entranas", name: "Entrañas", price: 79, unit: "1 - 1,5 kg", description: "Corte premium Procarnes. Peso aprox. 1 a 1,5 kg.", image: imgEntrana },
-      { id: "pc-pollerita-vacio", name: "Pollerita s/h o Vacío", price: 81, unit: "1 - 1,8 kg", description: "Corte premium Procarnes. Peso aprox. 1 a 1,8 kg.", image: imgPollerita },
+      { id: "pc-punta-s", name: "Punta de S", price: 120, unit: "1 - 1,7 kg", description: "Corte premium Procarnes. Peso aprox. 1 a 1,7 kg." },
+      { id: "pc-entrecostilla", name: "Entrecostilla", price: 90, unit: "1 - 1,7 kg", description: "Corte premium Procarnes. Peso aprox. 1 a 1,7 kg." },
+      { id: "pc-aranita", name: "Arañita", price: 82, unit: "0,5 - 1 kg", description: "Corte premium Procarnes. Peso aprox. 0,5 a 1 kg." },
+      { id: "pc-entranas", name: "Entrañas", price: 79, unit: "1 - 1,5 kg", description: "Corte premium Procarnes. Peso aprox. 1 a 1,5 kg." },
+      { id: "pc-pollerita-vacio", name: "Pollerita s/h o Vacío", price: 81, unit: "1 - 1,8 kg", description: "Corte premium Procarnes. Peso aprox. 1 a 1,8 kg." },
     ],
   },
   {
@@ -91,11 +122,12 @@ export const categories: Category[] = [
     name: "Cortes de Churrasqueando",
     tagline: "Carne premium · Precio x kg",
     products: [
-      { id: "ch-punta-s", name: "Punta de S", price: 120, unit: "1 - 1,7 kg", description: "Corte premium Churrasqueando. Peso aprox. 1 a 1,7 kg.", image: imgPunta },
-      { id: "ch-entrana", name: "Entraña", price: 77, unit: "1 - 1,5 kg", description: "Corte premium Churrasqueando. Peso aprox. 1 a 1,5 kg.", image: imgEntrana },
-      { id: "ch-corazon-cuadril", name: "Corazón de Cuadril", price: 75, unit: "1 - 1,8 kg", description: "Corte premium Churrasqueando. Peso aprox. 1 a 1,8 kg.", image: imgCorazonCuadril },
-      { id: "ch-bife-ojo", name: "Bife y Ojo de Bife", price: 79, unit: "2 - 3,5 kg", description: "Corte premium Churrasqueando. Peso aprox. 2 a 3,5 kg.", image: imgBifeOjo },
-      { id: "ch-costilla-1er", name: "Costilla 1er Corte", price: 62, unit: "1 - 1,5 kg", description: "Corte premium Churrasqueando. Peso aprox. 1 a 1,5 kg.", image: imgCostilla },
+      { id: "ch-punta-s", name: "Punta de S", price: 120, unit: "1 - 1,7 kg", description: "Corte premium Churrasqueando. Peso aprox. 1 a 1,7 kg.", image: imgRealPuntaSCh },
+      { id: "ch-entrana", name: "Entraña Delgada", price: 77, unit: "1 - 1,5 kg", description: "Entraña delgada Churrasqueando, lo mejor para tu churrasco. Peso aprox. 1 a 1,5 kg.", image: imgRealEntranaCh },
+      { id: "ch-corazon-cuadril", name: "Corazón de Cuadril", price: 75, unit: "1 - 1,8 kg", description: "Corte premium Churrasqueando. Peso aprox. 1 a 1,8 kg.", image: imgRealCorazonCuadrilCh },
+      { id: "ch-bife-ojo", name: "Ojo de Bife", price: 79, unit: "2 - 3,5 kg", description: "Ojo de bife Churrasqueando. Peso aprox. 2 a 3,5 kg.", image: imgRealOjoBifeCh },
+      { id: "ch-bife-chorizo", name: "Bife de Chorizo", price: 79, unit: "2 - 3,5 kg", description: "Bife de chorizo Churrasqueando, lo mejor para tu churrasco. Peso aprox. 2 a 3,5 kg.", image: imgRealBifeChorizoCh },
+      { id: "ch-costilla-1er", name: "Costilla 1er Corte", price: 62, unit: "1 - 1,5 kg", description: "Costilla 1er corte Churrasqueando. Peso aprox. 1 a 1,5 kg.", image: imgRealCostilla1erCh },
       { id: "ch-cowboy", name: "Cowboy", price: 95, unit: "1 - 1,5 kg", description: "Corte Cowboy premium Churrasqueando, lo mejor para tu churrasco. Peso aprox. 1 a 1,5 kg.", image: imgRealCowboy },
     ],
   },
@@ -136,8 +168,8 @@ export const categories: Category[] = [
         name: "Linguiça Brisket (Churrasquera)",
         price: 35,
         unit: "500 gr",
-        description: "Sabor rústico y potente, ideal para los amantes de la carne de verdad.",
-        image: imgBrisket,
+        description: "Sabor rústico y potente, ideal para los amantes de la carne de verdad. Contiene 500 gr.",
+        image: imgRealLingBrisketCh,
       },
       {
         id: "ling-dulce-picante",
@@ -181,7 +213,6 @@ export const categories: Category[] = [
         unit: "8 unidades",
         description:
           "Todas nuestras variedades en un solo pack: Brisket, Brisket & Muzzarella, Hierba & Mozzarella, Tradicional, Dulce Picante, Cheddar & Jalapeños y más. Ideal para compartir.",
-        image: imgPackCompleto,
       },
     ],
   },
@@ -208,12 +239,29 @@ export const categories: Category[] = [
         image: imgRealPanCheeseburger,
       },
       {
+        id: "pan-capresse",
+        name: "Pan con Linguiça Capresse",
+        price: 19,
+        unit: "unidad",
+        description:
+          "Pan con linguiça capresse: tomate, albahaca y mozzarella recién salidos de la parrilla.",
+        image: imgRealCapresse,
+      },
+      {
+        id: "pan-dulce-picante",
+        name: "Pan con Linguiça Dulce Picante",
+        price: 19,
+        unit: "unidad",
+        description:
+          "Pan con nuestra linguiça dulce picante: inicio dulce y un picante sutil al final.",
+        image: imgRealDulcePicante,
+      },
+      {
         id: "pan-picante",
         name: "Pan con Linguiça Picante Trato",
         price: 19,
         unit: "unidad",
         description: "Para los amantes del picante: linguiça con un toque ardiente irresistible.",
-        image: panLinguica,
       },
     ],
   },
@@ -228,7 +276,6 @@ export const categories: Category[] = [
         price: 44,
         unit: "500 gr",
         description: "Jiba marinada en chimichurri fresco, jugosa y llena de sabor.",
-        image: matambre,
       },
       {
         id: "jiba-ajo-romero",
@@ -236,7 +283,6 @@ export const categories: Category[] = [
         price: 44,
         unit: "500 gr",
         description: "El aroma del ajo y el romero realzando una jiba tierna a la parrilla.",
-        image: matambre,
       },
       {
         id: "matambre-tradicional",
@@ -244,7 +290,7 @@ export const categories: Category[] = [
         price: 48,
         unit: "500 gr",
         description: "Matambre de cerdo tierno con el sabor tradicional del churrasco.",
-        image: matambre,
+        image: imgRealMatambreTradicional,
       },
       {
         id: "matambre-miel-mostaza",
@@ -286,63 +332,84 @@ export const categories: Category[] = [
     tagline: "Precio x unidad",
     products: [
       {
-        id: "pan-ajo-britos",
-        name: "Pan de Ajo Britos",
+        id: "panes-brito",
+        name: "Panes Brito (8 unidades)",
         price: 25,
-        unit: "unidad",
-        description: "Pan de ajo crujiente, el acompañante perfecto para tu churrasco.",
-        image: panLinguica,
+        unit: "8 unidades",
+        description:
+          "Panes Brito sabor original, con hierbas aromáticas. Asar al horno o en la parrilla hasta dorar. Contiene 8 unidades.",
+        image: imgRealPanesBrito,
       },
       {
-        id: "llajua-trato",
-        name: "Llajua Trato",
+        id: "llajua-trato-extra-picante",
+        name: "Llajua Ahumada Trato Extra Picante",
+        price: 27,
+        unit: "240 gr",
+        description:
+          "Llajua ahumada en leña, extra picante, a base de tomate y cebolla. Contenido neto 240 gr.",
+        image: imgRealLlajuaExtraPicante,
+      },
+      {
+        id: "llajua-trato-suave",
+        name: "Llajua Ahumada Trato Picante Suave",
+        price: 27,
+        unit: "240 gr",
+        description:
+          "Llajua ahumada en leña, picante suave, a base de tomate y cebolla. Contenido neto 240 gr.",
+        image: imgRealLlajuaSuave,
+      },
+      {
+        id: "pal-asau",
+        name: "Salsa Pal Asau",
         price: 27,
         unit: "unidad",
-        description: "Llajua boliviana tradicional, picante y fresca.",
-        image: salsa,
+        description: "Salsa artesanal Pal Asau, el acompañante ideal para tu asado.",
+        image: imgRealPalAsau,
       },
       {
-        id: "llajua-byr",
-        name: "Llajua Churras. B&R",
-        price: 27,
-        unit: "unidad",
-        description: "Nuestra llajua especial de la casa para acompañar la parrilla.",
-        image: salsa,
-      },
-      {
-        id: "chimichurri-350",
-        name: "Chimichurri 350 ml",
+        id: "chimichurri-375",
+        name: "Chimichurri El Churrasquero 375 gr",
         price: 26,
-        unit: "350 ml",
-        description: "Chimichurri artesanal en frasco de 350 ml.",
-        image: salsa,
+        unit: "375 gr",
+        description:
+          "Chimichurri 100% artesanal, un sabor único. Peso neto 375 gr. Refrigerar una vez abierto.",
+        image: imgRealChimichurri,
       },
       {
-        id: "carbon",
-        name: "Carbón",
-        price: 22,
-        unit: "unidad",
-        description: "Carbón de alta calidad para una parrilla perfecta.",
-        image: carbon,
-      },
-      {
-        id: "lena",
-        name: "Leña",
-        price: 8,
-        unit: "unidad",
-        description: "Leña seleccionada para dar ese sabor ahumado único.",
-        image: carbon,
-      },
-      {
-        id: "brasafast",
-        name: "Brasafast",
-        price: 6,
-        unit: "unidad",
-        description: "Encendedor rápido para tu churrasco sin complicaciones.",
-        image: carbon,
+        id: "tapeque-carnes",
+        name: "El Tapeque para Carnes 500 gr",
+        price: 27,
+        unit: "500 gr",
+        description:
+          "Condimento artesanal a base de ajo, cebolla y especias. Ideal para macerar carnes, papas al horno, arroz salteado o pan a la parrilla.",
+        image: imgRealTapeque,
       },
     ],
   },
 ];
 
+
+// Solo se muestran productos con foto real
+export const categories: Category[] = rawCategories
+  .map((category) => ({
+    ...category,
+    products: category.products.filter((p) => Boolean(p.image)),
+  }))
+  .filter((category) => category.products.length > 0);
+
 export const allProducts: Product[] = categories.flatMap((c) => c.products);
+
+export const bestSellerIds: string[] = [
+  "pan-capresse",
+  "pan-dulce-picante",
+  "pan-cheeseburger",
+  "ling-brisket-muzza",
+  "ling-cheddar-jala",
+  "ling-dulce-picante",
+  "ling-capresse",
+  "matambre-miel-mostaza",
+];
+
+export const bestSellers: Product[] = bestSellerIds
+  .map((id) => allProducts.find((p) => p.id === id))
+  .filter((p): p is Product => Boolean(p));

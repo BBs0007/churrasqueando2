@@ -20,7 +20,7 @@ export const BRANCHES: Branch[] = [
   {
     id: "central",
     name: "Churrasqueando",
-    // TODO: falta el nombre de la avenida exacta de este punto (Zona Sur) — avísame cuál es y la actualizo
+    // TODO: falta el nombre de la avenida exacta de este punto (Zona Sur) — avisa cual es y la actualizo
     address: "Zona Sur (17°48'29.7\"S 63°11'26.5\"W)",
     city: "Santa Cruz de la Sierra",
     lat: -17.80825,

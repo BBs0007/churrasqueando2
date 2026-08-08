@@ -10,10 +10,13 @@ export type OrderItemInput = {
 export type OrderInput = {
   customerName: string;
   customerPhone: string;
-  deliveryType: "delivery" | "pickup";
+  deliveryType: "delivery" | "pickup" | "province";
   address?: string;
   lat?: number;
   lng?: number;
+  department?: string;
+  province?: string;
+  town?: string;
   notes?: string;
   items: OrderItemInput[];
   total: number;
@@ -39,6 +42,12 @@ function buildMessage(data: OrderInput): string {
     if (data.lat != null && data.lng != null) {
       lines.push(`*Ubicación:* https://www.google.com/maps?q=${data.lat},${data.lng}`);
     }
+  } else if (data.deliveryType === "province") {
+    lines.push("*Entrega:* Envío a provincias 🚚");
+    if (data.department) lines.push(`*Departamento:* ${data.department}`);
+    if (data.province) lines.push(`*Provincia:* ${data.province}`);
+    if (data.town) lines.push(`*Pueblo/Municipio:* ${data.town}`);
+    if (data.address) lines.push(`*Referencia:* ${data.address}`);
   } else {
     lines.push("*Entrega:* Recoger en el local 🏠");
   }

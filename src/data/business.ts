@@ -11,5 +11,5 @@ export const BUSINESS = {
     lat: -17.6839375,
     lng: -63.15518750000001,
   },
-  hours: "Mar a Dom · 10:00 - 22:00",
+  hours: "Lun a Vie 9am-5pm · Sáb 10am-5pm · Dom y feriado 10am-4pm",
 };
