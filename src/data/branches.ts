@@ -18,7 +18,7 @@ export const BRANCHES: Branch[] = [
     lng: -63.15518750000001,
   },
   {
-    id: "SCZ - SUR",
+    id: "SCZ - SUR 1",
     name: "SOLO CARNES",
     // TODO: falta el nombre de la avenida exacta de este punto (Zona Sur) — avisa cual es y la actualizo
     address: "Zona Sur (17°48'29.7\"S 63°11'26.5\"W)",
@@ -27,7 +27,7 @@ export const BRANCHES: Branch[] = [
     lng: -63.190694,
   },
   {
-    id: "SCZ - SUR",
+    id: "SCZ - SUR 2",
     name: "LAS PALMAS",
     address: "5QVV+968, Av. Iberica, El Pari",
     city: "Santa Cruz de la Sierra",
@@ -35,7 +35,7 @@ export const BRANCHES: Branch[] = [
     lng: -63.2097863,
   },
   {
-    id: "SCZ - SUR",
+    id: "SCZ - SUR 3",
     name: "SANTA VACA CARNE PREMIUM",
     address: "5QQQ+XW",
     city: "Santa Cruz de la Sierra",
