@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { createPagosNetCheckout } from "@/lib/pagosnet";
 
 export type OrderItemInput = {
   name: string;
@@ -121,6 +122,76 @@ async function trySendWhatsApp(data: OrderInput, message: string): Promise<AutoS
 
   return { toBusiness, toCustomer: false };
 }
+
+export type OnlinePaymentResult =
+  | { ok: true; redirectUrl: string; orderId: string }
+  | { ok: false; error: string };
+
+// Crea el pedido en la base de datos y devuelve la URL de PagosNet para
+// que el cliente pague en línea (tarjeta / QR / banca) en vez de coordinar
+// por WhatsApp. Funciona con o sin sesión iniciada.
+export const startOnlinePayment = createServerFn({ method: "POST" })
+  .inputValidator((data: OrderInput & { userId?: string | null; returnUrl: string }) => {
+    if (!data.customerName?.trim()) throw new Error("Falta el nombre");
+    if (!data.customerPhone?.trim()) throw new Error("Falta el teléfono");
+    if (!data.items?.length) throw new Error("El pedido está vacío");
+    if (!data.returnUrl) throw new Error("Falta returnUrl");
+    return data;
+  })
+  .handler(async ({ data }): Promise<OnlinePaymentResult> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        user_id: data.userId ?? null,
+        customer_name: data.customerName,
+        customer_phone: data.customerPhone,
+        delivery_type: data.deliveryType,
+        address: data.address ?? null,
+        lat: data.lat ?? null,
+        lng: data.lng ?? null,
+        department: data.department ?? null,
+        province: data.province ?? null,
+        town: data.town ?? null,
+        notes: data.notes ?? null,
+        items: data.items,
+        total: data.total,
+        payment_method: "pagosnet",
+        payment_status: "pending",
+      })
+      .select("id")
+      .single();
+    if (error) return { ok: false, error: "No se pudo registrar el pedido." };
+
+    const checkout = await createPagosNetCheckout({
+      reference: order.id,
+      amountBs: data.total,
+      description: `Pedido Churrasqueando #${order.id.slice(0, 8)}`,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      returnUrl: `${data.returnUrl}?orderId=${order.id}`,
+    });
+
+    if (!checkout.ok || !checkout.redirectUrl) {
+      return { ok: false, error: checkout.error || "No se pudo iniciar el pago en línea." };
+    }
+
+    return { ok: true, redirectUrl: checkout.redirectUrl, orderId: order.id };
+  });
+
+// Consulta el estado de pago de un pedido (para la pantalla de retorno).
+export const getOrderPaymentStatus = createServerFn({ method: "GET" })
+  .inputValidator((data: { orderId: string }) => data)
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("id, payment_status, total")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    return { status: order?.payment_status ?? "unknown" };
+  });
 
 export const submitOrder = createServerFn({ method: "POST" })
   .inputValidator((data: OrderInput) => {

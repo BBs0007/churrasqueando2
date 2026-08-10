@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CLUB, pointsForAmount } from "@/lib/club";
+import { createPagosNetCheckout } from "@/lib/pagosnet";
 
 export type ClubProfile = {
   id: string;
@@ -135,6 +136,61 @@ export const requestMembership = createServerFn({ method: "POST" })
     });
     if (error) throw error;
     return { ok: true, alreadyPending: false };
+  });
+
+// Igual que requestMembership, pero en vez de coordinar por WhatsApp crea
+// el cobro en PagosNet y devuelve la URL de pago. La membresía se activa
+// sola cuando llega la confirmación al webhook (ver /api/pagosnet-webhook).
+export const startMembershipOnlinePayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { returnUrl: string }) => {
+    if (!input?.returnUrl) throw new Error("Falta returnUrl");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: pending } = await context.supabase
+      .from("membership_requests")
+      .select("id")
+      .eq("user_id", context.userId)
+      .eq("status", "pending")
+      .maybeSingle();
+    if (pending) return { ok: false as const, error: "Ya tienes una solicitud en revisión." };
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, email, phone")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    const { data: request, error } = await supabaseAdmin
+      .from("membership_requests")
+      .insert({
+        user_id: context.userId,
+        plan: "monthly",
+        amount: CLUB.monthlyPriceBs,
+        payment_method: "pagosnet",
+        payment_status: "pending",
+      })
+      .select("id")
+      .single();
+    if (error) return { ok: false as const, error: "No se pudo registrar la solicitud." };
+
+    const checkout = await createPagosNetCheckout({
+      reference: request.id,
+      amountBs: CLUB.monthlyPriceBs,
+      description: `${CLUB.name} — ${CLUB.planLabel}`,
+      customerName: profile?.full_name || profile?.email || "Socio Churrasqueando",
+      customerPhone: profile?.phone || "",
+      returnUrl: `${data.returnUrl}?requestId=${request.id}`,
+    });
+
+    if (!checkout.ok || !checkout.redirectUrl) {
+      return { ok: false as const, error: checkout.error || "No se pudo iniciar el pago en línea." };
+    }
+
+    return { ok: true as const, redirectUrl: checkout.redirectUrl };
   });
 
 export const recordOrder = createServerFn({ method: "POST" })

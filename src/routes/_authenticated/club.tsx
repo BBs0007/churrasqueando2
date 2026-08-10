@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Lock, Unlock, MessageCircle, CheckCircle2, Clock } from "lucide-react";
+import { Loader2, Lock, Unlock, MessageCircle, CheckCircle2, Clock, CreditCard, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { getMyClub, requestMembership } from "@/lib/club.functions";
+import { getMyClub, requestMembership, startMembershipOnlinePayment } from "@/lib/club.functions";
 import { CLUB, CLUB_BENEFITS } from "@/lib/club";
 import { BUSINESS } from "@/data/business";
 import { CURRENCY } from "@/data/products";
@@ -34,6 +34,7 @@ export const Route = createFileRoute("/_authenticated/club")({
 function ClubPage() {
   const fetchClub = useServerFn(getMyClub);
   const askMembership = useServerFn(requestMembership);
+  const payOnline = useServerFn(startMembershipOnlinePayment);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({ queryKey: ["club", "me"], queryFn: () => fetchClub() });
@@ -49,6 +50,18 @@ function ClubPage() {
       queryClient.invalidateQueries({ queryKey: ["club", "me"] });
     },
     onError: () => toast.error("No se pudo registrar la solicitud"),
+  });
+
+  const onlineMutation = useMutation({
+    mutationFn: () => payOnline({ data: { returnUrl: `${window.location.origin}/club` } }),
+    onSuccess: (res) => {
+      if (res.ok) {
+        window.location.href = res.redirectUrl;
+      } else {
+        toast.error(res.error);
+      }
+    },
+    onError: () => toast.error("No se pudo iniciar el pago en línea"),
   });
 
   if (isLoading || !data) {
@@ -68,6 +81,11 @@ function ClubPage() {
     `¡Hola Churrasqueando! Quiero activar mi membresía del ${CLUB.name} (${CLUB.planLabel}, ${CLUB.monthlyPriceBs} ${CURRENCY}).\nMi cuenta: ${profile.email}\nEnvíenme el QR de pago, por favor.`,
   );
   const waUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${waMessage}`;
+
+  const waCancelMessage = encodeURIComponent(
+    `¡Hola Churrasqueando! Quiero cancelar/dar de baja mi membresía del ${CLUB.name}.\nMi cuenta: ${profile.email}`,
+  );
+  const waCancelUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${waCancelMessage}`;
 
   return (
     <ClubShell points={profile.points} isMember={isMember} isAdmin={isAdmin}>
@@ -133,26 +151,39 @@ function ClubPage() {
           </ol>
 
           <div className="mt-6 flex flex-wrap gap-3">
+            <Button
+              disabled={onlineMutation.isPending || !!pending}
+              onClick={() => onlineMutation.mutate()}
+              className="font-cond uppercase tracking-wide"
+            >
+              {onlineMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+              Pagar en línea
+            </Button>
             <a href={waUrl} target="_blank" rel="noreferrer">
-              <Button className="font-cond uppercase tracking-wide">
+              <Button variant="outline" className="font-cond uppercase tracking-wide">
                 <MessageCircle className="h-4 w-4" /> Pedir QR por WhatsApp
               </Button>
             </a>
-            <Button
-              variant="outline"
-              disabled={mutation.isPending || !!pending}
-              onClick={() => mutation.mutate()}
-              className="font-cond uppercase tracking-wide"
-            >
-              {mutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : pending ? (
-                <Clock className="h-4 w-4" />
-              ) : (
+            {!pending && (
+              <Button
+                variant="outline"
+                disabled={mutation.isPending}
+                onClick={() => mutation.mutate()}
+                className="font-cond uppercase tracking-wide"
+              >
                 <CheckCircle2 className="h-4 w-4" />
-              )}
-              {pending ? "Solicitud en revisión" : "Ya realicé el pago"}
-            </Button>
+                Ya pagué por WhatsApp
+              </Button>
+            )}
+            {pending && (
+              <Button variant="outline" disabled className="font-cond uppercase tracking-wide">
+                <Clock className="h-4 w-4" /> Solicitud en revisión
+              </Button>
+            )}
           </div>
 
           {pending && (
@@ -161,6 +192,19 @@ function ClubPage() {
               activación es manual y la confirma el equipo de Churrasqueando.
             </p>
           )}
+        </section>
+      )}
+
+      {isMember && (
+        <section className="mt-8 rounded-2xl border border-border bg-card p-5">
+          <p className="text-sm text-muted-foreground">
+            ¿Quieres dar de baja tu membresía? Escríbenos por WhatsApp y la cancelamos por ti.
+          </p>
+          <a href={waCancelUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block">
+            <Button variant="outline" className="font-cond uppercase tracking-wide">
+              <XCircle className="h-4 w-4" /> Cancelar membresía por WhatsApp
+            </Button>
+          </a>
         </section>
       )}
     </ClubShell>
