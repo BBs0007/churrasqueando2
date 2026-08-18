@@ -53,7 +53,7 @@ export function ProductCard({ product }: { product: Product }) {
         <p className="line-clamp-2 flex-1 text-sm text-muted-foreground">{product.description}</p>
 
         <div className="mt-2 flex items-center justify-between">
-          <p className="font-display text-2xl text-gradient-fire">
+          <p className="font-display text-2xl text-foreground">
             {product.price}
             <span className="ml-1 text-sm text-muted-foreground">{CURRENCY}</span>
           </p>

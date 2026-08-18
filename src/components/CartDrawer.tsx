@@ -80,7 +80,7 @@ export function CartDrawer() {
                         <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <span className="font-display text-lg text-gradient-fire">
+                    <span className="font-display text-lg text-foreground">
                       {product.price * quantity} {CURRENCY}
                     </span>
                   </div>
@@ -103,7 +103,7 @@ export function CartDrawer() {
               <span className="font-cond uppercase tracking-wide text-muted-foreground">
                 Total ({totalItems})
               </span>
-              <span className="font-display text-2xl text-gradient-fire">
+              <span className="font-display text-2xl text-foreground">
                 {totalPrice} {CURRENCY}
               </span>
             </div>

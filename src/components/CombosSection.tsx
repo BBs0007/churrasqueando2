@@ -39,7 +39,7 @@ function ComboCard({ combo }: { combo: Combo }) {
           ))}
         </ul>
         <div className="mt-2 flex items-center justify-between">
-          <p className="font-display text-2xl text-gradient-fire">
+          <p className="font-display text-2xl text-foreground">
             {combo.price}
             <span className="ml-1 text-sm text-muted-foreground">{CURRENCY}</span>
           </p>

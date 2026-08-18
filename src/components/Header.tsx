@@ -1,15 +1,22 @@
-import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Flame, MapPin, ChevronDown, User } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { ShoppingBag, User } from "lucide-react";
 import logo from "@/assets/logo-churrasqueando.png";
-import { sections, getSectionCategories } from "@/data/sections";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 
+const NAV = [
+  { to: "/tienda", label: "Tienda" },
+  { to: "/reservar-catering", label: "Catering" },
+  { to: "/club", label: "Club Churrasqueando" },
+] as const;
+
 export function Header() {
   const { totalItems, setOpen } = useCart();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isHome = pathname === "/";
 
-  const scrollTo = (id: string) => {
-    const el = document.getElementById(id);
+  const goToBranches = () => {
+    const el = document.getElementById("puntos-de-venta");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -31,107 +38,75 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          <button
-            onClick={() => scrollTo("best-sellers")}
-            className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-primary transition-colors hover:bg-secondary"
-          >
-            Best Sellers
-          </button>
-          <button
-            onClick={() => scrollTo("combos-seccion")}
-            className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            Combos
-          </button>
-          {sections.map((section) => (
-            <div key={section.id} className="group relative">
-              <button
-                onClick={() => scrollTo(section.id)}
-                className="font-cond flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors group-hover:bg-secondary group-hover:text-foreground"
-              >
-                {section.title}
-                <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" />
-              </button>
-              <div className="invisible absolute left-0 top-full z-50 min-w-64 translate-y-1 rounded-2xl border border-border bg-popover p-2 opacity-0 shadow-card transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-                {getSectionCategories(section).map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => scrollTo(c.id)}
-                    className="flex w-full flex-col items-start gap-0.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary"
-                  >
-                    <span className="font-cond text-sm font-semibold uppercase tracking-wide text-foreground">
-                      {c.name}
-                    </span>
-                    <span className="text-xs text-primary">{c.tagline}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+          {NAV.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              activeProps={{ className: "text-primary" }}
+            >
+              {item.label}
+            </Link>
           ))}
-          <Link
-            to="/sucursales"
-            className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            PUNTOS DE VENTAS
-          </Link>
-          <Link
-            to="/cuenta"
-            className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-primary transition-colors hover:bg-secondary"
-          >
-            CLUB
-          </Link>
+          {isHome ? (
+            <button
+              onClick={goToBranches}
+              className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              Puntos de ventas
+            </button>
+          ) : (
+            <Link
+              to="/"
+              hash="puntos-de-venta"
+              className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              Puntos de ventas
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link to="/cuenta" className="lg:hidden">
-            <Button variant="outline" size="icon" aria-label="Mi cuenta del Club">
-              <User className="h-4 w-4" />
+          {!isHome && (
+            <Button
+              variant="outline"
+              onClick={() => setOpen(true)}
+              className="relative font-cond font-semibold uppercase tracking-wide"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              <span className="hidden sm:inline">Pedido</span>
+              {totalItems > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground">
+                  {totalItems}
+                </span>
+              )}
             </Button>
-          </Link>
-          <Button
-            variant="default"
-            onClick={() => setOpen(true)}
-            className="relative font-cond font-semibold uppercase tracking-wide"
-          >
-            <ShoppingBag className="h-4 w-4" />
-            <span className="hidden sm:inline">Pedido</span>
-            {totalItems > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground">
-                {totalItems}
-              </span>
-            )}
+          )}
+          <Button asChild className="font-cond font-semibold uppercase tracking-wide">
+            <Link to="/cuenta">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Club</span>
+            </Link>
           </Button>
         </div>
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 lg:hidden no-scrollbar">
-        <Flame className="h-4 w-4 shrink-0 text-primary" />
-        <button
-          onClick={() => scrollTo("best-sellers")}
-          className="font-cond shrink-0 rounded-full bg-gradient-fire px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
-        >
-          Best Sellers
-        </button>
-        <button
-          onClick={() => scrollTo("combos-seccion")}
-          className="font-cond shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-wide text-secondary-foreground"
-        >
-          Combos
-        </button>
-        {sections.map((section) => (
-          <button
-            key={section.id}
-            onClick={() => scrollTo(section.id)}
+        {NAV.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
             className="font-cond shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-wide text-secondary-foreground"
           >
-            {section.title}
-          </button>
+            {item.label}
+          </Link>
         ))}
         <Link
-          to="/sucursales"
-          className="font-cond flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
+          to="/"
+          hash="puntos-de-venta"
+          className="font-cond shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
         >
-          <MapPin className="h-3 w-3" /> PUNTOS DE VENTAS
+          Puntos de ventas
         </Link>
       </div>
     </header>

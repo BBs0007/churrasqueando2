@@ -1,11 +1,11 @@
 import type { Product } from "./products";
 
-import comboBrasuco from "@/assets/combos/combo-brasuco.jpeg";
-import comboGaucho from "@/assets/combos/combo-gaucho.jpeg";
-import comboGringo from "@/assets/combos/combo-gringo.jpeg";
-import comboArgentina from "@/assets/combos/combo-argentina.jpeg";
-import comboEspanolisimo from "@/assets/combos/combo-espanolisimo.jpeg";
-import comboOraleGuey from "@/assets/combos/combo-orale-guey.jpeg";
+import comboBrasuco from "@/assets/combos/combo-brasuco.jpg.asset.json";
+import comboGaucho from "@/assets/combos/combo-gaucho.jpg.asset.json";
+import comboGringo from "@/assets/combos/combo-gringo.jpg.asset.json";
+import comboArgentina from "@/assets/combos/combo-argentina.jpg.asset.json";
+import comboEspanolisimo from "@/assets/combos/combo-espanolisimo.jpg.asset.json";
+import comboOraleGuey from "@/assets/combos/combo-orale-guey.jpg.asset.json";
 
 export type Combo = Product & {
   people: number;
@@ -28,7 +28,7 @@ export const combos: Combo[] = [
     ],
     description:
       "Bananinha, picaña, maminha, pan con linguiça y linguiças. Hasta para 12 personas.",
-    image: comboBrasuco,
+    image: comboBrasuco.url,
   },
   {
     id: "combo-gaucho",
@@ -46,7 +46,7 @@ export const combos: Combo[] = [
     ],
     description:
       "El más grande: costilla, entraña, corazón de cuadril, molleja, linguiças, morcilla y matambre. Hasta para 20 personas.",
-    image: comboGaucho,
+    image: comboGaucho.url,
   },
   {
     id: "combo-espanolisimo",
@@ -66,7 +66,7 @@ export const combos: Combo[] = [
     ],
     description:
       "Punta de S premium, tira, linguiças, entraña, colita de cuadril, jiba y panes XL. Hasta para 15 personas.",
-    image: comboEspanolisimo,
+    image: comboEspanolisimo.url,
   },
   {
     id: "combo-gringo",
@@ -83,7 +83,7 @@ export const combos: Combo[] = [
     ],
     description:
       "Ojo de bife, bife de chorizo, cowboy, sal ahumada y linguiças brisket. Hasta para 15 personas.",
-    image: comboGringo,
+    image: comboGringo.url,
   },
   {
     id: "combo-argentina",
@@ -99,7 +99,7 @@ export const combos: Combo[] = [
     ],
     description:
       "Bife de chorizo premium, linguiças a elección, pan con linguiça y sal. Hasta para 10 personas.",
-    image: comboArgentina,
+    image: comboArgentina.url,
   },
   {
     id: "combo-orale-guey",
@@ -116,6 +116,6 @@ export const combos: Combo[] = [
     ],
     description:
       "Ojo de bife, entraña, panes con linguiça, sal y chimichurri. Hasta para 10 personas.",
-    image: comboOraleGuey,
+    image: comboOraleGuey.url,
   },
 ];

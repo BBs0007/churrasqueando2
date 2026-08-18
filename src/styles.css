@@ -92,7 +92,8 @@
   --sidebar-border: oklch(0.3 0.015 40);
   --sidebar-ring: oklch(0.68 0.2 45);
 
-  --gradient-fire: linear-gradient(135deg, oklch(0.78 0.17 70), oklch(0.62 0.22 35), oklch(0.5 0.2 25));
+  --brand-orange: #e1761f;
+  --gradient-fire: linear-gradient(135deg, #e1761f, #e1761f);
   --gradient-ember: linear-gradient(180deg, transparent, oklch(0.55 0.21 28 / 0.25));
   --shadow-fire: 0 10px 40px -12px oklch(0.62 0.22 35 / 0.55);
   --shadow-card: 0 8px 30px -10px oklch(0 0 0 / 0.6);

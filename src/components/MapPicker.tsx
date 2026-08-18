@@ -37,6 +37,22 @@ export function MapPicker({
         });
         mapRef.current = map;
 
+        // Ubicación del local / central de la empresa (marcador naranja)
+        new g.maps.Marker({
+          position: { lat: BUSINESS.pickup.lat, lng: BUSINESS.pickup.lng },
+          map,
+          title: `${BUSINESS.pickup.label} (central)`,
+          zIndex: 1,
+          icon: {
+            path: g.maps.SymbolPath.CIRCLE,
+            scale: 9,
+            fillColor: "#F97316",
+            fillOpacity: 1,
+            strokeColor: "#FFEDD5",
+            strokeWeight: 2,
+          },
+        });
+
         const placeMarker = (pos: LatLng) => {
           if (markerRef.current) {
             markerRef.current.setPosition(pos);
@@ -109,12 +125,18 @@ export function MapPicker({
         )}
       </div>
       <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5 text-primary" />
-          {value
-            ? "Punto de entrega marcado. Arrastra el pin para ajustar."
-            : "Toca el mapa para marcar dónde quieres recibir tu pedido."}
-        </p>
+        <div className="space-y-1">
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 text-primary" />
+            {value
+              ? "Punto de entrega marcado. Arrastra el pin para ajustar."
+              : "Toca el mapa para marcar dónde quieres recibir tu pedido."}
+          </p>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-primary ring-2 ring-primary/30" />
+            En naranja: {BUSINESS.pickup.label} (central de la empresa).
+          </p>
+        </div>
         <Button type="button" variant="outline" size="sm" onClick={useMyLocation} className="shrink-0">
           <Navigation className="h-3.5 w-3.5" /> Mi ubicación
         </Button>

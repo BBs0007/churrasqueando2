@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Flame, Star } from "lucide-react";
-import heroTeam from "@/assets/hero-team.webp";
+import heroTeam from "@/assets/hero-team.webp.asset.json";
 import { BUSINESS } from "@/data/business";
 import { Button } from "@/components/ui/button";
 
@@ -9,7 +9,7 @@ export function Hero() {
     <section className="relative overflow-hidden bg-background">
       <div className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[70%] lg:w-[60%]">
         <img
-          src={heroTeam}
+          src={heroTeam.url}
           alt="Equipo Churrasqueando"
           className="h-full w-full object-cover object-right"
         />

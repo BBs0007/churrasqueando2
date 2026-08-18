@@ -1,72 +1,72 @@
 // Solo fotos reales de producto. Los productos sin foto muestran un marcador
 // hasta que se suba la imagen real.
-import realCheddarJalaAsset from "@/assets/real-cheddar-jalapeno.jpg";
-import realBifeAnchoAsset from "@/assets/real-bife-ancho-bc.jpg";
-import realColitaCuadrilAsset from "@/assets/real-colita-cuadril-bc.jpg";
-import realCowboyAsset from "@/assets/real-cowboy-churras.jpg";
-import realFraldinhaAsset from "@/assets/real-fraldinha-bc.jpg";
-import realDulcePicanteAsset from "@/assets/real-dulce-picante.jpg";
-import realMatambreMielAsset from "@/assets/real-matambre-miel.jpg";
-import realBrisketMuzzaAsset from "@/assets/real-brisket-muzza.jpg";
-import realPanCheeseburgerAsset from "@/assets/real-pan-cheeseburger.jpg";
-import realPanTradicionalAsset from "@/assets/real-pan-tradicional.jpg";
-import realHierbaMuzzaAsset from "@/assets/real-hierba-muzza.jpg";
-import realAlbahacaProvoloneAsset from "@/assets/real-albahaca-provolone.jpg";
-import realTradicionalCerdoAsset from "@/assets/real-tradicional-cerdo.jpg";
-import realCapresseAsset from "@/assets/real-capresse.jpg";
-import realBifeChorizoPcAsset from "@/assets/real-bife-chorizo-pc.jpg";
-import realCarnePicadaAsset from "@/assets/real-carne-picada.jpg";
-import realCarneMolidaAsset from "@/assets/real-carne-molida.jpg";
-import realPuntaSBcAsset from "@/assets/real-punta-s-bc.jpg";
-import realCorazonCuadrilChAsset from "@/assets/real-corazon-cuadril-ch.jpg";
-import realCostilla1erChAsset from "@/assets/real-costilla-1er-ch.jpg";
-import realEntranaChAsset from "@/assets/real-entrana-ch.jpg";
-import realLomoGrandeBcAsset from "@/assets/real-lomo-grande-bc.jpg";
-import realLingBrisketChAsset from "@/assets/real-ling-brisket-ch.jpg";
-import realMatambreTradicionalAsset from "@/assets/real-matambre-tradicional.jpg";
-import realOjoBifeChAsset from "@/assets/real-ojo-bife-ch.jpg";
-import realPanesBritoAsset from "@/assets/real-panes-brito.jpg";
-import realPuntaSChAsset from "@/assets/real-punta-s-ch.jpg";
-import realBifeChorizoChAsset from "@/assets/real-bife-chorizo-ch.jpg";
-import realTapequeAsset from "@/assets/real-tapeque-carnes.jpg";
-import realLlajuaSuaveAsset from "@/assets/real-llajua-suave-trato.jpg";
-import realLlajuaExtraPicanteAsset from "@/assets/real-llajua-extra-picante-trato.jpg";
-import realPalAsauAsset from "@/assets/real-pal-asau.jpg";
-import realChimichurriAsset from "@/assets/real-chimichurri-churrasquero.jpg";
+import realCheddarJalaAsset from "@/assets/real-cheddar-jalapeno.jpg.asset.json";
+import realBifeAnchoAsset from "@/assets/real-bife-ancho-bc.jpg.asset.json";
+import realColitaCuadrilAsset from "@/assets/real-colita-cuadril-bc.jpg.asset.json";
+import realCowboyAsset from "@/assets/real-cowboy-churras.jpg.asset.json";
+import realFraldinhaAsset from "@/assets/real-fraldinha-bc.jpg.asset.json";
+import realDulcePicanteAsset from "@/assets/real-dulce-picante.jpg.asset.json";
+import realMatambreMielAsset from "@/assets/real-matambre-miel.jpg.asset.json";
+import realBrisketMuzzaAsset from "@/assets/real-brisket-muzza.jpg.asset.json";
+import realPanCheeseburgerAsset from "@/assets/real-pan-cheeseburger.jpg.asset.json";
+import realPanTradicionalAsset from "@/assets/real-pan-tradicional.jpg.asset.json";
+import realHierbaMuzzaAsset from "@/assets/real-hierba-muzza.jpg.asset.json";
+import realAlbahacaProvoloneAsset from "@/assets/real-albahaca-provolone.jpg.asset.json";
+import realTradicionalCerdoAsset from "@/assets/real-tradicional-cerdo.jpg.asset.json";
+import realCapresseAsset from "@/assets/real-capresse.jpg.asset.json";
+import realBifeChorizoPcAsset from "@/assets/real-bife-chorizo-pc.jpg.asset.json";
+import realCarnePicadaAsset from "@/assets/real-carne-picada.jpg.asset.json";
+import realCarneMolidaAsset from "@/assets/real-carne-molida.jpg.asset.json";
+import realPuntaSBcAsset from "@/assets/real-punta-s-bc.jpg.asset.json";
+import realCorazonCuadrilChAsset from "@/assets/real-corazon-cuadril-ch.jpg.asset.json";
+import realCostilla1erChAsset from "@/assets/real-costilla-1er-ch.jpg.asset.json";
+import realEntranaChAsset from "@/assets/real-entrana-ch.jpg.asset.json";
+import realLomoGrandeBcAsset from "@/assets/real-lomo-grande-bc.jpg.asset.json";
+import realLingBrisketChAsset from "@/assets/real-ling-brisket-ch.jpg.asset.json";
+import realMatambreTradicionalAsset from "@/assets/real-matambre-tradicional.jpg.asset.json";
+import realOjoBifeChAsset from "@/assets/real-ojo-bife-ch.jpg.asset.json";
+import realPanesBritoAsset from "@/assets/real-panes-brito.jpg.asset.json";
+import realPuntaSChAsset from "@/assets/real-punta-s-ch.jpg.asset.json";
+import realBifeChorizoChAsset from "@/assets/real-bife-chorizo-ch.jpg.asset.json";
+import realTapequeAsset from "@/assets/real-tapeque-carnes.jpg.asset.json";
+import realLlajuaSuaveAsset from "@/assets/real-llajua-suave-trato.jpg.asset.json";
+import realLlajuaExtraPicanteAsset from "@/assets/real-llajua-extra-picante-trato.jpg.asset.json";
+import realPalAsauAsset from "@/assets/real-pal-asau.jpg.asset.json";
+import realChimichurriAsset from "@/assets/real-chimichurri-churrasquero.jpg.asset.json";
 
-const imgRealCheddarJala = realCheddarJalaAsset;
-const imgRealBifeAncho = realBifeAnchoAsset;
-const imgRealColitaCuadril = realColitaCuadrilAsset;
-const imgRealCowboy = realCowboyAsset;
-const imgRealFraldinha = realFraldinhaAsset;
-const imgRealDulcePicante = realDulcePicanteAsset;
-const imgRealMatambreMiel = realMatambreMielAsset;
-const imgRealBrisketMuzza = realBrisketMuzzaAsset;
-const imgRealPanCheeseburger = realPanCheeseburgerAsset;
-const imgRealPanTradicional = realPanTradicionalAsset;
-const imgRealHierbaMuzza = realHierbaMuzzaAsset;
-const imgRealAlbahacaProvolone = realAlbahacaProvoloneAsset;
-const imgRealTradicionalCerdo = realTradicionalCerdoAsset;
-const imgRealCapresse = realCapresseAsset;
-const imgRealBifeChorizoPc = realBifeChorizoPcAsset;
-const imgRealCarnePicada = realCarnePicadaAsset;
-const imgRealCarneMolida = realCarneMolidaAsset;
-const imgRealPuntaSBc = realPuntaSBcAsset;
-const imgRealCorazonCuadrilCh = realCorazonCuadrilChAsset;
-const imgRealCostilla1erCh = realCostilla1erChAsset;
-const imgRealEntranaCh = realEntranaChAsset;
-const imgRealLomoGrandeBc = realLomoGrandeBcAsset;
-const imgRealLingBrisketCh = realLingBrisketChAsset;
-const imgRealMatambreTradicional = realMatambreTradicionalAsset;
-const imgRealOjoBifeCh = realOjoBifeChAsset;
-const imgRealPanesBrito = realPanesBritoAsset;
-const imgRealPuntaSCh = realPuntaSChAsset;
-const imgRealBifeChorizoCh = realBifeChorizoChAsset;
-const imgRealTapeque = realTapequeAsset;
-const imgRealLlajuaSuave = realLlajuaSuaveAsset;
-const imgRealLlajuaExtraPicante = realLlajuaExtraPicanteAsset;
-const imgRealPalAsau = realPalAsauAsset;
-const imgRealChimichurri = realChimichurriAsset;
+const imgRealCheddarJala = realCheddarJalaAsset.url;
+const imgRealBifeAncho = realBifeAnchoAsset.url;
+const imgRealColitaCuadril = realColitaCuadrilAsset.url;
+const imgRealCowboy = realCowboyAsset.url;
+const imgRealFraldinha = realFraldinhaAsset.url;
+const imgRealDulcePicante = realDulcePicanteAsset.url;
+const imgRealMatambreMiel = realMatambreMielAsset.url;
+const imgRealBrisketMuzza = realBrisketMuzzaAsset.url;
+const imgRealPanCheeseburger = realPanCheeseburgerAsset.url;
+const imgRealPanTradicional = realPanTradicionalAsset.url;
+const imgRealHierbaMuzza = realHierbaMuzzaAsset.url;
+const imgRealAlbahacaProvolone = realAlbahacaProvoloneAsset.url;
+const imgRealTradicionalCerdo = realTradicionalCerdoAsset.url;
+const imgRealCapresse = realCapresseAsset.url;
+const imgRealBifeChorizoPc = realBifeChorizoPcAsset.url;
+const imgRealCarnePicada = realCarnePicadaAsset.url;
+const imgRealCarneMolida = realCarneMolidaAsset.url;
+const imgRealPuntaSBc = realPuntaSBcAsset.url;
+const imgRealCorazonCuadrilCh = realCorazonCuadrilChAsset.url;
+const imgRealCostilla1erCh = realCostilla1erChAsset.url;
+const imgRealEntranaCh = realEntranaChAsset.url;
+const imgRealLomoGrandeBc = realLomoGrandeBcAsset.url;
+const imgRealLingBrisketCh = realLingBrisketChAsset.url;
+const imgRealMatambreTradicional = realMatambreTradicionalAsset.url;
+const imgRealOjoBifeCh = realOjoBifeChAsset.url;
+const imgRealPanesBrito = realPanesBritoAsset.url;
+const imgRealPuntaSCh = realPuntaSChAsset.url;
+const imgRealBifeChorizoCh = realBifeChorizoChAsset.url;
+const imgRealTapeque = realTapequeAsset.url;
+const imgRealLlajuaSuave = realLlajuaSuaveAsset.url;
+const imgRealLlajuaExtraPicante = realLlajuaExtraPicanteAsset.url;
+const imgRealPalAsau = realPalAsauAsset.url;
+const imgRealChimichurri = realChimichurriAsset.url;
 
 export type Product = {
   id: string;
@@ -401,13 +401,14 @@ export const allProducts: Product[] = categories.flatMap((c) => c.products);
 
 export const bestSellerIds: string[] = [
   "pan-capresse",
-  "pan-dulce-picante",
-  "pan-cheeseburger",
-  "ling-brisket-muzza",
-  "ling-cheddar-jala",
-  "ling-dulce-picante",
-  "ling-capresse",
+  "ch-punta-s",
   "matambre-miel-mostaza",
+  "ling-dulce-picante",
+  "ling-cheddar-jala",
+  "ling-capresse",
+  "ling-brisket-muzza",
+  "pan-cheeseburger",
+  "pan-dulce-picante",
 ];
 
 export const bestSellers: Product[] = bestSellerIds
