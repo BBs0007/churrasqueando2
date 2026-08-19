@@ -67,21 +67,19 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {!isHome && (
-            <Button
-              variant="outline"
-              onClick={() => setOpen(true)}
-              className="relative font-cond font-semibold uppercase tracking-wide"
-            >
-              <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Pedido</span>
-              {totalItems > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground">
-                  {totalItems}
-                </span>
-              )}
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            onClick={() => setOpen(true)}
+            className="relative font-cond font-semibold uppercase tracking-wide"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            <span className="hidden sm:inline">Pedido</span>
+            {totalItems > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground">
+                {totalItems}
+              </span>
+            )}
+          </Button>
           <Button asChild className="font-cond font-semibold uppercase tracking-wide">
             <Link to="/cuenta">
               <User className="h-4 w-4" />
