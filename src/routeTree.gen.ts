@@ -13,13 +13,15 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as ClubRouteImport } from './routes/club'
 import { Route as ReservarCateringRouteImport } from './routes/reservar-catering'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SucursalesRouteImport } from './routes/sucursales'
+import { Route as TiendaRouteImport } from './routes/tienda'
 import { Route as AuthenticatedAdminClubRouteImport } from './routes/_authenticated/admin-club'
-import { Route as AuthenticatedClubRouteImport } from './routes/_authenticated/club'
 import { Route as AuthenticatedCuentaRouteImport } from './routes/_authenticated/cuenta'
+import { Route as ApiPagosnetWebhookRouteImport } from './routes/api.pagosnet-webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -38,6 +40,11 @@ const AuthRoute = AuthRouteImport.update({
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClubRoute = ClubRouteImport.update({
+  id: '/club',
+  path: '/club',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReservarCateringRoute = ReservarCateringRouteImport.update({
@@ -60,14 +67,14 @@ const SucursalesRoute = SucursalesRouteImport.update({
   path: '/sucursales',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TiendaRoute = TiendaRouteImport.update({
+  id: '/tienda',
+  path: '/tienda',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminClubRoute = AuthenticatedAdminClubRouteImport.update({
   id: '/admin-club',
   path: '/admin-club',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedClubRoute = AuthenticatedClubRouteImport.update({
-  id: '/club',
-  path: '/club',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCuentaRoute = AuthenticatedCuentaRouteImport.update({
@@ -75,30 +82,39 @@ const AuthenticatedCuentaRoute = AuthenticatedCuentaRouteImport.update({
   path: '/cuenta',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPagosnetWebhookRoute = ApiPagosnetWebhookRouteImport.update({
+  id: '/api/pagosnet-webhook',
+  path: '/api/pagosnet-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
+  '/club': typeof ClubRoute
   '/reservar-catering': typeof ReservarCateringRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sucursales': typeof SucursalesRoute
+  '/tienda': typeof TiendaRoute
   '/admin-club': typeof AuthenticatedAdminClubRoute
-  '/club': typeof AuthenticatedClubRoute
   '/cuenta': typeof AuthenticatedCuentaRoute
+  '/api/pagosnet-webhook': typeof ApiPagosnetWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
+  '/club': typeof ClubRoute
   '/reservar-catering': typeof ReservarCateringRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sucursales': typeof SucursalesRoute
+  '/tienda': typeof TiendaRoute
   '/admin-club': typeof AuthenticatedAdminClubRoute
-  '/club': typeof AuthenticatedClubRoute
   '/cuenta': typeof AuthenticatedCuentaRoute
+  '/api/pagosnet-webhook': typeof ApiPagosnetWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,13 +122,15 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
+  '/club': typeof ClubRoute
   '/reservar-catering': typeof ReservarCateringRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sucursales': typeof SucursalesRoute
+  '/tienda': typeof TiendaRoute
   '/_authenticated/admin-club': typeof AuthenticatedAdminClubRoute
-  '/_authenticated/club': typeof AuthenticatedClubRoute
   '/_authenticated/cuenta': typeof AuthenticatedCuentaRoute
+  '/api/pagosnet-webhook': typeof ApiPagosnetWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,38 +138,44 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/checkout'
+    | '/club'
     | '/reservar-catering'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sucursales'
+    | '/tienda'
     | '/admin-club'
-    | '/club'
     | '/cuenta'
+    | '/api/pagosnet-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/checkout'
+    | '/club'
     | '/reservar-catering'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sucursales'
+    | '/tienda'
     | '/admin-club'
-    | '/club'
     | '/cuenta'
+    | '/api/pagosnet-webhook'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/checkout'
+    | '/club'
     | '/reservar-catering'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sucursales'
+    | '/tienda'
     | '/_authenticated/admin-club'
-    | '/_authenticated/club'
     | '/_authenticated/cuenta'
+    | '/api/pagosnet-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -159,10 +183,13 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CheckoutRoute: typeof CheckoutRoute
+  ClubRoute: typeof ClubRoute
   ReservarCateringRoute: typeof ReservarCateringRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SucursalesRoute: typeof SucursalesRoute
+  TiendaRoute: typeof TiendaRoute
+  ApiPagosnetWebhookRoute: typeof ApiPagosnetWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -195,6 +222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/club': {
+      id: '/club'
+      path: '/club'
+      fullPath: '/club'
+      preLoaderRoute: typeof ClubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reservar-catering': {
       id: '/reservar-catering'
       path: '/reservar-catering'
@@ -223,18 +257,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SucursalesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tienda': {
+      id: '/tienda'
+      path: '/tienda'
+      fullPath: '/tienda'
+      preLoaderRoute: typeof TiendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin-club': {
       id: '/_authenticated/admin-club'
       path: '/admin-club'
       fullPath: '/admin-club'
       preLoaderRoute: typeof AuthenticatedAdminClubRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/club': {
-      id: '/_authenticated/club'
-      path: '/club'
-      fullPath: '/club'
-      preLoaderRoute: typeof AuthenticatedClubRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cuenta': {
@@ -244,18 +278,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCuentaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/pagosnet-webhook': {
+      id: '/api/pagosnet-webhook'
+      path: '/api/pagosnet-webhook'
+      fullPath: '/api/pagosnet-webhook'
+      preLoaderRoute: typeof ApiPagosnetWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminClubRoute: typeof AuthenticatedAdminClubRoute
-  AuthenticatedClubRoute: typeof AuthenticatedClubRoute
   AuthenticatedCuentaRoute: typeof AuthenticatedCuentaRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminClubRoute: AuthenticatedAdminClubRoute,
-  AuthenticatedClubRoute: AuthenticatedClubRoute,
   AuthenticatedCuentaRoute: AuthenticatedCuentaRoute,
 }
 
@@ -267,10 +306,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CheckoutRoute: CheckoutRoute,
+  ClubRoute: ClubRoute,
   ReservarCateringRoute: ReservarCateringRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SucursalesRoute: SucursalesRoute,
+  TiendaRoute: TiendaRoute,
+  ApiPagosnetWebhookRoute: ApiPagosnetWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

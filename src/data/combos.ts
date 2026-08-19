@@ -1,11 +1,11 @@
 import type { Product } from "./products";
 
-import comboBrasuco from "@/assets/combos/combo-brasuco.jpg.asset.json";
-import comboGaucho from "@/assets/combos/combo-gaucho.jpg.asset.json";
-import comboGringo from "@/assets/combos/combo-gringo.jpg.asset.json";
-import comboArgentina from "@/assets/combos/combo-argentina.jpg.asset.json";
-import comboEspanolisimo from "@/assets/combos/combo-espanolisimo.jpg.asset.json";
-import comboOraleGuey from "@/assets/combos/combo-orale-guey.jpg.asset.json";
+import comboBrasuco from "@/assets/combos/combo-brasuco.jpeg";
+import comboGaucho from "@/assets/combos/combo-gaucho.jpeg";
+import comboGringo from "@/assets/combos/combo-gringo.jpeg";
+import comboArgentina from "@/assets/combos/combo-argentina.jpeg";
+import comboEspanolisimo from "@/assets/combos/combo-espanolisimo.jpeg";
+import comboOraleGuey from "@/assets/combos/combo-orale-guey.jpeg";
 
 export type Combo = Product & {
   people: number;

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Flame, Star } from "lucide-react";
-import heroTeam from "@/assets/hero-team.webp.asset.json";
+import heroTeam from "@/assets/hero-team.webp";
 import { BUSINESS } from "@/data/business";
 import { Button } from "@/components/ui/button";
 

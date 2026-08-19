@@ -1,4 +1,4 @@
-import whatsappIcon from "@/assets/whatsapp-icon.png.asset.json";
+import whatsappIcon from "@/assets/whatsapp-icon.png";
 
 const WHATSAPP_URL =
   "https://api.whatsapp.com/send/?phone=59175358008&text&type=phone_number&app_absent=0";
