@@ -10,13 +10,13 @@ import {
   CheckCircle2,
   MessageCircle,
   ShoppingBag,
-  CreditCard,
 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { CURRENCY } from "@/data/products";
 import { BUSINESS } from "@/data/business";
+import { isKgProduct } from "@/lib/units";
 import { BOLIVIA, DEPARTAMENTOS } from "@/data/bolivia";
-import { submitOrder, startOnlinePayment, type OrderResult } from "@/lib/order.functions";
+import { submitOrder, type OrderResult } from "@/lib/order.functions";
 import { recordOrder } from "@/lib/club.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPicker, type LatLng } from "@/components/MapPicker";
@@ -60,9 +60,7 @@ function Checkout() {
   const navigate = useNavigate();
   const submit = useServerFn(submitOrder);
   const saveOrder = useServerFn(recordOrder);
-  const payOnline = useServerFn(startOnlinePayment);
 
-  const [paymentMethod, setPaymentMethod] = useState<"whatsapp" | "online">("whatsapp");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup" | "province">("delivery");
@@ -97,52 +95,6 @@ function Checkout() {
   const handleSubmit = async () => {
     setError(null);
     setLoading(true);
-
-    if (paymentMethod === "online") {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const res = await payOnline({
-          data: {
-            customerName: name.trim(),
-            customerPhone: phone.trim(),
-            deliveryType,
-            address:
-              deliveryType === "delivery"
-                ? address.trim()
-                : deliveryType === "province"
-                  ? address.trim() || undefined
-                  : undefined,
-            lat: deliveryType === "delivery" ? location?.lat : undefined,
-            lng: deliveryType === "delivery" ? location?.lng : undefined,
-            department: deliveryType === "province" ? department : undefined,
-            province: deliveryType === "province" ? province : undefined,
-            town: deliveryType === "province" ? town : undefined,
-            notes: notes.trim() || undefined,
-            items: items.map((i) => ({
-              name: i.product.name,
-              quantity: i.quantity,
-              price: i.product.price,
-              unit: i.product.unit,
-            })),
-            total: totalPrice,
-            userId: sessionData.session?.user.id ?? null,
-            returnUrl: `${window.location.origin}/checkout`,
-          },
-        });
-        if (!res.ok) {
-          setError(res.error);
-          setLoading(false);
-          return;
-        }
-        clear();
-        window.location.href = res.redirectUrl;
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Ocurrió un error. Intenta de nuevo.");
-        setLoading(false);
-      }
-      return;
-    }
-
     try {
       const res = await submit({
         data: {
@@ -416,28 +368,8 @@ function Checkout() {
             )}
           </Section>
 
-          {/* Método de pago */}
-          <Section title="3. ¿Cómo quieres pagar?">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <OptionCard
-                active={paymentMethod === "whatsapp"}
-                onClick={() => setPaymentMethod("whatsapp")}
-                icon={<MessageCircle className="h-5 w-5" />}
-                title="Coordinar por WhatsApp"
-                desc="Te enviamos el QR y coordinamos el pago por chat"
-              />
-              <OptionCard
-                active={paymentMethod === "online"}
-                onClick={() => setPaymentMethod("online")}
-                icon={<CreditCard className="h-5 w-5" />}
-                title="Pagar en línea"
-                desc="Tarjeta, QR o banca online con PagosNet"
-              />
-            </div>
-          </Section>
-
           {/* Notas */}
-          <Section title="4. Notas (opcional)">
+          <Section title="3. Notas (opcional)">
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -464,11 +396,20 @@ function Checkout() {
                 </div>
               ))}
             </div>
+            {items.some(({ product }) => isKgProduct(product.unit)) && (
+              <p className="mt-3 rounded-xl border border-primary/40 bg-primary/10 p-3 text-xs text-muted-foreground">
+                <span className="font-cond font-semibold uppercase tracking-wide text-primary">
+                  Importante:
+                </span>{" "}
+                los cortes de carne se venden por <strong>kilos aproximados</strong>. Verificamos en
+                stock si existen los pesos deseados y te confirmamos por WhatsApp antes del pago.
+              </p>
+            )}
             <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
               <span className="font-cond uppercase tracking-wide text-muted-foreground">
                 Total ({totalItems})
               </span>
-              <span className="font-display text-2xl text-gradient-fire">
+              <span className="font-display text-2xl text-foreground">
                 {totalPrice} {CURRENCY}
               </span>
             </div>
@@ -483,17 +424,13 @@ function Checkout() {
             >
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
-              ) : paymentMethod === "online" ? (
-                <CreditCard className="h-5 w-5" />
               ) : (
                 <MessageCircle className="h-5 w-5" />
               )}
-              {paymentMethod === "online" ? "Ir a pagar" : "Confirmar pedido"}
+              Confirmar pedido
             </Button>
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              {paymentMethod === "online"
-                ? "Serás redirigido a PagosNet para completar el pago de forma segura."
-                : "Te contactaremos por WhatsApp para coordinar el pago."}
+              Te contactaremos por WhatsApp para coordinar el pago.
             </p>
           </div>
         </aside>

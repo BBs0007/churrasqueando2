@@ -401,14 +401,15 @@ export const allProducts: Product[] = categories.flatMap((c) => c.products);
 
 export const bestSellerIds: string[] = [
   "pan-capresse",
-  "pan-dulce-picante",
-  "pan-cheeseburger",
-  "ling-brisket-muzza",
-  "ling-cheddar-jala",
-  "ling-dulce-picante",
-  "ling-capresse",
+  "ch-punta-s",
   "matambre-miel-mostaza",
+  "ling-dulce-picante",
+  "ling-cheddar-jala",
+  "ling-capresse",
+  "ling-brisket-muzza",
+  "pan-cheeseburger",
 ];
+
 
 export const bestSellers: Product[] = bestSellerIds
   .map((id) => allProducts.find((p) => p.id === id))

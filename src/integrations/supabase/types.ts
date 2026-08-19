@@ -19,9 +19,6 @@ export type Database = {
           amount: number
           created_at: string
           id: string
-          payment_method: string
-          payment_reference: string | null
-          payment_status: string
           plan: string
           reference: string | null
           reviewed_at: string | null
@@ -33,9 +30,6 @@ export type Database = {
           amount?: number
           created_at?: string
           id?: string
-          payment_method?: string
-          payment_reference?: string | null
-          payment_status?: string
           plan?: string
           reference?: string | null
           reviewed_at?: string | null
@@ -47,9 +41,6 @@ export type Database = {
           amount?: number
           created_at?: string
           id?: string
-          payment_method?: string
-          payment_reference?: string | null
-          payment_status?: string
           plan?: string
           reference?: string | null
           reviewed_at?: string | null
@@ -72,9 +63,6 @@ export type Database = {
           lat: number | null
           lng: number | null
           notes: string | null
-          payment_method: string
-          payment_reference: string | null
-          payment_status: string
           points_earned: number
           province: string | null
           status: string
@@ -94,9 +82,6 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           notes?: string | null
-          payment_method?: string
-          payment_reference?: string | null
-          payment_status?: string
           points_earned?: number
           province?: string | null
           status?: string
@@ -116,9 +101,6 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           notes?: string | null
-          payment_method?: string
-          payment_reference?: string | null
-          payment_status?: string
           points_earned?: number
           province?: string | null
           status?: string

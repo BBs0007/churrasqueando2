@@ -7,12 +7,12 @@ export function SucursalesSection() {
   const [active, setActive] = useState<string | null>(null);
 
   return (
-    <section id="sucursales" className="border-t border-border bg-card/40 scroll-mt-24">
+    <section id="puntos-de-venta" className="border-t border-border bg-card/40 scroll-mt-24">
       <div className="px-4 pt-14 sm:px-6">
         <div className="mx-auto mb-6 flex max-w-7xl items-center gap-3">
           <Flame className="h-6 w-6 text-primary" />
           <h2 className="font-display text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-            Nuestras <span className="text-gradient-fire">sucursales</span>
+            Puntos de <span className="text-gradient-fire">ventas</span>
           </h2>
         </div>
       </div>

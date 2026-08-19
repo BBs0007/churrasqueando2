@@ -1,32 +1,46 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
-import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductCard } from "@/components/ProductCard";
-import { CombosSection } from "@/components/CombosSection";
+import { SucursalesSection } from "@/components/SucursalesSection";
 import { CartDrawer } from "@/components/CartDrawer";
 import { WhatsAppFab } from "@/components/WhatsAppFab";
+import { Button } from "@/components/ui/button";
 import { bestSellers } from "@/data/products";
-import { sections, getSectionCategories } from "@/data/sections";
 import { BUSINESS } from "@/data/business";
-import { Flame, MapPin, Clock, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Flame,
+  ChevronLeft,
+  ChevronRight,
+  Instagram,
+  Facebook,
+  MessageCircle,
+  Crown,
+  Gift,
+  GraduationCap,
+  Percent,
+  Users,
+  ArrowRight,
+  Store,
+} from "lucide-react";
 import { useRef } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Churrasqueando · Linguiças y parrilla a tu puerta" },
+      { title: "Churrasqueando · Carnes, catering y Club Churrasqueando" },
       {
         name: "description",
         content:
-          "Pide linguiças artesanales, matambres, jibas y todo para tu churrasco. Entrega a domicilio o recojo en el local. ¡A darle!",
+          "La carne que tu parrilla está esperando. Compra en la tienda, reserva catering churrasquero, únete al Club y encuentra nuestros puntos de venta.",
       },
-      { property: "og:title", content: "Churrasqueando · A darle!" },
+      { property: "og:title", content: "Churrasqueando · Momento que se saborean!" },
       {
         property: "og:description",
-        content: "Lo mejor para tu churrasco. Pide en línea y recíbelo donde estés.",
+        content: "Tienda en línea, catering churrasquero, Club Churrasqueando y puntos de venta.",
       },
       { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Index,
@@ -34,6 +48,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const bestRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -85,70 +100,124 @@ function Index() {
               ))}
             </div>
 
+            <div className="mt-6 flex justify-center">
+              <Button asChild size="lg" className="font-cond font-bold uppercase tracking-wide">
+                <Link to="/tienda">
+                  <Store className="h-5 w-5" /> Ver toda la tienda
+                </Link>
+              </Button>
+            </div>
           </section>
 
-          <section
-            id="combos-seccion"
-            className="scroll-mt-28 rounded-3xl border border-ember/40 bg-card/60 p-5 sm:p-8"
-          >
-            <div className="mb-8 flex items-center gap-3 border-b border-border/60 pb-4">
-              <span className="h-8 w-1.5 rounded-full bg-gradient-fire" />
-              <h2 className="font-display text-2xl uppercase tracking-wide text-foreground sm:text-4xl">
-                Combos
+          {/* Catering */}
+          <section className="scroll-mt-28 overflow-hidden rounded-3xl border border-ember/40 bg-card/60 p-6 sm:p-10">
+            <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_1fr]">
+              <div className="space-y-4">
+                <span className="font-cond inline-flex items-center gap-2 rounded-full border border-primary/50 px-3 py-1 text-xs uppercase tracking-[0.25em] text-primary">
+                  <Flame className="h-3.5 w-3.5" /> Eventos en casa
+                </span>
+                <h2 className="font-display text-3xl uppercase leading-tight tracking-wide text-foreground sm:text-5xl">
+                  Reservar <span className="text-gradient-fire">catering churrasquero</span>
+                </h2>
+                <p className="max-w-xl text-muted-foreground">
+                  Llevamos la parrilla, los cortes y al churrasquero a tu casa o evento. Paquetes
+                  desde 17 personas, con opciones de linguiças, cortes premium y guarniciones.
+                </p>
+                <Button asChild size="lg" className="font-cond font-bold uppercase tracking-wide">
+                  <Link to="/reservar-catering">
+                    Reservar ahora <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </div>
+              <ul className="grid gap-3">
+                {[
+                  "Churrasquero profesional incluido",
+                  "Cortes y linguiças de la casa",
+                  "Paquetes para 17 personas o más",
+                  "Cotización rápida por WhatsApp",
+                ].map((t) => (
+                  <li
+                    key={t}
+                    className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background/50 p-4"
+                  >
+                    <Users className="h-5 w-5 shrink-0 text-primary" />
+                    <span className="font-cond text-sm uppercase tracking-wide text-foreground">
+                      {t}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          {/* Club */}
+          <section className="scroll-mt-28 rounded-3xl border border-primary/40 bg-[image:var(--gradient-ember)] p-6 shadow-fire sm:p-10">
+            <div className="mb-8 flex items-center gap-3">
+              <Crown className="h-6 w-6 text-primary" />
+              <h2 className="font-display text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+                Club <span className="text-gradient-fire">Churrasqueando</span>
               </h2>
             </div>
-            <CombosSection />
+            <p className="mb-8 max-w-2xl text-muted-foreground">
+              Registro gratuito: acumula 1 punto por cada 10 Bs de compra y sigue tus pedidos.
+              Activa la membresía por 50 Bs al mes y desbloquea todos los beneficios.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Benefit icon={<GraduationCap className="h-6 w-6" />} title="Cursos churrasqueros">
+                Clases y guías exclusivas para dominar la parrilla.
+              </Benefit>
+              <Benefit icon={<Percent className="h-6 w-6" />} title="Descuentos de socio">
+                Precios especiales en cortes, linguiças y combos.
+              </Benefit>
+              <Benefit icon={<Gift className="h-6 w-6" />} title="Canjes por puntos">
+                Cambia tus puntos por productos y sorpresas.
+              </Benefit>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg" className="font-cond font-bold uppercase tracking-wide">
+                <Link to="/club">Conocer el Club</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="font-cond font-bold uppercase tracking-wide"
+              >
+                <Link to="/cuenta">Mi cuenta</Link>
+              </Button>
+            </div>
           </section>
         </div>
 
-        <div id="menu" className="mx-auto max-w-7xl space-y-12 px-4 py-14 scroll-mt-24">
-          <div className="flex items-center gap-3">
-            <Flame className="h-6 w-6 text-primary" />
+        {/* Puntos de venta */}
+        <SucursalesSection />
+
+        {/* Redes sociales */}
+        <section className="border-t border-border bg-background">
+          <div className="mx-auto max-w-7xl px-4 py-14 text-center">
             <h2 className="font-display text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-              Nuestro <span className="text-gradient-fire">menú</span>
+              Síguenos en <span className="text-gradient-fire">redes</span>
             </h2>
-          </div>
-
-
-          {sections.map((section, i) => {
-            const styles = [
-              "border-primary/40 bg-[image:var(--gradient-ember)] shadow-fire",
-              "border-ember/40 bg-card/60",
-              "border-border bg-secondary/30",
-            ];
-            return (
-              <section
-                key={section.id}
-                id={section.id}
-                className={`scroll-mt-28 rounded-3xl border ${styles[i % styles.length]} p-5 sm:p-8`}
-              >
-                <div className="mb-8 flex items-center gap-3 border-b border-border/60 pb-4">
-                  <span className="h-8 w-1.5 rounded-full bg-gradient-fire" />
-                  <h3 className="font-display text-2xl uppercase tracking-wide text-foreground sm:text-4xl">
-                    {section.title}
-                  </h3>
-                </div>
-                <div className="space-y-12">
-                  {getSectionCategories(section).map((c) => (
-                    <ProductCarousel key={c.id} category={c} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-
-        <section className="border-t border-border bg-card/40">
-          <div className="mx-auto grid max-w-7xl gap-6 px-4 py-12 sm:grid-cols-3">
-            <Feature icon={<MapPin className="h-6 w-6" />} title="Entrega a domicilio">
-              Marca tu ubicación en el mapa y te lo llevamos.
-            </Feature>
-            <Feature icon={<Clock className="h-6 w-6" />} title="Recojo en el local">
-              {BUSINESS.pickup.address}
-            </Feature>
-            <Feature icon={<MessageCircle className="h-6 w-6" />} title="Pago por QR">
-              Recibe el QR de pago por WhatsApp al confirmar tu pedido.
-            </Feature>
+            <p className="mt-2 text-muted-foreground">
+              Promos, nuevos cortes y tips de parrilla todas las semanas.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <Social
+                href="https://www.instagram.com/churrasqueando"
+                icon={<Instagram className="h-6 w-6" />}
+                label="Instagram"
+              />
+              <Social
+                href="https://www.facebook.com/churrasqueando"
+                icon={<Facebook className="h-6 w-6" />}
+                label="Facebook"
+              />
+              <Social
+                href={`https://wa.me/${BUSINESS.whatsapp}`}
+                icon={<MessageCircle className="h-6 w-6" />}
+                label="WhatsApp"
+              />
+            </div>
           </div>
         </section>
       </main>
@@ -169,12 +238,11 @@ function Index() {
 
       <CartDrawer />
       <WhatsAppFab />
-
     </div>
   );
 }
 
-function Feature({
+function Benefit({
   icon,
   title,
   children,
@@ -184,7 +252,7 @@ function Feature({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex gap-4 rounded-2xl border border-border/70 bg-card p-5">
+    <div className="flex gap-4 rounded-2xl border border-border/70 bg-card p-5 text-left">
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-fire text-primary-foreground">
         {icon}
       </div>
@@ -195,5 +263,31 @@ function Feature({
         <p className="text-sm text-muted-foreground">{children}</p>
       </div>
     </div>
+  );
+}
+
+function Social({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card px-5 py-4 transition-colors hover:border-primary"
+    >
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-fire text-primary-foreground">
+        {icon}
+      </span>
+      <span className="font-cond text-base font-semibold uppercase tracking-wide text-foreground">
+        {label}
+      </span>
+    </a>
   );
 }

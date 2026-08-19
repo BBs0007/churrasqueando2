@@ -29,7 +29,7 @@ export const cateringPackages: CateringPackage[] = [
       "Morcilla",
     ],
     guarniciones: ["Pan de ajo", "Yuca", "Salsa verde", "Llajua"],
-    utencilios: ["Tabla para picar", "Tablitas pequeñas"],
+    utencilios: ["Tabla para picar", "Tablitas pequeñas", "Parrilla (costo adicional)"],
   },
   {
     id: "picada-premium",
@@ -48,7 +48,7 @@ export const cateringPackages: CateringPackage[] = [
       "Pan con linguiça y morcilla",
     ],
     guarniciones: ["Pan de ajo", "Yuca", "Salsa verde", "Llajua"],
-    utencilios: ["Tabla para picar", "Tablitas pequeñas"],
+    utencilios: ["Tabla para picar", "Tablitas pequeñas", "Parrilla (costo adicional)"],
   },
   {
     id: "plato-servido",
@@ -92,4 +92,3 @@ export const cateringNotes = [
   "Para cambios de fecha avisar con 2 días de anticipación.",
 ];
 
-export const cateringPriceNote = "Se puede negociar el precio a partir de 23 personas.";
