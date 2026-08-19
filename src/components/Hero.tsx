@@ -25,13 +25,13 @@ export function Hero() {
           {Array.from({ length: 5 }).map((_, i) => (
             <Star key={i} className="h-4 w-4 fill-current" />
           ))}
-          <span className="font-cond ml-2 text-xs uppercase tracking-[0.25em] text-muted-foreground">
+          <span className="font-cond ml-2 text-xs uppercase tracking-[0.25em] text-primary">
             Lo mejor para tu churrasco
           </span>
         </div>
 
         <h1 className="font-display max-w-2xl text-5xl uppercase leading-[0.95] tracking-wide text-foreground sm:text-7xl">
-          LA CARNE QUE TU <span className="text-gradient-fire">PARRILLA</span> ESTA ESPERANDO
+          LA CARNE QUE TU <span className="text-primary">PARRILLA</span> ESTA ESPERANDO
         </h1>
 
         <p className="max-w-xl text-base text-muted-foreground sm:text-lg">
