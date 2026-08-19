@@ -203,12 +203,12 @@ function Index() {
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Social
-                href="https://www.instagram.com/churrasqueando"
+                href="https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.instagram.com%2Fchurrasque.ando%3Ffbclid%3DIwcGRvZgVleHRuA2FlbQIxMABicmlkETBaZW8yRGhrTnZXUHJFOXBHc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHoMTJHp9vSOesutP5Coac76rSc0IqMjGHfa73rq35svAjtt51ZI2RlTqeUS8_aem_-eDkN8xIZmP9Nk7MU3QIFw&h=AUDkYzMZ3doIDUbf80tcFh6u76ntTyIG66xQJaCu9DJsuq2b9J-umqx439Hq_yOdGRyy6LFbGVaILSr0U6wA84OKwoOKRUYlgIoT4tAB9V7tjlW8GFygLmq3wzSoBiKEkUpj5fCAgp5tCgzmo9NQ"
                 icon={<Instagram className="h-6 w-6" />}
                 label="Instagram"
               />
               <Social
-                href="https://www.facebook.com/churrasqueando"
+                href="https://www.facebook.com/people/Churrasqueando/61557049760058"
                 icon={<Facebook className="h-6 w-6" />}
                 label="Facebook"
               />
