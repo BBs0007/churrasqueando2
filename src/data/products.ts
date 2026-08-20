@@ -3,7 +3,6 @@
 import realCheddarJalaAsset from "@/assets/real-cheddar-jalapeno.jpg";
 import realBifeAnchoAsset from "@/assets/real-bife-ancho-bc.jpg";
 import realColitaCuadrilAsset from "@/assets/real-colita-cuadril-bc.jpg";
-import realCowboyAsset from "@/assets/real-cowboy-churras.jpg";
 import realFraldinhaAsset from "@/assets/real-fraldinha-bc.jpg";
 import realDulcePicanteAsset from "@/assets/real-dulce-picante.jpg";
 import realMatambreMielAsset from "@/assets/real-matambre-miel.jpg";
@@ -37,7 +36,6 @@ import realChimichurriAsset from "@/assets/real-chimichurri-churrasquero.jpg";
 const imgRealCheddarJala = realCheddarJalaAsset;
 const imgRealBifeAncho = realBifeAnchoAsset;
 const imgRealColitaCuadril = realColitaCuadrilAsset;
-const imgRealCowboy = realCowboyAsset;
 const imgRealFraldinha = realFraldinhaAsset;
 const imgRealDulcePicante = realDulcePicanteAsset;
 const imgRealMatambreMiel = realMatambreMielAsset;
@@ -128,7 +126,6 @@ const rawCategories: Category[] = [
       { id: "ch-bife-ojo", name: "Ojo de Bife", price: 79, unit: "2 - 3,5 kg", description: "Ojo de bife Churrasqueando. Peso aprox. 2 a 3,5 kg.", image: imgRealOjoBifeCh },
       { id: "ch-bife-chorizo", name: "Bife de Chorizo", price: 79, unit: "2 - 3,5 kg", description: "Bife de chorizo Churrasqueando, lo mejor para tu churrasco. Peso aprox. 2 a 3,5 kg.", image: imgRealBifeChorizoCh },
       { id: "ch-costilla-1er", name: "Costilla 1er Corte", price: 62, unit: "1 - 1,5 kg", description: "Costilla 1er corte Churrasqueando. Peso aprox. 1 a 1,5 kg.", image: imgRealCostilla1erCh },
-      { id: "ch-cowboy", name: "Cowboy", price: 95, unit: "1 - 1,5 kg", description: "Corte Cowboy premium Churrasqueando, lo mejor para tu churrasco. Peso aprox. 1 a 1,5 kg.", image: imgRealCowboy },
     ],
   },
   {
