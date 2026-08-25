@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
+import { CombosSection } from "@/components/CombosSection";
 import { ProductCard } from "@/components/ProductCard";
 import { SucursalesSection } from "@/components/SucursalesSection";
 import { CartDrawer } from "@/components/CartDrawer";
@@ -98,6 +99,10 @@ function Index() {
                   <ProductCard product={p} />
                 </div>
               ))}
+            </div>
+
+            <div className="mt-10 border-t border-border/60 pt-8">
+              <CombosSection />
             </div>
 
             <div className="mt-6 flex justify-center">

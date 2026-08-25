@@ -21,7 +21,6 @@ import realCorazonCuadrilChAsset from "@/assets/real-corazon-cuadril-ch.jpg";
 import realCostilla1erChAsset from "@/assets/real-costilla-1er-ch.jpg";
 import realEntranaChAsset from "@/assets/real-entrana-ch.jpg";
 import realLomoGrandeBcAsset from "@/assets/real-lomo-grande-bc.jpg";
-import realLingBrisketChAsset from "@/assets/real-ling-brisket-ch.jpg";
 import realMatambreTradicionalAsset from "@/assets/real-matambre-tradicional.jpg";
 import realOjoBifeChAsset from "@/assets/real-ojo-bife-ch.jpg";
 import realPanesBritoAsset from "@/assets/real-panes-brito.jpg";
@@ -54,7 +53,6 @@ const imgRealCorazonCuadrilCh = realCorazonCuadrilChAsset;
 const imgRealCostilla1erCh = realCostilla1erChAsset;
 const imgRealEntranaCh = realEntranaChAsset;
 const imgRealLomoGrandeBc = realLomoGrandeBcAsset;
-const imgRealLingBrisketCh = realLingBrisketChAsset;
 const imgRealMatambreTradicional = realMatambreTradicionalAsset;
 const imgRealOjoBifeCh = realOjoBifeChAsset;
 const imgRealPanesBrito = realPanesBritoAsset;
@@ -161,14 +159,6 @@ const rawCategories: Category[] = [
         image: imgRealHierbaMuzza,
       },
       {
-        id: "ling-brisket-churras",
-        name: "Linguiça Brisket (Churrasquera)",
-        price: 35,
-        unit: "500 gr",
-        description: "Sabor rústico y potente, ideal para los amantes de la carne de verdad. Contiene 500 gr.",
-        image: imgRealLingBrisketCh,
-      },
-      {
         id: "ling-dulce-picante",
         name: "Linguiça Dulce Picante",
         price: 35,
@@ -245,15 +235,6 @@ const rawCategories: Category[] = [
         image: imgRealCapresse,
       },
       {
-        id: "pan-dulce-picante",
-        name: "Pan con Linguiça Dulce Picante",
-        price: 19,
-        unit: "unidad",
-        description:
-          "Pan con nuestra linguiça dulce picante: inicio dulce y un picante sutil al final.",
-        image: imgRealDulcePicante,
-      },
-      {
         id: "pan-picante",
         name: "Pan con Linguiça Picante Trato",
         price: 19,
@@ -309,7 +290,7 @@ const rawCategories: Category[] = [
         id: "casa-carne-picada",
         name: "Carne Picada",
         price: 45,
-        unit: "aprox. 1 kg",
+        unit: "aprox. 500 gr",
         description: "Carne de res picada, ideal para tus comidas caseras del día a día.",
         image: imgRealCarnePicada,
       },
@@ -317,7 +298,7 @@ const rawCategories: Category[] = [
         id: "casa-carne-molida",
         name: "Carne Molida 1ra",
         price: 48,
-        unit: "aprox. 1 kg",
+        unit: "aprox. 500 gr",
         description: "Carne molida de primera calidad, perfecta para hamburguesas, salsas y guisos.",
         image: imgRealCarneMolida,
       },
@@ -397,7 +378,6 @@ export const categories: Category[] = rawCategories
 export const allProducts: Product[] = categories.flatMap((c) => c.products);
 
 export const bestSellerIds: string[] = [
-  "pan-capresse",
   "ch-punta-s",
   "matambre-miel-mostaza",
   "ling-dulce-picante",
@@ -405,6 +385,7 @@ export const bestSellerIds: string[] = [
   "ling-capresse",
   "ling-brisket-muzza",
   "pan-cheeseburger",
+  "pan-capresse",
 ];
 
 

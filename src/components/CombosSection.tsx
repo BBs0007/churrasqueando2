@@ -30,9 +30,6 @@ function ComboCard({ combo }: { combo: Combo }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="font-display text-xl uppercase tracking-wide text-foreground">
-          {combo.name}
-        </h3>
         <ul className="flex-1 space-y-0.5 text-xs text-muted-foreground">
           {combo.items.map((it) => (
             <li key={it}>· {it}</li>

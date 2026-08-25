@@ -3,8 +3,12 @@ import { useState, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
+  Box,
+  Info,
   Loader2,
   MapPin,
+  Plane,
+  Route as RouteIcon,
   Store,
   Truck,
   CheckCircle2,
@@ -32,6 +36,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import logo from "@/assets/logo-churrasqueando.png";
+
+const COOLER_OPTIONS = [
+  { id: "13 L", label: "13 litros", maxWeight: "8 kg", price: 45 },
+  { id: "25 L", label: "25 litros", maxWeight: "16 kg", price: 75 },
+  { id: "50 L", label: "50 litros", maxWeight: "25 kg", price: 105 },
+  { id: "75 L", label: "75 litros", maxWeight: "35 kg", price: 175 },
+  { id: "100 L", label: "100 litros", maxWeight: "50 kg", price: 245 },
+] as const;
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -69,6 +81,8 @@ function Checkout() {
   const [department, setDepartment] = useState<string>("");
   const [province, setProvince] = useState<string>("");
   const [town, setTown] = useState<string>("");
+  const [shippingMethod, setShippingMethod] = useState<"bidmodal" | "avion" | "trufi">("bidmodal");
+  const [coolerSize, setCoolerSize] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +104,7 @@ function Checkout() {
     items.length > 0 &&
     (deliveryType === "pickup" ||
       (deliveryType === "delivery" && (location || address.trim())) ||
-      (deliveryType === "province" && department && province && town));
+    (deliveryType === "province" && department && province && town && coolerSize));
 
   const handleSubmit = async () => {
     setError(null);
@@ -112,6 +126,8 @@ function Checkout() {
           department: deliveryType === "province" ? department : undefined,
           province: deliveryType === "province" ? province : undefined,
           town: deliveryType === "province" ? town : undefined,
+          shippingMethod: deliveryType === "province" ? shippingMethod : undefined,
+          coolerSize: deliveryType === "province" ? coolerSize : undefined,
           notes: notes.trim() || undefined,
           items: items.map((i) => ({
             name: i.product.name,
@@ -139,7 +155,12 @@ function Checkout() {
               department: deliveryType === "province" ? department : null,
               province: deliveryType === "province" ? province : null,
               town: deliveryType === "province" ? town : null,
-              notes: notes.trim() || null,
+              notes: [
+                notes.trim(),
+                deliveryType === "province" ? `Envío: ${shippingMethod}; Conservadora: ${coolerSize}` : "",
+              ]
+                .filter(Boolean)
+                .join("\n") || null,
               items: items.map((i) => ({
                 name: i.product.name,
                 quantity: i.quantity,
@@ -362,8 +383,97 @@ function Checkout() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Coordinaremos por WhatsApp el costo y la empresa de encomienda para tu envío.
+                  Coordinaremos por WhatsApp el costo exacto y la empresa de encomienda para tu envío.
                 </p>
+
+                <div className="rounded-2xl border border-primary/40 bg-primary/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <div className="space-y-1 text-sm">
+                      <p className="font-cond font-semibold uppercase tracking-wide text-primary">
+                        Envío con costo adicional
+                      </p>
+                      <p className="text-muted-foreground">
+                        El precio depende del destino, el peso del pedido y el tamaño de la conservadora.
+                        El monto final se confirma por WhatsApp antes del pago.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-5 w-5 text-primary" />
+                    <div>
+                      <h3 className="font-cond font-semibold uppercase tracking-wide text-foreground">
+                        Medio de transporte
+                      </h3>
+                      <p className="text-xs text-muted-foreground">Elige una opción para cotizar tu envío.</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <ShippingOption
+                      active={shippingMethod === "bidmodal"}
+                      onClick={() => setShippingMethod("bidmodal")}
+                      icon={<Truck className="h-4 w-4" />}
+                      title="Bidmodal / flota"
+                      price="60 a 150 Bs"
+                    />
+                    <ShippingOption
+                      active={shippingMethod === "avion"}
+                      onClick={() => setShippingMethod("avion")}
+                      icon={<Plane className="h-4 w-4" />}
+                      title="Por avión"
+                      price="100 a 180 Bs o más"
+                    />
+                    <ShippingOption
+                      active={shippingMethod === "trufi"}
+                      onClick={() => setShippingMethod("trufi")}
+                      icon={<RouteIcon className="h-4 w-4" />}
+                      title="Trufi"
+                      price="60 a 90 Bs"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Trufi disponible para el Norte o doble vía La Guardia. Los rangos son referenciales.
+                  </p>
+                </div>
+
+                <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+                  <div className="flex items-center gap-2">
+                    <Box className="h-5 w-5 text-primary" />
+                    <div>
+                      <h3 className="font-cond font-semibold uppercase tracking-wide text-foreground">
+                        Conservadora obligatoria
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Selecciona según el peso aproximado de tu pedido.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {COOLER_OPTIONS.map((cooler) => (
+                      <button
+                        key={cooler.id}
+                        type="button"
+                        onClick={() => setCoolerSize(cooler.id)}
+                        className={`flex items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors ${
+                          coolerSize === cooler.id
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span>
+                          <span className="block font-cond font-semibold uppercase tracking-wide text-foreground">
+                            {cooler.label}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">Máximo {cooler.maxWeight}</span>
+                        </span>
+                        <span className="font-cond shrink-0 font-semibold text-primary">{cooler.price} Bs</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </Section>
@@ -530,6 +640,36 @@ function OptionCard({
         <p className="font-cond font-semibold uppercase tracking-wide text-foreground">{title}</p>
         <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
+    </button>
+  );
+}
+
+function ShippingOption({
+  active,
+  onClick,
+  icon,
+  title,
+  price,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  price: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex min-h-24 flex-col items-start justify-between gap-2 rounded-xl border p-3 text-left transition-colors ${
+        active ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+      }`}
+    >
+      <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <span className="text-primary">{icon}</span>
+        {title}
+      </span>
+      <span className="text-xs text-muted-foreground">Desde {price}</span>
     </button>
   );
 }

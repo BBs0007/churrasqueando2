@@ -46,7 +46,7 @@ export function MapPicker({
           icon: {
             path: g.maps.SymbolPath.CIRCLE,
             scale: 9,
-            fillColor: "#F97316",
+            fillColor: "#ff9900",
             fillOpacity: 1,
             strokeColor: "#FFEDD5",
             strokeWeight: 2,

@@ -60,7 +60,7 @@
   --popover-foreground: oklch(0.98 0.005 80);
 
   /* Fire orange */
-  --primary: oklch(0.68 0.2 45);
+  --primary: #ff9900;
   --primary-foreground: oklch(0.15 0.01 40);
 
   --secondary: oklch(0.27 0.02 40);
@@ -81,19 +81,19 @@
 
   --border: oklch(0.3 0.015 40);
   --input: oklch(0.3 0.015 40);
-  --ring: oklch(0.68 0.2 45);
+  --ring: #ff9900;
 
   --sidebar: oklch(0.18 0.012 40);
   --sidebar-foreground: oklch(0.98 0.005 80);
-  --sidebar-primary: oklch(0.68 0.2 45);
+  --sidebar-primary: #ff9900;
   --sidebar-primary-foreground: oklch(0.15 0.01 40);
   --sidebar-accent: oklch(0.27 0.02 40);
   --sidebar-accent-foreground: oklch(0.98 0.005 80);
   --sidebar-border: oklch(0.3 0.015 40);
-  --sidebar-ring: oklch(0.68 0.2 45);
+  --sidebar-ring: #ff9900;
 
-  --brand-orange: #e1761f;
-  --gradient-fire: linear-gradient(135deg, #e1761f, #e1761f);
+  --brand-orange: #ff9900;
+  --gradient-fire: linear-gradient(135deg, #ff9900, #ff9900);
   --gradient-ember: linear-gradient(180deg, transparent, oklch(0.55 0.21 28 / 0.25));
   --shadow-fire: 0 10px 40px -12px oklch(0.62 0.22 35 / 0.55);
   --shadow-card: 0 8px 30px -10px oklch(0 0 0 / 0.6);

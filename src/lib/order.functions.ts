@@ -17,6 +17,8 @@ export type OrderInput = {
   department?: string;
   province?: string;
   town?: string;
+  shippingMethod?: "bidmodal" | "avion" | "trufi";
+  coolerSize?: string;
   notes?: string;
   items: OrderItemInput[];
   total: number;
@@ -48,6 +50,15 @@ function buildMessage(data: OrderInput): string {
     if (data.province) lines.push(`*Provincia:* ${data.province}`);
     if (data.town) lines.push(`*Pueblo/Municipio:* ${data.town}`);
     if (data.address) lines.push(`*Referencia:* ${data.address}`);
+    if (data.shippingMethod) {
+      const shippingLabels = {
+        bidmodal: "Bidmodal / flota (60 a 150 Bs)",
+        avion: "Por avión (100 a 180 Bs o más)",
+        trufi: "Trufi (60 a 90 Bs)",
+      } as const;
+      lines.push(`*Medio de transporte:* ${shippingLabels[data.shippingMethod]}`);
+    }
+    if (data.coolerSize) lines.push(`*Conservadora:* ${data.coolerSize}`);
   } else {
     lines.push("*Entrega:* Recoger en el local 🏠");
   }

@@ -3,6 +3,7 @@ import { ArrowLeft, Check, MessageCircle } from "lucide-react";
 import { useState } from "react";
 
 import { Header } from "@/components/Header";
+import { MapPicker, type LatLng } from "@/components/MapPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +59,7 @@ function ReservaCatering() {
     notes: "",
   });
   const [sent, setSent] = useState(false);
+  const [mapLocation, setMapLocation] = useState<LatLng | null>(null);
 
   const update =
     (k: keyof typeof form) =>
@@ -66,6 +68,7 @@ function ReservaCatering() {
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mapLocation) return;
     const msg = [
       "*RESERVA DE CATERING CHURRASQUERO* 🔥",
       "",
@@ -75,6 +78,7 @@ function ReservaCatering() {
       `*Día:* ${form.date}`,
       `*Hora para comer:* ${form.time}`,
       `*Ubicación:* ${form.location}`,
+      `*Ubicación en el mapa:* https://www.google.com/maps?q=${mapLocation.lat},${mapLocation.lng}`,
       `*Tipo de personas:* ${form.people}`,
       form.notes ? `*Notas:* ${form.notes}` : null,
     ]
@@ -217,6 +221,11 @@ function ReservaCatering() {
                     onChange={update("location")}
                     placeholder="Zona / dirección del evento"
                   />
+                  <p className="text-xs text-muted-foreground">Marca en el mapa el punto exacto de tu evento.</p>
+                  <MapPicker value={mapLocation} onChange={setMapLocation} />
+                  {!mapLocation && (
+                    <p className="text-xs text-primary">Selecciona un punto en el mapa para continuar.</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="catering-people">Tipo de personas</Label>
@@ -241,7 +250,12 @@ function ReservaCatering() {
                   />
                 </div>
 
-                <Button type="submit" size="lg" className="w-full font-cond text-base font-bold uppercase tracking-wide">
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={!mapLocation}
+                  className="w-full font-cond text-base font-bold uppercase tracking-wide"
+                >
                   <MessageCircle className="h-5 w-5" />
                   Enviar solicitud por WhatsApp
                 </Button>
