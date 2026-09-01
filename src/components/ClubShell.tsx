@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, ShoppingBag, Shield, Star } from "lucide-react";
+import { LogOut, ShoppingBag, Shield, Star, Package } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -65,10 +65,18 @@ export function ClubShell({
             </Link>
             {isAdmin && (
               <Link
+                to="/admin-productos"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Package className="h-3.5 w-3.5" /> Productos
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
                 to="/admin-club"
                 className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
-                <Shield className="h-3.5 w-3.5" /> Admin
+                <Shield className="h-3.5 w-3.5" /> Membresías
               </Link>
             )}
             <Link to="/">

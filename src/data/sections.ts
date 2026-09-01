@@ -1,4 +1,4 @@
-import { categories, type Category } from "./products";
+import type { Category } from "./products";
 
 export type Section = {
   id: string;
@@ -29,7 +29,7 @@ export const sections: Section[] = [
   },
 ];
 
-export function getSectionCategories(section: Section): Category[] {
+export function getSectionCategories(section: Section, categories: Category[]): Category[] {
   return section.categoryIds
     .map((id) => categories.find((c) => c.id === id))
     .filter((c): c is Category => Boolean(c));

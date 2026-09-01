@@ -20,6 +20,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TiendaRouteImport } from './routes/tienda'
 import { Route as AuthenticatedAdminClubRouteImport } from './routes/_authenticated/admin-club'
+import { Route as AuthenticatedAdminProductosRouteImport } from './routes/_authenticated/admin-productos'
 import { Route as AuthenticatedCuentaRouteImport } from './routes/_authenticated/cuenta'
 
 const IndexRoute = IndexRouteImport.update({
@@ -76,6 +77,12 @@ const AuthenticatedAdminClubRoute = AuthenticatedAdminClubRouteImport.update({
   path: '/admin-club',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminProductosRoute =
+  AuthenticatedAdminProductosRouteImport.update({
+    id: '/admin-productos',
+    path: '/admin-productos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCuentaRoute = AuthenticatedCuentaRouteImport.update({
   id: '/cuenta',
   path: '/cuenta',
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRoute
   '/admin-club': typeof AuthenticatedAdminClubRoute
+  '/admin-productos': typeof AuthenticatedAdminProductosRoute
   '/cuenta': typeof AuthenticatedCuentaRoute
 }
 export interface FileRoutesByTo {
@@ -106,6 +114,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRoute
   '/admin-club': typeof AuthenticatedAdminClubRoute
+  '/admin-productos': typeof AuthenticatedAdminProductosRoute
   '/cuenta': typeof AuthenticatedCuentaRoute
 }
 export interface FileRoutesById {
@@ -121,6 +130,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRoute
   '/_authenticated/admin-club': typeof AuthenticatedAdminClubRoute
+  '/_authenticated/admin-productos': typeof AuthenticatedAdminProductosRoute
   '/_authenticated/cuenta': typeof AuthenticatedCuentaRoute
 }
 export interface FileRouteTypes {
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tienda'
     | '/admin-club'
+    | '/admin-productos'
     | '/cuenta'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tienda'
     | '/admin-club'
+    | '/admin-productos'
     | '/cuenta'
   id:
     | '__root__'
@@ -163,6 +175,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tienda'
     | '/_authenticated/admin-club'
+    | '/_authenticated/admin-productos'
     | '/_authenticated/cuenta'
   fileRoutesById: FileRoutesById
 }
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminClubRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin-productos': {
+      id: '/_authenticated/admin-productos'
+      path: '/admin-productos'
+      fullPath: '/admin-productos'
+      preLoaderRoute: typeof AuthenticatedAdminProductosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cuenta': {
       id: '/_authenticated/cuenta'
       path: '/cuenta'
@@ -270,11 +290,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminClubRoute: typeof AuthenticatedAdminClubRoute
+  AuthenticatedAdminProductosRoute: typeof AuthenticatedAdminProductosRoute
   AuthenticatedCuentaRoute: typeof AuthenticatedCuentaRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminClubRoute: AuthenticatedAdminClubRoute,
+  AuthenticatedAdminProductosRoute: AuthenticatedAdminProductosRoute,
   AuthenticatedCuentaRoute: AuthenticatedCuentaRoute,
 }
 

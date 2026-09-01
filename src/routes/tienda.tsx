@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductCard } from "@/components/ProductCard";
 import { CombosSection } from "@/components/CombosSection";
 import { CartDrawer } from "@/components/CartDrawer";
 import { WhatsAppFab } from "@/components/WhatsAppFab";
-import { bestSellers } from "@/data/products";
+import { getStoreCatalog } from "@/lib/catalog.functions";
 import { sections, getSectionCategories } from "@/data/sections";
 import { BUSINESS } from "@/data/business";
 import { Flame, ChevronLeft, ChevronRight } from "lucide-react";
@@ -34,6 +37,18 @@ export const Route = createFileRoute("/tienda")({
 
 function TiendaPage() {
   const bestRef = useRef<HTMLDivElement>(null);
+  const fetchCatalog = useServerFn(getStoreCatalog);
+  const catalog = useQuery({ queryKey: ["store-catalog"], queryFn: () => fetchCatalog() });
+  const bestSellers = catalog.data?.bestSellers ?? [];
+  const categories = catalog.data?.categories ?? [];
+
+  if (catalog.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,6 +130,8 @@ function TiendaPage() {
           </div>
 
           {sections.map((section, i) => {
+            const sectionCategories = getSectionCategories(section, categories);
+            if (sectionCategories.length === 0) return null;
             const styles = [
               "border-primary/40 bg-[image:var(--gradient-ember)] shadow-fire",
               "border-ember/40 bg-card/60",
@@ -133,7 +150,7 @@ function TiendaPage() {
                   </h3>
                 </div>
                 <div className="space-y-12">
-                  {getSectionCategories(section).map((c) => (
+                  {getSectionCategories(section, categories).map((c) => (
                     <ProductCarousel key={c.id} category={c} />
                   ))}
                 </div>

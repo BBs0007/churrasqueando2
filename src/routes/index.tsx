@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { CombosSection } from "@/components/CombosSection";
@@ -7,7 +9,7 @@ import { SucursalesSection } from "@/components/SucursalesSection";
 import { CartDrawer } from "@/components/CartDrawer";
 import { WhatsAppFab } from "@/components/WhatsAppFab";
 import { Button } from "@/components/ui/button";
-import { bestSellers } from "@/data/products";
+import { getStoreCatalog } from "@/lib/catalog.functions";
 import { BUSINESS } from "@/data/business";
 import {
   Flame,
@@ -49,6 +51,9 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const bestRef = useRef<HTMLDivElement>(null);
+  const fetchCatalog = useServerFn(getStoreCatalog);
+  const catalog = useQuery({ queryKey: ["store-catalog"], queryFn: () => fetchCatalog() });
+  const bestSellers = catalog.data?.bestSellers ?? [];
 
   return (
     <div className="min-h-screen bg-background">
