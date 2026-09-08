@@ -4,10 +4,10 @@ export const CLUB = {
   // Acumulación de Puntos Brasa: 1 Bs de compra = 1 punto
   bsPerPoint: 1,
   // Vencimiento de puntos sin comprar
-  pointsExpireMonths: 4,
+  pointsExpireMonths: 10,
   // Suscripción
-  monthlyPriceBs: 50,
-  annualPriceBs: 500,
+  monthlyPriceBs: 89,
+  annualPriceBs: 699,
   planLabel: "Mensual",
   singleCoursePriceBs: 250,
   coursesCount: 6,
@@ -16,6 +16,13 @@ export const CLUB = {
     total: 30,
     remaining: 12,
   },
+};
+
+// Oferta de lanzamiento para socios fundadores: 450 Bs anual
+export const CLUB_LAUNCH_OFFER = {
+  annualPriceBs: 450,
+  realAnnualPriceBs: 699,
+  monthlyActivePriceBs: 89,
 };
 
 export const CLUB_BENEFITS = [
