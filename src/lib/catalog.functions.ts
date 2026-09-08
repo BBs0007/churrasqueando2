@@ -19,7 +19,15 @@ export type CatalogCategory = {
   name: string;
   tagline: string;
   sort_order: number;
+  section_id: string | null;
   products: CatalogProduct[];
+};
+
+export type StoreSection = {
+  id: string;
+  kind: "best_sellers" | "combos" | "categories";
+  title: string;
+  sort_order: number;
 };
 
 function mapProduct(row: any): CatalogProduct {
@@ -37,20 +45,33 @@ function mapProduct(row: any): CatalogProduct {
   };
 }
 
-// Public: storefront catalog (only active products)
+// Public: storefront catalog (only active products) + section layout/order
 export const getStoreCatalog = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const [{ data: cats, error: catErr }, { data: prods, error: prodErr }] = await Promise.all([
+  const [
+    { data: cats, error: catErr },
+    { data: prods, error: prodErr },
+    { data: layoutRows, error: layoutErr },
+    { data: comboRows, error: comboErr },
+  ] = await Promise.all([
     supabaseAdmin.from("product_categories").select("*").order("sort_order", { ascending: true }),
     supabaseAdmin
       .from("products")
       .select("*")
       .eq("active", true)
       .order("sort_order", { ascending: true }),
+    supabaseAdmin.from("store_sections").select("*").order("sort_order", { ascending: true }),
+    supabaseAdmin
+      .from("combos")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order", { ascending: true }),
   ]);
   if (catErr) throw catErr;
   if (prodErr) throw prodErr;
+  if (layoutErr) throw layoutErr;
+  if (comboErr) throw comboErr;
 
   const products = (prods ?? []).map(mapProduct);
   const categories: CatalogCategory[] = (cats ?? [])
@@ -59,13 +80,28 @@ export const getStoreCatalog = createServerFn({ method: "GET" }).handler(async (
       name: c.name,
       tagline: c.tagline,
       sort_order: c.sort_order,
+      section_id: c.section_id,
       products: products.filter((p) => p.category_id === c.id),
     }))
     .filter((c) => c.products.length > 0);
 
+  const layout = (layoutRows ?? []) as StoreSection[];
+
   const bestSellers = products.filter((p) => p.is_best_seller);
 
-  return { categories, bestSellers };
+  const combos = (comboRows ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    price: Number(row.price),
+    unit: row.unit,
+    description: row.description,
+    items: row.items ?? [],
+    image: row.image_url ?? undefined,
+    active: row.active,
+    sort_order: row.sort_order,
+  }));
+
+  return { categories, bestSellers, layout, combos };
 });
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -209,6 +245,88 @@ export const adminReorderProducts = createServerFn({ method: "POST" })
         .from("products")
         .update({ sort_order: u.sort_order })
         .eq("id", u.id);
+      if (error) throw error;
+    }
+    return { ok: true };
+  });
+
+// Admin: full store layout (all categories incl. empty, section list) for the visual editor.
+export const adminGetStoreLayout = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [{ data: sections, error: secErr }, { data: cats, error: catErr }, { data: prods, error: prodErr }, { data: comboRows, error: comboErr }] =
+      await Promise.all([
+        supabaseAdmin.from("store_sections").select("*").order("sort_order", { ascending: true }),
+        supabaseAdmin
+          .from("product_categories")
+          .select("*")
+          .order("sort_order", { ascending: true }),
+        supabaseAdmin
+          .from("products")
+          .select("*")
+          .eq("active", true)
+          .order("sort_order", { ascending: true }),
+        supabaseAdmin.from("combos").select("*").order("sort_order", { ascending: true }),
+      ]);
+    if (secErr) throw secErr;
+    if (catErr) throw catErr;
+    if (prodErr) throw prodErr;
+    if (comboErr) throw comboErr;
+
+    const products = (prods ?? []).map(mapProduct);
+    const categories: CatalogCategory[] = (cats ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      tagline: c.tagline,
+      sort_order: c.sort_order,
+      section_id: c.section_id,
+      products: products.filter((p) => p.category_id === c.id),
+    }));
+
+    const combos = (comboRows ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      price: Number(row.price),
+      unit: row.unit,
+      description: row.description,
+      items: row.items ?? [],
+      image: row.image_url ?? undefined,
+      active: row.active,
+      sort_order: row.sort_order,
+    }));
+
+    return { sections: (sections ?? []) as StoreSection[], categories, combos };
+  });
+
+// Persist a new order for the top-level store blocks (best sellers, combos,
+// category sections) shown on the storefront.
+export const adminReorderSections = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { orderedIds: string[] }) => {
+    if (!Array.isArray(input?.orderedIds) || input.orderedIds.length === 0) {
+      throw new Error("Nada que reordenar");
+    }
+    return { orderedIds: input.orderedIds };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: rows, error: fetchErr } = await supabaseAdmin
+      .from("store_sections")
+      .select("id, sort_order")
+      .in("id", data.orderedIds);
+    if (fetchErr) throw fetchErr;
+
+    const slots = (rows ?? []).map((r) => r.sort_order).sort((a, b) => a - b);
+    for (let i = 0; i < data.orderedIds.length; i++) {
+      const { error } = await supabaseAdmin
+        .from("store_sections")
+        .update({ sort_order: slots[i] })
+        .eq("id", data.orderedIds[i]);
       if (error) throw error;
     }
     return { ok: true };

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Star, Package, UserCog, Lock, Unlock } from "lucide-react";
+import { Loader2, Star, Package, UserCog, Lock, Unlock, Camera, User } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
-import { getMyClub, updateMyProfile } from "@/lib/club.functions";
+import { getMyClub, updateMyProfile, uploadMyAvatar } from "@/lib/club.functions";
 import { CLUB } from "@/lib/club";
 import { ClubShell } from "@/components/ClubShell";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,21 @@ export const Route = createFileRoute("/_authenticated/cuenta")({
   component: Cuenta,
 });
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function Cuenta() {
   const fetchClub = useServerFn(getMyClub);
   const saveProfile = useServerFn(updateMyProfile);
+  const uploadAvatar = useServerFn(uploadMyAvatar);
   const queryClient = useQueryClient();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["club", "me"],
@@ -43,9 +54,13 @@ function Cuenta() {
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: (vars: { fullName: string; phone: string }) => saveProfile({ data: vars }),
+    mutationFn: (vars: { fullName: string; phone: string; address: string; birthDate: string }) =>
+      saveProfile({ data: vars }),
     onSuccess: () => {
       toast.success("Datos actualizados");
       setEditing(false);
@@ -53,6 +68,27 @@ function Cuenta() {
     },
     onError: () => toast.error("No se pudieron guardar los datos"),
   });
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5_000_000) {
+      toast.error("La imagen no debe superar 5 MB");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      await uploadAvatar({ data: { fileName: file.name, dataUrl } });
+      toast.success("Foto de perfil actualizada");
+      queryClient.invalidateQueries({ queryKey: ["club", "me"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo subir la foto");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
 
   const redeemable = useMemo(() => {
     const pts = data?.profile.points ?? 0;
@@ -74,9 +110,39 @@ function Cuenta() {
 
   return (
     <ClubShell points={profile.points} isMember={isMember} isAdmin={isAdmin}>
-      <h1 className="font-display text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-        Hola{profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
-      </h1>
+      <div className="flex items-center gap-4">
+        <div className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-border bg-secondary/40 sm:h-20 sm:w-20">
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <User className="h-8 w-8 text-muted-foreground" />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 transition-opacity group-hover:opacity-100"
+          >
+            {uploadingAvatar ? (
+              <Loader2 className="h-5 w-5 animate-spin text-foreground" />
+            ) : (
+              <Camera className="h-5 w-5 text-foreground" />
+            )}
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
+        </div>
+        <h1 className="font-display text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+          Hola{profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
+        </h1>
+      </div>
       <p className="mt-2 text-sm text-muted-foreground">
         1 punto por cada {CLUB.bsPerPoint} {CURRENCY} de compra. {CLUB.redeemStep} puntos ={" "}
         {CLUB.redeemValueBs} {CURRENCY} de descuento (solo socios activos).
@@ -143,6 +209,8 @@ function Cuenta() {
               onClick={() => {
                 setFullName(profile.full_name);
                 setPhone(profile.phone);
+                setAddress(profile.address ?? "");
+                setBirthDate(profile.birth_date ?? "");
                 setEditing((v) => !v);
               }}
             >
@@ -155,7 +223,7 @@ function Cuenta() {
               className="mt-4 space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                mutation.mutate({ fullName, phone });
+                mutation.mutate({ fullName, phone, address, birthDate });
               }}
             >
               <div className="space-y-1.5">
@@ -165,6 +233,19 @@ function Cuenta() {
               <div className="space-y-1.5">
                 <Label htmlFor="tel">Teléfono / WhatsApp</Label>
                 <Input id="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="dir">Dirección</Label>
+                <Input id="dir" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={200} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="nac">Fecha de nacimiento</Label>
+                <Input
+                  id="nac"
+                  type="date"
+                  value={birthDate ?? ""}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                />
               </div>
               <Button type="submit" disabled={mutation.isPending} className="font-cond uppercase tracking-wide">
                 {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Guardar
@@ -183,6 +264,18 @@ function Cuenta() {
               <div>
                 <dt className="text-muted-foreground">Teléfono</dt>
                 <dd className="text-foreground">{profile.phone || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Dirección</dt>
+                <dd className="text-foreground">{profile.address || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Fecha de nacimiento</dt>
+                <dd className="text-foreground">
+                  {profile.birth_date
+                    ? new Date(profile.birth_date).toLocaleDateString("es-BO")
+                    : "—"}
+                </dd>
               </div>
             </dl>
           )}

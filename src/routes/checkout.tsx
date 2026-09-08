@@ -22,6 +22,7 @@ import { isKgProduct } from "@/lib/units";
 import { BOLIVIA, DEPARTAMENTOS } from "@/data/bolivia";
 import { submitOrder, type OrderResult } from "@/lib/order.functions";
 import { recordOrder } from "@/lib/club.functions";
+import { validateDiscountCode, type ValidateDiscountResult } from "@/lib/discounts.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPicker, type LatLng } from "@/components/MapPicker";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,12 @@ function Checkout() {
   const navigate = useNavigate();
   const submit = useServerFn(submitOrder);
   const saveOrder = useServerFn(recordOrder);
+  const validateCode = useServerFn(validateDiscountCode);
+
+  const [discountInput, setDiscountInput] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<ValidateDiscountResult | null>(null);
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const [discountError, setDiscountError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -97,6 +104,41 @@ function Checkout() {
     () => (department && province ? BOLIVIA[department]?.[province] ?? [] : []),
     [department, province],
   );
+
+  const discountAmount = appliedDiscount?.valid ? appliedDiscount.discountAmount ?? 0 : 0;
+  const finalTotal = Math.max(0, Math.round((totalPrice - discountAmount) * 100) / 100);
+
+  const handleApplyDiscount = async () => {
+    if (!discountInput.trim()) return;
+    setDiscountLoading(true);
+    setDiscountError(null);
+    try {
+      const res = await validateCode({
+        data: {
+          code: discountInput.trim(),
+          items: items.map((i) => ({ id: i.product.id, price: i.product.price, quantity: i.quantity })),
+        },
+      });
+      if (!res.valid) {
+        setDiscountError(res.message ?? "Código inválido");
+        setAppliedDiscount(null);
+      } else {
+        setAppliedDiscount(res);
+        setDiscountError(null);
+      }
+    } catch (e) {
+      setDiscountError(e instanceof Error ? e.message : "No se pudo validar el código");
+      setAppliedDiscount(null);
+    } finally {
+      setDiscountLoading(false);
+    }
+  };
+
+  const removeDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountInput("");
+    setDiscountError(null);
+  };
 
   const canSubmit =
     name.trim() &&
@@ -135,7 +177,9 @@ function Checkout() {
             price: i.product.price,
             unit: i.product.unit,
           })),
-          total: totalPrice,
+          total: finalTotal,
+          discountCode: appliedDiscount?.valid ? appliedDiscount.code : undefined,
+          discountAmount: discountAmount > 0 ? discountAmount : undefined,
         },
       });
       setResult(res);
@@ -167,7 +211,9 @@ function Checkout() {
                 price: i.product.price,
                 unit: i.product.unit,
               })),
-              total: totalPrice,
+              total: finalTotal,
+              discountCode: appliedDiscount?.valid ? appliedDiscount.code : null,
+              discountAmount: discountAmount > 0 ? discountAmount : null,
             },
           });
           setEarnedPoints(saved.points);
@@ -515,13 +561,62 @@ function Checkout() {
                 stock si existen los pesos deseados y te confirmamos por WhatsApp antes del pago.
               </p>
             )}
-            <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-              <span className="font-cond uppercase tracking-wide text-muted-foreground">
-                Total ({totalItems})
-              </span>
-              <span className="font-display text-2xl text-foreground">
-                {totalPrice} {CURRENCY}
-              </span>
+
+            <div className="mt-4 border-t border-border pt-4">
+              {appliedDiscount?.valid ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm">
+                  <span className="font-cond font-semibold uppercase tracking-wide text-primary">
+                    Código {appliedDiscount.code} aplicado
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeDiscount}
+                    className="text-xs text-muted-foreground underline hover:text-foreground"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={discountInput}
+                    onChange={(e) => setDiscountInput(e.target.value.toUpperCase())}
+                    placeholder="Código de descuento"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={discountLoading || !discountInput.trim()}
+                    onClick={handleApplyDiscount}
+                    className="font-cond shrink-0 uppercase tracking-wide"
+                  >
+                    {discountLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                  </Button>
+                </div>
+              )}
+              {discountError && (
+                <p className="mt-1.5 text-xs text-destructive">{discountError}</p>
+              )}
+            </div>
+
+            <div className="mt-3 space-y-1">
+              {discountAmount > 0 && (
+                <div className="flex items-center justify-between text-sm text-primary">
+                  <span>Descuento</span>
+                  <span className="font-cond font-semibold">
+                    -{discountAmount} {CURRENCY}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="font-cond uppercase tracking-wide text-muted-foreground">
+                  Total ({totalItems})
+                </span>
+                <span className="font-display text-2xl text-foreground">
+                  {finalTotal} {CURRENCY}
+                </span>
+              </div>
             </div>
 
             {error && <p className="mt-3 text-sm text-destructive">{error}</p>}

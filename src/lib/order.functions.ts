@@ -22,6 +22,8 @@ export type OrderInput = {
   notes?: string;
   items: OrderItemInput[];
   total: number;
+  discountCode?: string;
+  discountAmount?: number;
 };
 
 export type OrderResult = {
@@ -69,6 +71,11 @@ function buildMessage(data: OrderInput): string {
     lines.push(`• ${it.quantity}x ${it.name} (${it.unit}) — ${it.price * it.quantity} Bs`);
   }
   lines.push("");
+  if (data.discountAmount && data.discountAmount > 0) {
+    lines.push(
+      `*Descuento${data.discountCode ? ` (${data.discountCode})` : ""}:* -${data.discountAmount} Bs`,
+    );
+  }
   lines.push(`*TOTAL: ${data.total} Bs*`);
   return lines.join("\n");
 }

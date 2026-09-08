@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Mail, Lock, User, ArrowLeft, Flame } from "lucide-react";
+import { Loader2, Mail, Lock, User, ArrowLeft, Flame, MapPin, Cake, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -50,6 +50,9 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [address, setAddress] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -82,7 +85,12 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}${dest}`,
-            data: { full_name: fullName.trim() },
+            data: {
+              full_name: fullName.trim(),
+              address: address.trim(),
+              birth_date: birthDate || null,
+              phone: phone.trim(),
+            },
           },
         });
         if (error) throw error;
@@ -178,7 +186,6 @@ function AuthPage() {
                 </div>
               </div>
             )}
-
             <div className="space-y-1.5">
               <Label htmlFor="email">Correo electrónico</Label>
               <div className="relative">
@@ -213,6 +220,55 @@ function AuthPage() {
                   />
                 </div>
               </div>
+            )}
+
+            {mode === "signup" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">Teléfono</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Tu WhatsApp"
+                      className="pl-9"
+                      required
+                      maxLength={30}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="address">Dirección</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Tu dirección"
+                      className="pl-9"
+                      required
+                      maxLength={200}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="birthDate">Fecha de nacimiento</Label>
+                  <div className="relative">
+                    <Cake className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      value={birthDate}
+                      onChange={(e) => setBirthDate(e.target.value)}
+                      className="pl-9"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <Button type="submit" disabled={loading} className="w-full font-cond uppercase tracking-wide">

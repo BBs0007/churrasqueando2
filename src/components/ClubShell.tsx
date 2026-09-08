@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, ShoppingBag, Shield, Star, Package } from "lucide-react";
+import { LogOut, ShoppingBag, Shield, Star, Package, Users, Tag, LayoutGrid, Sparkles } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export function ClubShell({
               to="/club"
               className="font-cond rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
-              Beneficios
+              Cursos
             </Link>
             {isAdmin && (
               <Link
@@ -69,6 +69,30 @@ export function ClubShell({
                 className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 <Package className="h-3.5 w-3.5" /> Productos
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                to="/admin-tienda-seccion"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" /> Tienda Sección
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                to="/admin-codigos"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Tag className="h-3.5 w-3.5" /> Códigos de descuento
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                to="/admin-clientes"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Users className="h-3.5 w-3.5" /> Clientes
               </Link>
             )}
             {isAdmin && (
@@ -84,6 +108,14 @@ export function ClubShell({
                 <ShoppingBag className="h-3.5 w-3.5" /> Tienda
               </Button>
             </Link>
+            {isMember && (
+              <Link
+                to="/promociones"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Promociones del Club
+              </Link>
+            )}
             <Button
               variant="ghost"
               size="sm"

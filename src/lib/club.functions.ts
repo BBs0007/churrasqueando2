@@ -7,6 +7,9 @@ export type ClubProfile = {
   full_name: string;
   email: string;
   phone: string;
+  address: string;
+  birth_date: string | null;
+  avatar_url: string | null;
   points: number;
   membership_status: "inactive" | "active" | "expired";
   membership_expires_at: string | null;
@@ -51,9 +54,18 @@ export const getMyClub = createServerFn({ method: "GET" })
 
     let profile = existing;
     if (!profile) {
+      const meta = (context.claims as { user_metadata?: Record<string, unknown> })
+        ?.user_metadata ?? {};
       const { data: created, error } = await supabaseAdmin
         .from("profiles")
-        .insert({ id: context.userId, email })
+        .insert({
+          id: context.userId,
+          email,
+          full_name: typeof meta.full_name === "string" ? meta.full_name : "",
+          phone: typeof meta.phone === "string" ? meta.phone : "",
+          address: typeof meta.address === "string" ? meta.address : "",
+          birth_date: typeof meta.birth_date === "string" && meta.birth_date ? meta.birth_date : null,
+        })
         .select("*")
         .single();
       if (error) throw error;
@@ -98,19 +110,62 @@ export const getMyClub = createServerFn({ method: "GET" })
 
 export const updateMyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { fullName: string; phone: string }) => {
+  .inputValidator((input: { fullName: string; phone: string; address: string; birthDate: string }) => {
     const fullName = input.fullName?.trim() ?? "";
     const phone = input.phone?.trim() ?? "";
-    if (fullName.length > 120 || phone.length > 30) throw new Error("Datos demasiado largos");
-    return { fullName, phone };
+    const address = input.address?.trim() ?? "";
+    const birthDate = input.birthDate?.trim() || null;
+    if (fullName.length > 120 || phone.length > 30 || address.length > 200) {
+      throw new Error("Datos demasiado largos");
+    }
+    return { fullName, phone, address, birthDate };
   })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("profiles")
-      .update({ full_name: data.fullName, phone: data.phone })
+      .update({
+        full_name: data.fullName,
+        phone: data.phone,
+        address: data.address,
+        birth_date: data.birthDate,
+      })
       .eq("id", context.userId);
     if (error) throw error;
     return { ok: true };
+  });
+
+export const uploadMyAvatar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { fileName: string; dataUrl: string }) => {
+    if (!input?.dataUrl?.startsWith("data:")) throw new Error("Imagen inválida");
+    if (input.dataUrl.length > 6_000_000) throw new Error("La imagen es demasiado grande");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const match = data.dataUrl.match(/^data:(.+);base64,(.*)$/);
+    if (!match) throw new Error("Imagen inválida");
+    const contentType = match[1];
+    const bytes = Buffer.from(match[2], "base64");
+    const ext = (data.fileName.split(".").pop() || "jpg").toLowerCase();
+    const path = `${context.userId}/avatar.${ext}`;
+
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("avatars")
+      .upload(path, bytes, { contentType, upsert: true });
+    if (upErr) throw upErr;
+
+    const { data: pub } = supabaseAdmin.storage.from("avatars").getPublicUrl(path);
+    const url = `${pub.publicUrl}?v=${Date.now()}`;
+
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ avatar_url: url })
+      .eq("id", context.userId);
+    if (error) throw error;
+
+    return { ok: true, url };
   });
 
 export const requestMembership = createServerFn({ method: "POST" })
@@ -153,6 +208,8 @@ export const recordOrder = createServerFn({ method: "POST" })
       notes?: string | null;
       items: { name: string; quantity: number; price: number; unit?: string }[];
       total: number;
+      discountCode?: string | null;
+      discountAmount?: number | null;
     }) => {
       if (!input.items?.length) throw new Error("El pedido está vacío");
       if (!(input.total >= 0)) throw new Error("Total inválido");
@@ -180,6 +237,8 @@ export const recordOrder = createServerFn({ method: "POST" })
         items: data.items,
         total: data.total,
         points_earned: points,
+        discount_code: data.discountCode ?? null,
+        discount_amount: data.discountAmount ?? 0,
       })
       .select("id")
       .single();

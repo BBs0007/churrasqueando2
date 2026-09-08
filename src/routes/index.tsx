@@ -54,6 +54,7 @@ function Index() {
   const fetchCatalog = useServerFn(getStoreCatalog);
   const catalog = useQuery({ queryKey: ["store-catalog"], queryFn: () => fetchCatalog() });
   const bestSellers = catalog.data?.bestSellers ?? [];
+  const combos = catalog.data?.combos ?? [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,7 +108,7 @@ function Index() {
             </div>
 
             <div className="mt-10 border-t border-border/60 pt-8">
-              <CombosSection />
+              <CombosSection combos={combos} />
             </div>
 
             <div className="mt-6 flex justify-center">

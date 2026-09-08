@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Check, Users } from "lucide-react";
-import { combos, type Combo } from "@/data/combos";
 import { CURRENCY } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
+import type { StoreCombo } from "@/lib/combos.functions";
 
-function ComboCard({ combo }: { combo: Combo }) {
+function ComboCard({ combo }: { combo: StoreCombo }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -18,14 +18,16 @@ function ComboCard({ combo }: { combo: Combo }) {
   return (
     <article className="group flex w-[280px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-primary/40 bg-card shadow-card transition-transform duration-300 hover:-translate-y-1">
       <div className="relative aspect-square overflow-hidden bg-background">
-        <img
-          src={combo.image}
-          alt={`Combo ${combo.name}`}
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {combo.image && (
+          <img
+            src={combo.image}
+            alt={`Combo ${combo.name}`}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        )}
         <span className="font-cond absolute left-2 top-2 flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-foreground backdrop-blur">
-          <Users className="h-3 w-3 text-primary" /> {combo.people} personas
+          <Users className="h-3 w-3 text-primary" /> {combo.unit}
         </span>
       </div>
 
@@ -54,10 +56,12 @@ function ComboCard({ combo }: { combo: Combo }) {
   );
 }
 
-export function CombosSection() {
+export function CombosSection({ combos = [] }: { combos?: StoreCombo[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const scrollBy = (dir: number) =>
     scrollerRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" });
+
+  if (combos.length === 0) return null;
 
   return (
     <section id="combos" className="scroll-mt-28">
