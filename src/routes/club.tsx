@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyClub, requestMembership } from "@/lib/club.functions";
-import { getStoreCombos } from "@/lib/combos.functions";
 import {
   CLUB,
   CLUB_BENEFITS,
@@ -37,7 +36,6 @@ import { BUSINESS } from "@/data/business";
 import { CURRENCY } from "@/data/products";
 import { ClubShell } from "@/components/ClubShell";
 import { Header } from "@/components/Header";
-import { CombosSection } from "@/components/CombosSection";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -89,7 +87,6 @@ const PERK_ICONS: Record<string, React.ReactNode> = {
 function ClubPage() {
   const fetchClub = useServerFn(getMyClub);
   const askMembership = useServerFn(requestMembership);
-  const fetchCombos = useServerFn(getStoreCombos);
   const queryClient = useQueryClient();
   const { session, loading: sessionLoading } = useSession();
 
@@ -98,12 +95,6 @@ function ClubPage() {
     queryFn: () => fetchClub(),
     enabled: !!session,
   });
-
-  const { data: comboData } = useQuery({
-    queryKey: ["store", "combos"],
-    queryFn: () => fetchCombos(),
-  });
-  const combos = comboData?.combos ?? [];
 
   const mutation = useMutation({
     mutationFn: () => askMembership({ data: {} }),
@@ -449,24 +440,6 @@ function ClubPage() {
           vencen a los {CLUB.pointsExpireMonths} meses sin comprar.
         </p>
       </section>
-
-      {/* COMBOS */}
-      {combos.length > 0 && (
-        <section className="mt-14">
-          <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
-            Directo a tu parrillada
-          </p>
-          <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-            Combos para socios
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground">
-            Packs armados que además suman Puntos Brasa en cada compra.
-          </p>
-          <div className="mt-8">
-            <CombosSection combos={combos} />
-          </div>
-        </section>
-      )}
 
       {/* SOCIOS FUNDADORES */}
       <section className="mt-14 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card px-6 py-12 text-center sm:px-10 sm:py-16">
