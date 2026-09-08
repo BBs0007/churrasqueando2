@@ -107,6 +107,11 @@ function Checkout() {
 
   const discountAmount = appliedDiscount?.valid ? appliedDiscount.discountAmount ?? 0 : 0;
   const finalTotal = Math.max(0, Math.round((totalPrice - discountAmount) * 100) / 100);
+  const provinceShippingEstimate = {
+    bidmodal: "Aprox. 60 a 150 Bs",
+    avion: "Aprox. 100 a 180 Bs o más",
+    trufi: "Aprox. 60 a 90 Bs",
+  } as const;
 
   const handleApplyDiscount = async () => {
     if (!discountInput.trim()) return;
@@ -483,6 +488,15 @@ function Checkout() {
                   <p className="text-xs text-muted-foreground">
                     Trufi disponible para el Norte o doble vía La Guardia. Los rangos son referenciales.
                   </p>
+                  <div className="rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-foreground">
+                    <span className="font-cond font-semibold uppercase tracking-wide text-primary">
+                      Costo aproximado del envío:
+                    </span>{" "}
+                    <span className="font-semibold">{provinceShippingEstimate[shippingMethod]}</span>
+                    <span className="text-muted-foreground">
+                      {" "}más el costo de la conservadora según el pedido.
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-3 rounded-2xl border border-border bg-card p-4">

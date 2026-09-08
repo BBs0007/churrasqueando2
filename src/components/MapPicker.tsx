@@ -137,7 +137,12 @@ export function MapPicker({
             En naranja: {BUSINESS.pickup.label} (central de la empresa).
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={useMyLocation} className="shrink-0">
+        <Button
+          type="button"
+          size="sm"
+          onClick={useMyLocation}
+          className="shrink-0 border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+        >
           <Navigation className="h-3.5 w-3.5" /> Mi ubicación
         </Button>
       </div>

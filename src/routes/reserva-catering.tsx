@@ -61,10 +61,37 @@ function ReservaCatering() {
   const [sent, setSent] = useState(false);
   const [mapLocation, setMapLocation] = useState<LatLng | null>(null);
 
+  const guestsValue = form.guests === "" ? 0 : Number(form.guests);
+  const guestCount = Number.isFinite(guestsValue) && guestsValue >= CATERING_MIN_PEOPLE ? guestsValue : 0;
+  const estimatedBase = guestCount * selected.price;
+  const transportFee = 70;
+  const reservationAdvance = 350;
+  const estimatedTotal = estimatedBase + transportFee + reservationAdvance;
+
   const update =
     (k: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((f) => ({ ...f, [k]: e.target.value }));
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const value = e.target.value;
+
+      if (k === "guests") {
+        if (value === "") {
+          setForm((f) => ({ ...f, guests: value }));
+          return;
+        }
+
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) {
+          return;
+        }
+
+        const minValue = CATERING_MIN_PEOPLE;
+        const safeValue = numericValue < minValue ? minValue : numericValue;
+        setForm((f) => ({ ...f, guests: String(safeValue) }));
+        return;
+      }
+
+      setForm((f) => ({ ...f, [k]: value }));
+    };
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,6 +212,22 @@ function ReservaCatering() {
                     onChange={update("guests")}
                     placeholder={`Mínimo ${CATERING_MIN_PEOPLE}`}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Mínimo {CATERING_MIN_PEOPLE} personas. Si escribes un número menor, se ajustará automáticamente.
+                  </p>
+                  {guestCount > 0 && (
+                    <div className="mt-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-foreground">
+                      <p className="font-cond font-semibold uppercase tracking-wide text-primary">
+                        Estimado aproximado
+                      </p>
+                      <p className="mt-1">
+                        {guestCount} personas × {selected.price} Bs/p = {estimatedBase} Bs
+                      </p>
+                      <p className="text-muted-foreground">
+                        + transporte {transportFee} Bs + adelanto {reservationAdvance} Bs = {estimatedTotal} Bs aprox.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="catering-type">Tipo de churrasco</Label>
