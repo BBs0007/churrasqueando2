@@ -64,7 +64,7 @@ export const PUNTOS_BRASA_STEPS = [
   {
     id: "1",
     title: "Comprás en la tienda",
-    description: "Cada 1 Bs de compra suma 1 Punto Brasa a tu cuenta de socio.",
+    description: "Cada 10 Bs de compra suma 1 Punto Brasa a tu cuenta de socio.",
   },
   {
     id: "2",
