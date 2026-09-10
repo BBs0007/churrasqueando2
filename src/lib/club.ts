@@ -2,7 +2,7 @@
 export const CLUB = {
   name: "Club Churrasqueando",
   // Acumulación de Puntos Brasa: 1 Bs de compra = 1 punto
-  bsPerPoint: 1,
+  bsPerPoint: 10,
   // Vencimiento de puntos sin comprar
   pointsExpireMonths: 10,
   // Suscripción
