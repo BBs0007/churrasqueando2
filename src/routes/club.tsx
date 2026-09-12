@@ -562,7 +562,6 @@ function ClubPage() {
           <div className="mt-4 space-y-2 text-sm text-foreground/90">
             <p>Membresía anual lanzamiento: 450 Bs</p>
             <p className="text-muted-foreground">Precio real luego: 699 Bs anual</p>
-            <p className="text-muted-foreground">Club activo: 89 Bs mensual</p>
           </div>
 
           <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">

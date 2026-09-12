@@ -65,8 +65,7 @@ function ReservaCatering() {
   const guestCount = Number.isFinite(guestsValue) && guestsValue >= CATERING_MIN_PEOPLE ? guestsValue : 0;
   const estimatedBase = guestCount * selected.price;
   const transportFee = 70;
-  const reservationAdvance = 350;
-  const estimatedTotal = estimatedBase + transportFee + reservationAdvance;
+  const estimatedTotal = estimatedBase + transportFee;
 
   const update =
     (k: keyof typeof form) =>
@@ -218,13 +217,13 @@ function ReservaCatering() {
                   {guestCount > 0 && (
                     <div className="mt-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-foreground">
                       <p className="font-cond font-semibold uppercase tracking-wide text-primary">
-                        Estimado aproximado
+                        Costos Aproximados
                       </p>
                       <p className="mt-1">
                         {guestCount} personas × {selected.price} Bs/p = {estimatedBase} Bs
                       </p>
                       <p className="text-muted-foreground">
-                        + transporte {transportFee} Bs + adelanto {reservationAdvance} Bs = {estimatedTotal} Bs aprox.
+                        + transporte {transportFee} Bs = {estimatedTotal} Bs aprox.
                       </p>
                     </div>
                   )}
