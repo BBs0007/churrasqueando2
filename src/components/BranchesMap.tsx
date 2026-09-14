@@ -2,13 +2,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { loadGoogleMaps } from "@/lib/googleMaps";
-import { BRANCHES, type Branch } from "@/data/branches";
+import type { PublicBranch } from "@/lib/branches.functions";
 import pin from "@/assets/branch-pin.png";
 
 export function BranchesMap({
+  branches,
   active,
   onSelect,
 }: {
+  branches: PublicBranch[];
   active: string | null;
   onSelect: (id: string) => void;
 }) {
@@ -19,6 +21,7 @@ export function BranchesMap({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (branches.length === 0) return;
     let cancelled = false;
 
     loadGoogleMaps()
@@ -26,7 +29,7 @@ export function BranchesMap({
         if (cancelled || !containerRef.current) return;
 
         const map = new g.maps.Map(containerRef.current, {
-          center: { lat: BRANCHES[0].lat, lng: BRANCHES[0].lng },
+          center: { lat: branches[0].lat, lng: branches[0].lng },
           zoom: 12,
           disableDefaultUI: true,
           zoomControl: true,
@@ -42,7 +45,7 @@ export function BranchesMap({
         };
 
         const bounds = new g.maps.LatLngBounds();
-        BRANCHES.forEach((b: Branch) => {
+        branches.forEach((b) => {
           const marker = new g.maps.Marker({
             position: { lat: b.lat, lng: b.lng },
             map,
@@ -67,11 +70,11 @@ export function BranchesMap({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [branches.length]);
 
   useEffect(() => {
     if (!active || !mapRef.current) return;
-    const b = BRANCHES.find((x) => x.id === active);
+    const b = branches.find((x) => x.id === active);
     if (!b) return;
     mapRef.current.panTo({ lat: b.lat, lng: b.lng });
     mapRef.current.setZoom(15);

@@ -22,9 +22,13 @@ import { Route as TiendaRouteImport } from './routes/tienda'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin-clientes'
 import { Route as AuthenticatedAdminClubRouteImport } from './routes/_authenticated/admin-club'
 import { Route as AuthenticatedAdminCodigosRouteImport } from './routes/_authenticated/admin-codigos'
+import { Route as AuthenticatedAdminCursosRouteImport } from './routes/_authenticated/admin-cursos'
 import { Route as AuthenticatedAdminProductosRouteImport } from './routes/_authenticated/admin-productos'
+import { Route as AuthenticatedAdminSucursalesRouteImport } from './routes/_authenticated/admin-sucursales'
 import { Route as AuthenticatedAdminTiendaSeccionRouteImport } from './routes/_authenticated/admin-tienda-seccion'
+import { Route as AuthenticatedAdminVentasRouteImport } from './routes/_authenticated/admin-ventas'
 import { Route as AuthenticatedCuentaRouteImport } from './routes/_authenticated/cuenta'
+import { Route as AuthenticatedCursosRouteImport } from './routes/_authenticated/cursos'
 import { Route as AuthenticatedPromocionesRouteImport } from './routes/_authenticated/promociones'
 
 const IndexRoute = IndexRouteImport.update({
@@ -93,10 +97,22 @@ const AuthenticatedAdminCodigosRoute =
     path: '/admin-codigos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminCursosRoute =
+  AuthenticatedAdminCursosRouteImport.update({
+    id: '/admin-cursos',
+    path: '/admin-cursos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminProductosRoute =
   AuthenticatedAdminProductosRouteImport.update({
     id: '/admin-productos',
     path: '/admin-productos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminSucursalesRoute =
+  AuthenticatedAdminSucursalesRouteImport.update({
+    id: '/admin-sucursales',
+    path: '/admin-sucursales',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminTiendaSeccionRoute =
@@ -105,9 +121,20 @@ const AuthenticatedAdminTiendaSeccionRoute =
     path: '/admin-tienda-seccion',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminVentasRoute =
+  AuthenticatedAdminVentasRouteImport.update({
+    id: '/admin-ventas',
+    path: '/admin-ventas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCuentaRoute = AuthenticatedCuentaRouteImport.update({
   id: '/cuenta',
   path: '/cuenta',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCursosRoute = AuthenticatedCursosRouteImport.update({
+  id: '/cursos',
+  path: '/cursos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPromocionesRoute =
@@ -130,9 +157,13 @@ export interface FileRoutesByFullPath {
   '/admin-clientes': typeof AuthenticatedAdminClientesRoute
   '/admin-club': typeof AuthenticatedAdminClubRoute
   '/admin-codigos': typeof AuthenticatedAdminCodigosRoute
+  '/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/admin-productos': typeof AuthenticatedAdminProductosRoute
+  '/admin-sucursales': typeof AuthenticatedAdminSucursalesRoute
   '/admin-tienda-seccion': typeof AuthenticatedAdminTiendaSeccionRoute
+  '/admin-ventas': typeof AuthenticatedAdminVentasRoute
   '/cuenta': typeof AuthenticatedCuentaRoute
+  '/cursos': typeof AuthenticatedCursosRoute
   '/promociones': typeof AuthenticatedPromocionesRoute
 }
 export interface FileRoutesByTo {
@@ -148,9 +179,13 @@ export interface FileRoutesByTo {
   '/admin-clientes': typeof AuthenticatedAdminClientesRoute
   '/admin-club': typeof AuthenticatedAdminClubRoute
   '/admin-codigos': typeof AuthenticatedAdminCodigosRoute
+  '/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/admin-productos': typeof AuthenticatedAdminProductosRoute
+  '/admin-sucursales': typeof AuthenticatedAdminSucursalesRoute
   '/admin-tienda-seccion': typeof AuthenticatedAdminTiendaSeccionRoute
+  '/admin-ventas': typeof AuthenticatedAdminVentasRoute
   '/cuenta': typeof AuthenticatedCuentaRoute
+  '/cursos': typeof AuthenticatedCursosRoute
   '/promociones': typeof AuthenticatedPromocionesRoute
 }
 export interface FileRoutesById {
@@ -168,9 +203,13 @@ export interface FileRoutesById {
   '/_authenticated/admin-clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin-club': typeof AuthenticatedAdminClubRoute
   '/_authenticated/admin-codigos': typeof AuthenticatedAdminCodigosRoute
+  '/_authenticated/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/_authenticated/admin-productos': typeof AuthenticatedAdminProductosRoute
+  '/_authenticated/admin-sucursales': typeof AuthenticatedAdminSucursalesRoute
   '/_authenticated/admin-tienda-seccion': typeof AuthenticatedAdminTiendaSeccionRoute
+  '/_authenticated/admin-ventas': typeof AuthenticatedAdminVentasRoute
   '/_authenticated/cuenta': typeof AuthenticatedCuentaRoute
+  '/_authenticated/cursos': typeof AuthenticatedCursosRoute
   '/_authenticated/promociones': typeof AuthenticatedPromocionesRoute
 }
 export interface FileRouteTypes {
@@ -188,9 +227,13 @@ export interface FileRouteTypes {
     | '/admin-clientes'
     | '/admin-club'
     | '/admin-codigos'
+    | '/admin-cursos'
     | '/admin-productos'
+    | '/admin-sucursales'
     | '/admin-tienda-seccion'
+    | '/admin-ventas'
     | '/cuenta'
+    | '/cursos'
     | '/promociones'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -206,9 +249,13 @@ export interface FileRouteTypes {
     | '/admin-clientes'
     | '/admin-club'
     | '/admin-codigos'
+    | '/admin-cursos'
     | '/admin-productos'
+    | '/admin-sucursales'
     | '/admin-tienda-seccion'
+    | '/admin-ventas'
     | '/cuenta'
+    | '/cursos'
     | '/promociones'
   id:
     | '__root__'
@@ -225,9 +272,13 @@ export interface FileRouteTypes {
     | '/_authenticated/admin-clientes'
     | '/_authenticated/admin-club'
     | '/_authenticated/admin-codigos'
+    | '/_authenticated/admin-cursos'
     | '/_authenticated/admin-productos'
+    | '/_authenticated/admin-sucursales'
     | '/_authenticated/admin-tienda-seccion'
+    | '/_authenticated/admin-ventas'
     | '/_authenticated/cuenta'
+    | '/_authenticated/cursos'
     | '/_authenticated/promociones'
   fileRoutesById: FileRoutesById
 }
@@ -337,11 +388,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCodigosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin-cursos': {
+      id: '/_authenticated/admin-cursos'
+      path: '/admin-cursos'
+      fullPath: '/admin-cursos'
+      preLoaderRoute: typeof AuthenticatedAdminCursosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin-productos': {
       id: '/_authenticated/admin-productos'
       path: '/admin-productos'
       fullPath: '/admin-productos'
       preLoaderRoute: typeof AuthenticatedAdminProductosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin-sucursales': {
+      id: '/_authenticated/admin-sucursales'
+      path: '/admin-sucursales'
+      fullPath: '/admin-sucursales'
+      preLoaderRoute: typeof AuthenticatedAdminSucursalesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin-tienda-seccion': {
@@ -351,11 +416,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTiendaSeccionRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin-ventas': {
+      id: '/_authenticated/admin-ventas'
+      path: '/admin-ventas'
+      fullPath: '/admin-ventas'
+      preLoaderRoute: typeof AuthenticatedAdminVentasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cuenta': {
       id: '/_authenticated/cuenta'
       path: '/cuenta'
       fullPath: '/cuenta'
       preLoaderRoute: typeof AuthenticatedCuentaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cursos': {
+      id: '/_authenticated/cursos'
+      path: '/cursos'
+      fullPath: '/cursos'
+      preLoaderRoute: typeof AuthenticatedCursosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/promociones': {
@@ -372,9 +451,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
   AuthenticatedAdminClubRoute: typeof AuthenticatedAdminClubRoute
   AuthenticatedAdminCodigosRoute: typeof AuthenticatedAdminCodigosRoute
+  AuthenticatedAdminCursosRoute: typeof AuthenticatedAdminCursosRoute
   AuthenticatedAdminProductosRoute: typeof AuthenticatedAdminProductosRoute
+  AuthenticatedAdminSucursalesRoute: typeof AuthenticatedAdminSucursalesRoute
   AuthenticatedAdminTiendaSeccionRoute: typeof AuthenticatedAdminTiendaSeccionRoute
+  AuthenticatedAdminVentasRoute: typeof AuthenticatedAdminVentasRoute
   AuthenticatedCuentaRoute: typeof AuthenticatedCuentaRoute
+  AuthenticatedCursosRoute: typeof AuthenticatedCursosRoute
   AuthenticatedPromocionesRoute: typeof AuthenticatedPromocionesRoute
 }
 
@@ -382,9 +465,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
   AuthenticatedAdminClubRoute: AuthenticatedAdminClubRoute,
   AuthenticatedAdminCodigosRoute: AuthenticatedAdminCodigosRoute,
+  AuthenticatedAdminCursosRoute: AuthenticatedAdminCursosRoute,
   AuthenticatedAdminProductosRoute: AuthenticatedAdminProductosRoute,
+  AuthenticatedAdminSucursalesRoute: AuthenticatedAdminSucursalesRoute,
   AuthenticatedAdminTiendaSeccionRoute: AuthenticatedAdminTiendaSeccionRoute,
+  AuthenticatedAdminVentasRoute: AuthenticatedAdminVentasRoute,
   AuthenticatedCuentaRoute: AuthenticatedCuentaRoute,
+  AuthenticatedCursosRoute: AuthenticatedCursosRoute,
   AuthenticatedPromocionesRoute: AuthenticatedPromocionesRoute,
 }
 

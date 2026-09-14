@@ -184,8 +184,8 @@ export const requestMembership = createServerFn({ method: "POST" })
 
     const { error } = await context.supabase.from("membership_requests").insert({
       user_id: context.userId,
-      plan: "monthly",
-      amount: CLUB.monthlyPriceBs,
+      plan: "annual",
+      amount: CLUB.annualPriceBs,
       reference: data.reference,
     });
     if (error) throw error;

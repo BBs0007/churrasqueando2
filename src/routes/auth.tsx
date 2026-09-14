@@ -7,7 +7,15 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { CLUB } from "@/lib/club";
+import { COUNTRY_CODES, DEFAULT_COUNTRY_CODE } from "@/data/country-codes";
 import logo from "@/assets/logo-churrasqueando.png";
 
 type Mode = "login" | "signup" | "forgot";
@@ -53,6 +61,7 @@ function AuthPage() {
   const [address, setAddress] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [loading, setLoading] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -80,6 +89,8 @@ function AuthPage() {
         if (error) throw error;
         setInfo("Te enviamos un correo para restablecer tu contraseña.");
       } else if (mode === "signup") {
+        const dial = COUNTRY_CODES.find((c) => c.code === countryCode)?.dial ?? "+591";
+        const fullPhone = `${dial} ${phone.trim()}`;
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -89,7 +100,7 @@ function AuthPage() {
               full_name: fullName.trim(),
               address: address.trim(),
               birth_date: birthDate || null,
-              phone: phone.trim(),
+              phone: fullPhone,
             },
           },
         });
@@ -225,19 +236,38 @@ function AuthPage() {
             {mode === "signup" && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="phone">Teléfono</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Tu WhatsApp"
-                      className="pl-9"
-                      required
-                      maxLength={30}
-                    />
+                  <Label htmlFor="phone">Teléfono / WhatsApp</Label>
+                  <div className="flex gap-2">
+                    <Select value={countryCode} onValueChange={setCountryCode}>
+                      <SelectTrigger className="w-[110px] shrink-0" aria-label="Código de país">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRY_CODES.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>
+                            {c.flag} {c.dial}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        inputMode="numeric"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="Número sin el código"
+                        className="pl-9"
+                        required
+                        maxLength={20}
+                      />
+                    </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Primero elige el código de tu país, luego escribe solo tu número.
+                  </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="address">Dirección</Label>

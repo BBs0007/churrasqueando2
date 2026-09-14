@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { MapPin, Navigation, Flame } from "lucide-react";
 import { BranchesMap } from "@/components/BranchesMap";
-import { BRANCHES } from "@/data/branches";
+import type { PublicBranch } from "@/lib/branches.functions";
 
-export function SucursalesSection() {
+export function SucursalesSection({ branches }: { branches: PublicBranch[] }) {
   const [active, setActive] = useState<string | null>(null);
 
   return (
@@ -18,12 +18,12 @@ export function SucursalesSection() {
       </div>
 
       <div className="w-full">
-        <BranchesMap active={active} onSelect={setActive} />
+        <BranchesMap branches={branches} active={active} onSelect={setActive} />
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {BRANCHES.map((b) => (
+          {branches.map((b) => (
               <button
                 key={b.id}
                 onClick={() => setActive(b.id)}

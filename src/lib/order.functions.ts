@@ -10,6 +10,10 @@ export type OrderItemInput = {
 export type OrderInput = {
   customerName: string;
   customerPhone: string;
+  // Whether the customer is logged in. When true, the order is saved
+  // separately (with points) via recordOrder, so we skip the guest insert
+  // here to avoid a duplicate row in admin sales.
+  hasAccount?: boolean;
   deliveryType: "delivery" | "pickup" | "province";
   address?: string;
   lat?: number;
@@ -152,6 +156,38 @@ export const submitOrder = createServerFn({ method: "POST" })
     const businessNumber = process.env.BUSINESS_WHATSAPP || "59175358008";
     const { toBusiness } = await trySendWhatsApp(data, message);
     const businessWhatsappUrl = `https://wa.me/${businessNumber}?text=${encodeURIComponent(message)}`;
+
+    // Record every sale made through the website — including guest checkouts
+    // without an account — so admins can see it under Ventas. Logged-in
+    // customers get their order saved (with points) via recordOrder instead,
+    // so we skip this insert for them to avoid a duplicate row.
+    if (!data.hasAccount) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.from("orders").insert({
+          user_id: null,
+          customer_name: data.customerName,
+          customer_phone: data.customerPhone,
+          delivery_type: data.deliveryType,
+          address: data.address ?? null,
+          lat: data.lat ?? null,
+          lng: data.lng ?? null,
+          department: data.department ?? null,
+          province: data.province ?? null,
+          town: data.town ?? null,
+          notes: data.notes ?? null,
+          items: data.items,
+          total: data.total,
+          points_earned: 0,
+          discount_code: data.discountCode ?? null,
+          discount_amount: data.discountAmount ?? 0,
+          source: "web-guest",
+        });
+      } catch (e) {
+        console.error("No se pudo registrar la venta de invitado", e);
+      }
+    }
+
     return {
       autoSent: toBusiness,
       sentToBusiness: toBusiness,

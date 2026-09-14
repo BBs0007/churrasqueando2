@@ -5,10 +5,10 @@ export const CLUB = {
   bsPerPoint: 10,
   // Vencimiento de puntos sin comprar
   pointsExpireMonths: 10,
-  // Suscripción
-  monthlyPriceBs: 89,
-  annualPriceBs: 699,
-  planLabel: "Mensual",
+  // Suscripción anual
+  monthlyPriceBs: 450,
+  annualPriceBs: 450,
+  planLabel: "Anual",
   singleCoursePriceBs: 250,
   coursesCount: 6,
   // Cupos de Socio Fundador
@@ -114,7 +114,7 @@ export const CLUB_FAQS = [
     id: "pago",
     question: "¿Cómo pago la membresía?",
     answer:
-      "Por QR o transferencia. Te enviamos el acceso apenas confirmamos el pago. Podés elegir plan mensual o anual.",
+      "Por QR o transferencia. Te enviamos el acceso apenas confirmamos el pago. La membresía del Club es anual.",
   },
   {
     id: "cancelar",

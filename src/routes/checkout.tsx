@@ -157,10 +157,14 @@ function Checkout() {
     setError(null);
     setLoading(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const hasAccount = !!sessionData.session;
+
       const res = await submit({
         data: {
           customerName: name.trim(),
           customerPhone: phone.trim(),
+          hasAccount,
           deliveryType,
           address:
             deliveryType === "delivery"
@@ -191,8 +195,7 @@ function Checkout() {
 
       // Si el cliente tiene sesión, guardamos el pedido y sumamos sus puntos del Club.
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session) {
+        if (hasAccount) {
           const saved = await saveOrder({
             data: {
               customerName: name.trim(),

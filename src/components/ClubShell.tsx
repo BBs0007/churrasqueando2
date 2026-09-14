@@ -1,5 +1,18 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, ShoppingBag, Shield, Star, Package, Users, Tag, LayoutGrid, Sparkles } from "lucide-react";
+import {
+  LogOut,
+  ShoppingBag,
+  Shield,
+  Star,
+  Package,
+  Users,
+  Tag,
+  LayoutGrid,
+  Sparkles,
+  GraduationCap,
+  Receipt,
+  MapPin,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -57,18 +70,28 @@ export function ClubShell({
             >
               Mi cuenta
             </Link>
-            <Link
-              to="/club"
-              className="font-cond rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              Cursos
-            </Link>
+            {isMember && (
+              <Link
+                to="/cursos"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <GraduationCap className="h-3.5 w-3.5" /> Cursos
+              </Link>
+            )}
             {isAdmin && (
               <Link
                 to="/admin-productos"
                 className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 <Package className="h-3.5 w-3.5" /> Productos
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                to="/admin-cursos"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <GraduationCap className="h-3.5 w-3.5" /> Cursos (Admin)
               </Link>
             )}
             {isAdmin && (
@@ -89,6 +112,22 @@ export function ClubShell({
             )}
             {isAdmin && (
               <Link
+                to="/admin-ventas"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Receipt className="h-3.5 w-3.5" /> Ventas
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                to="/admin-sucursales"
+                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <MapPin className="h-3.5 w-3.5" /> Puntos de venta
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
                 to="/admin-clientes"
                 className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
@@ -103,7 +142,7 @@ export function ClubShell({
                 <Shield className="h-3.5 w-3.5" /> Membresías
               </Link>
             )}
-            <Link to="/">
+            <Link to="/tienda" search={{ from: "dashboard" }}>
               <Button variant="outline" size="sm" className="font-cond uppercase tracking-wide">
                 <ShoppingBag className="h-3.5 w-3.5" /> Tienda
               </Button>

@@ -1,13 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Loader2,
   Lock,
   Unlock,
   MessageCircle,
-  CheckCircle2,
-  Clock,
   Play,
   Check,
   Flame,
@@ -19,19 +17,18 @@ import {
   Video,
   Award,
   Heart,
-  Camera,
 } from "lucide-react";
-import { toast } from "sonner";
-import { getMyClub, requestMembership } from "@/lib/club.functions";
+import { getMyClub } from "@/lib/club.functions";
+import { getPublicCourses } from "@/lib/courses.functions";
 import {
   CLUB,
   CLUB_BENEFITS,
+  CLUB_LAUNCH_OFFER,
   PUNTOS_BRASA_STEPS,
   FOUNDER_PERKS,
   CLUB_TESTIMONIALS,
   CLUB_FAQS,
 } from "@/lib/club";
-import { CLUB_CURSOS } from "@/data/club-cursos";
 import { BUSINESS } from "@/data/business";
 import { CURRENCY } from "@/data/products";
 import { ClubShell } from "@/components/ClubShell";
@@ -86,8 +83,7 @@ const PERK_ICONS: Record<string, React.ReactNode> = {
 
 function ClubPage() {
   const fetchClub = useServerFn(getMyClub);
-  const askMembership = useServerFn(requestMembership);
-  const queryClient = useQueryClient();
+  const fetchCourses = useServerFn(getPublicCourses);
   const { session, loading: sessionLoading } = useSession();
 
   const { data } = useQuery({
@@ -96,26 +92,18 @@ function ClubPage() {
     enabled: !!session,
   });
 
-  const mutation = useMutation({
-    mutationFn: () => askMembership({ data: {} }),
-    onSuccess: (res) => {
-      toast.success(
-        res.alreadyPending
-          ? "Ya tienes una solicitud en revisión"
-          : "Solicitud enviada. Activaremos tu membresía al confirmar el pago.",
-      );
-      queryClient.invalidateQueries({ queryKey: ["club", "me"] });
-    },
-    onError: () => toast.error("No se pudo registrar la solicitud"),
+  const courses = useQuery({
+    queryKey: ["club", "courses"],
+    queryFn: () => fetchCourses(),
   });
+  const clubCursos = courses.data ?? [];
 
   const profile = data?.profile;
   const isMember = !!data?.isMember;
   const isAdmin = !!data?.isAdmin;
-  const pending = data?.requests.find((r) => r.status === "pending");
 
   const waMessage = encodeURIComponent(
-    `¡Hola Churrasqueando! Quiero activar mi membresía del ${CLUB.name} (${CLUB.planLabel}, ${CLUB.monthlyPriceBs} ${CURRENCY}).${
+    `¡Hola Churrasqueando! Quiero activar mi membresía anual del ${CLUB.name} (${CLUB.planLabel}, ${CLUB.annualPriceBs} ${CURRENCY}).${
       profile?.email ? `\nMi cuenta: ${profile.email}` : ""
     }\nEnvíenme el QR de pago, por favor.`,
   );
@@ -126,6 +114,14 @@ function ClubPage() {
 
   const content = (
     <>
+      {/* FRANJA DE LANZAMIENTO */}
+      <div className="-mx-4 mb-6 flex items-center justify-center gap-2.5 bg-primary px-4 py-3 text-center shadow-fire sm:mx-0 sm:rounded-2xl">
+        <Flame className="h-4 w-4 shrink-0 text-primary-foreground" />
+        <p className="font-cond text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:text-sm">
+          Lanzamiento del {CLUB.name} · 29 de septiembre
+        </p>
+      </div>
+
       {/* HERO */}
       <section className="relative -mx-4 overflow-hidden rounded-none border-y border-border/70 sm:mx-0 sm:rounded-3xl sm:border">
         <img
@@ -163,7 +159,7 @@ function ClubPage() {
                 <Flame className="h-4 w-4" />
                 {isMember
                   ? "Ver mis beneficios"
-                  : `Suscribirme hoy · ${CLUB.monthlyPriceBs} ${CURRENCY}/mes`}
+                  : `Suscribirme hoy · ${CLUB_LAUNCH_OFFER.annualPriceBs} ${CURRENCY}/año`}
               </Button>
             </a>
             <a href="#video">
@@ -281,7 +277,7 @@ function ClubPage() {
         </p>
 
         <div className="mt-10 space-y-6">
-          {CLUB_CURSOS.map((c) => (
+          {clubCursos.map((c) => (
             <article
               key={c.id}
               className="grid gap-6 rounded-3xl border border-border bg-card p-4 sm:grid-cols-[280px_1fr] sm:p-6"
@@ -321,10 +317,6 @@ function ClubPage() {
                         {c.title}
                       </p>
                     </div>
-                    <p className="font-cond absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-background/85 px-3 py-2 text-[10px] uppercase tracking-wide text-muted-foreground backdrop-blur">
-                      <Camera className="h-3 w-3 shrink-0 text-primary" />
-                      <span className="truncate">Foto: {c.photoBrief}</span>
-                    </p>
                   </>
                 )}
               </div>
@@ -556,12 +548,12 @@ function ClubPage() {
             tenés los {CLUB.coursesCount}.
           </p>
           <p className="font-display mt-3 text-5xl text-foreground">
-            {CLUB.monthlyPriceBs}
-            <span className="text-lg text-muted-foreground"> {CURRENCY} / mes</span>
+            {CLUB_LAUNCH_OFFER.annualPriceBs}
+            <span className="text-lg text-muted-foreground"> {CURRENCY} / año</span>
           </p>
           <div className="mt-4 space-y-2 text-sm text-foreground/90">
-            <p>Membresía anual lanzamiento: 450 Bs</p>
-            <p className="text-muted-foreground">Precio real luego: 699 Bs anual</p>
+            <p>Membresía anual lanzamiento: {CLUB_LAUNCH_OFFER.annualPriceBs} Bs</p>
+            <p className="text-muted-foreground">Precio real luego: {CLUB_LAUNCH_OFFER.realAnnualPriceBs} Bs anual</p>
           </div>
 
           <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">
@@ -611,35 +603,12 @@ function ClubPage() {
               <div className="space-y-3">
                 <a href={waUrl} target="_blank" rel="noreferrer" className="block">
                   <Button className="w-full font-cond uppercase tracking-wide">
-                    <MessageCircle className="h-4 w-4" /> Suscribirme hoy
-                  </Button>
-                </a>
-                <a href={waUrl} target="_blank" rel="noreferrer" className="block">
-                  <Button variant="outline" className="w-full font-cond uppercase tracking-wide">
                     <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
                   </Button>
                 </a>
-                <Button
-                  variant="ghost"
-                  disabled={mutation.isPending || !!pending}
-                  onClick={() => mutation.mutate()}
-                  className="w-full font-cond uppercase tracking-wide"
-                >
-                  {mutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : pending ? (
-                    <Clock className="h-4 w-4" />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4" />
-                  )}
-                  {pending ? "Solicitud en revisión" : "Ya realicé el pago"}
-                </Button>
-                {pending && (
-                  <p className="text-xs text-muted-foreground">
-                    Solicitud enviada el {new Date(pending.created_at).toLocaleDateString("es-BO")}.
-                    La activación es manual y la confirma el equipo de Churrasqueando.
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  Escríbenos por WhatsApp y te ayudamos a activar tu membresía.
+                </p>
               </div>
             )}
           </div>

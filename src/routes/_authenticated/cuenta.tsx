@@ -190,7 +190,7 @@ function Cuenta() {
             </p>
           ) : (
             <Link to="/club" className="mt-2 inline-block text-xs text-primary hover:underline">
-              Activar por {CLUB.monthlyPriceBs} {CURRENCY}/mes
+              Activar por {CLUB.annualPriceBs} {CURRENCY}/año
             </Link>
           )}
         </div>

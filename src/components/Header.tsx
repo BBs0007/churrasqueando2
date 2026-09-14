@@ -13,7 +13,15 @@ const NAV = [
 export function Header() {
   const { totalItems, setOpen } = useCart();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const search = useRouterState({ select: (s) => s.location.search as { from?: string } });
   const isHome = pathname === "/";
+
+  // Cuando el cliente entra a la Tienda desde su panel (Mi cuenta), el navbar
+  // se muestra reducido: sin "Club Churrasqueando" ni "Puntos de ventas". Al
+  // volver a la página principal, el navbar vuelve a mostrarse completo.
+  const isDashboardTienda = pathname === "/tienda" && search?.from === "dashboard";
+  const visibleNav = isDashboardTienda ? NAV.filter((item) => item.to !== "/club") : NAV;
+  const showBranchesLink = !isDashboardTienda;
 
   const goToBranches = () => {
     const el = document.getElementById("puntos-de-venta");
@@ -38,7 +46,7 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {NAV.map((item) => (
+          {visibleNav.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -48,22 +56,23 @@ export function Header() {
               {item.label}
             </Link>
           ))}
-          {isHome ? (
-            <button
-              onClick={goToBranches}
-              className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              Puntos de ventas
-            </button>
-          ) : (
-            <Link
-              to="/"
-              hash="puntos-de-venta"
-              className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              Puntos de ventas
-            </Link>
-          )}
+          {showBranchesLink &&
+            (isHome ? (
+              <button
+                onClick={goToBranches}
+                className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                Puntos de ventas
+              </button>
+            ) : (
+              <Link
+                to="/"
+                hash="puntos-de-venta"
+                className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                Puntos de ventas
+              </Link>
+            ))}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -90,7 +99,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 lg:hidden no-scrollbar">
-        {NAV.map((item) => (
+        {visibleNav.map((item) => (
           <Link
             key={item.to}
             to={item.to}
@@ -99,13 +108,15 @@ export function Header() {
             {item.label}
           </Link>
         ))}
-        <Link
-          to="/"
-          hash="puntos-de-venta"
-          className="font-cond shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
-        >
-          Puntos de ventas
-        </Link>
+        {showBranchesLink && (
+          <Link
+            to="/"
+            hash="puntos-de-venta"
+            className="font-cond shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
+          >
+            Puntos de ventas
+          </Link>
+        )}
       </div>
     </header>
   );
