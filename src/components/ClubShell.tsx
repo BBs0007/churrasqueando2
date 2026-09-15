@@ -12,10 +12,20 @@ import {
   GraduationCap,
   Receipt,
   MapPin,
+  UtensilsCrossed,
+  FileEdit,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo-churrasqueando.png";
 import { CLUB } from "@/lib/club";
 
@@ -78,75 +88,6 @@ export function ClubShell({
                 <GraduationCap className="h-3.5 w-3.5" /> Cursos
               </Link>
             )}
-            {isAdmin && (
-              <Link
-                to="/admin-productos"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <Package className="h-3.5 w-3.5" /> Productos
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                to="/admin-cursos"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <GraduationCap className="h-3.5 w-3.5" /> Cursos (Admin)
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                to="/admin-tienda-seccion"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <LayoutGrid className="h-3.5 w-3.5" /> Tienda Sección
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                to="/admin-codigos"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <Tag className="h-3.5 w-3.5" /> Códigos de descuento
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                to="/admin-ventas"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <Receipt className="h-3.5 w-3.5" /> Ventas
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                to="/admin-sucursales"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <MapPin className="h-3.5 w-3.5" /> Puntos de venta
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                to="/admin-clientes"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <Users className="h-3.5 w-3.5" /> Clientes
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                to="/admin-club"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <Shield className="h-3.5 w-3.5" /> Membresías
-              </Link>
-            )}
-            <Link to="/tienda" search={{ from: "dashboard" }}>
-              <Button variant="outline" size="sm" className="font-cond uppercase tracking-wide">
-                <ShoppingBag className="h-3.5 w-3.5" /> Tienda
-              </Button>
-            </Link>
             {isMember && (
               <Link
                 to="/promociones"
@@ -155,6 +96,87 @@ export function ClubShell({
                 <Sparkles className="h-3.5 w-3.5" /> Promociones del Club
               </Link>
             )}
+
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="font-cond uppercase tracking-wide">
+                    <LayoutGrid className="h-3.5 w-3.5" /> Panel Admin
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuLabel className="font-cond text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Catálogo
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-productos" className="flex items-center gap-2">
+                      <Package className="h-3.5 w-3.5" /> Productos
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-cursos" className="flex items-center gap-2">
+                      <GraduationCap className="h-3.5 w-3.5" /> Cursos
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-catering" className="flex items-center gap-2">
+                      <UtensilsCrossed className="h-3.5 w-3.5" /> Catering
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-tienda-seccion" className="flex items-center gap-2">
+                      <LayoutGrid className="h-3.5 w-3.5" /> Tienda · Secciones
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="font-cond text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Ventas y clientes
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-ventas" className="flex items-center gap-2">
+                      <Receipt className="h-3.5 w-3.5" /> Ventas
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-codigos" className="flex items-center gap-2">
+                      <Tag className="h-3.5 w-3.5" /> Códigos de descuento
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-clientes" className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5" /> Clientes
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="font-cond text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Club y configuración
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-club-contenido" className="flex items-center gap-2">
+                      <FileEdit className="h-3.5 w-3.5" /> Contenido de /club
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-club" className="flex items-center gap-2">
+                      <Shield className="h-3.5 w-3.5" /> Membresías
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-sucursales" className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5" /> Puntos de venta
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            <Link to="/tienda">
+              <Button variant="outline" size="sm" className="font-cond uppercase tracking-wide">
+                <ShoppingBag className="h-3.5 w-3.5" /> Tienda
+              </Button>
+            </Link>
             <Button
               variant="ghost"
               size="sm"

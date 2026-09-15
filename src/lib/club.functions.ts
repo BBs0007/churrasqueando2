@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CLUB, pointsForAmount } from "@/lib/club";
+import { CLUB, CLUB_LAUNCH_OFFER, pointsForAmount } from "@/lib/club";
 
 export type ClubProfile = {
   id: string;
@@ -185,7 +185,7 @@ export const requestMembership = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("membership_requests").insert({
       user_id: context.userId,
       plan: "annual",
-      amount: CLUB.annualPriceBs,
+      amount: CLUB_LAUNCH_OFFER.annualPriceBs,
       reference: data.reference,
     });
     if (error) throw error;

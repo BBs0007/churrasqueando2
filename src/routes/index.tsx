@@ -175,7 +175,7 @@ function Index() {
             </div>
             <p className="mb-8 max-w-2xl text-muted-foreground">
               Registro gratuito: acumula 1 punto por cada 10 Bs de compra y sigue tus pedidos.
-              Activa la membresía anual por 450 Bs y desbloquea todos los beneficios.
+              Activa la membresía por 89 Bs al mes y desbloquea todos los beneficios.
             </p>
             <div className="grid gap-4 sm:grid-cols-3">
               <Benefit icon={<GraduationCap className="h-6 w-6" />} title="Cursos churrasqueros">

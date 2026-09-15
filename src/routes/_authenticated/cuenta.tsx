@@ -6,7 +6,7 @@ import { Loader2, Star, Package, UserCog, Lock, Unlock, Camera, User } from "luc
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { getMyClub, updateMyProfile, uploadMyAvatar } from "@/lib/club.functions";
-import { CLUB } from "@/lib/club";
+import { CLUB, CLUB_LAUNCH_OFFER } from "@/lib/club";
 import { ClubShell } from "@/components/ClubShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -190,7 +190,7 @@ function Cuenta() {
             </p>
           ) : (
             <Link to="/club" className="mt-2 inline-block text-xs text-primary hover:underline">
-              Activar por {CLUB.annualPriceBs} {CURRENCY}/año
+              Activar por {CLUB_LAUNCH_OFFER.annualPriceBs} {CURRENCY}/año
             </Link>
           )}
         </div>

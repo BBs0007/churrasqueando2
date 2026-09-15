@@ -15,9 +15,6 @@ import { Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 
 export const Route = createFileRoute("/tienda")({
-  validateSearch: (search: Record<string, unknown>): { from?: string } => ({
-    from: typeof search.from === "string" ? search.from : undefined,
-  }),
   head: () => ({
     meta: [
       { title: "Tienda · Churrasqueando · Cortes, linguiças y combos" },

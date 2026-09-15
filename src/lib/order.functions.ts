@@ -58,13 +58,13 @@ function buildMessage(data: OrderInput): string {
     if (data.address) lines.push(`*Referencia:* ${data.address}`);
     if (data.shippingMethod) {
       const shippingLabels = {
-        bidmodal: "Bidmodal / flota (60 a 150 Bs)",
-        avion: "Por avión (100 a 180 Bs o más)",
-        trufi: "Trufi (60 a 90 Bs)",
+        bidmodal: "Terminal Bimodal / flota (desde 50 Bs, no incluido en el total)",
+        avion: "Por avión (desde 90 Bs, no incluido en el total)",
+        trufi: "Trufi (desde 40 Bs, no incluido en el total)",
       } as const;
       lines.push(`*Medio de transporte:* ${shippingLabels[data.shippingMethod]}`);
     }
-    if (data.coolerSize) lines.push(`*Conservadora:* ${data.coolerSize}`);
+    if (data.coolerSize) lines.push(`*Conservadora (incluida en el total):* ${data.coolerSize}`);
   } else {
     lines.push("*Entrega:* Recoger en el local 🏠");
   }

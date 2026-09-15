@@ -1,14 +1,13 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Flame, ArrowLeft, Check } from "lucide-react";
-import { useState } from "react";
+import { Flame, ArrowLeft, Check, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import {
-  CATERING_MIN_PEOPLE,
-  cateringNotes,
-  cateringPackages,
-} from "@/data/catering";
+import { CATERING_MIN_PEOPLE, cateringNotes } from "@/data/catering";
+import { getPublicCateringPackages } from "@/lib/catering.functions";
 
 export const Route = createFileRoute("/reservar-catering")({
   head: () => ({
@@ -49,8 +48,34 @@ function ColumnList({ title, items }: { title: string; items: string[] }) {
 }
 
 function ReservarCatering() {
-  const [selectedId, setSelectedId] = useState(cateringPackages[0]!.id);
-  const selected = cateringPackages.find((p) => p.id === selectedId) ?? cateringPackages[0]!;
+  const fetchPackages = useServerFn(getPublicCateringPackages);
+  const packages = useQuery({ queryKey: ["public-catering"], queryFn: () => fetchPackages() });
+  const cateringPackages = packages.data ?? [];
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!selectedId && cateringPackages.length > 0) setSelectedId(cateringPackages[0].id);
+  }, [cateringPackages, selectedId]);
+  const selected = cateringPackages.find((p) => p.id === selectedId) ?? cateringPackages[0];
+
+  if (packages.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!selected) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="mx-auto max-w-lg px-4 py-24 text-center text-sm text-muted-foreground">
+          Todavía no hay paquetes de catering publicados.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

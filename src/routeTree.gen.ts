@@ -19,8 +19,10 @@ import { Route as ReservarCateringRouteImport } from './routes/reservar-catering
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TiendaRouteImport } from './routes/tienda'
+import { Route as AuthenticatedAdminCateringRouteImport } from './routes/_authenticated/admin-catering'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin-clientes'
 import { Route as AuthenticatedAdminClubRouteImport } from './routes/_authenticated/admin-club'
+import { Route as AuthenticatedAdminClubContenidoRouteImport } from './routes/_authenticated/admin-club-contenido'
 import { Route as AuthenticatedAdminCodigosRouteImport } from './routes/_authenticated/admin-codigos'
 import { Route as AuthenticatedAdminCursosRouteImport } from './routes/_authenticated/admin-cursos'
 import { Route as AuthenticatedAdminProductosRouteImport } from './routes/_authenticated/admin-productos'
@@ -80,6 +82,12 @@ const TiendaRoute = TiendaRouteImport.update({
   path: '/tienda',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminCateringRoute =
+  AuthenticatedAdminCateringRouteImport.update({
+    id: '/admin-catering',
+    path: '/admin-catering',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminClientesRoute =
   AuthenticatedAdminClientesRouteImport.update({
     id: '/admin-clientes',
@@ -91,6 +99,12 @@ const AuthenticatedAdminClubRoute = AuthenticatedAdminClubRouteImport.update({
   path: '/admin-club',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminClubContenidoRoute =
+  AuthenticatedAdminClubContenidoRouteImport.update({
+    id: '/admin-club-contenido',
+    path: '/admin-club-contenido',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminCodigosRoute =
   AuthenticatedAdminCodigosRouteImport.update({
     id: '/admin-codigos',
@@ -154,8 +168,10 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRoute
+  '/admin-catering': typeof AuthenticatedAdminCateringRoute
   '/admin-clientes': typeof AuthenticatedAdminClientesRoute
   '/admin-club': typeof AuthenticatedAdminClubRoute
+  '/admin-club-contenido': typeof AuthenticatedAdminClubContenidoRoute
   '/admin-codigos': typeof AuthenticatedAdminCodigosRoute
   '/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/admin-productos': typeof AuthenticatedAdminProductosRoute
@@ -176,8 +192,10 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRoute
+  '/admin-catering': typeof AuthenticatedAdminCateringRoute
   '/admin-clientes': typeof AuthenticatedAdminClientesRoute
   '/admin-club': typeof AuthenticatedAdminClubRoute
+  '/admin-club-contenido': typeof AuthenticatedAdminClubContenidoRoute
   '/admin-codigos': typeof AuthenticatedAdminCodigosRoute
   '/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/admin-productos': typeof AuthenticatedAdminProductosRoute
@@ -200,8 +218,10 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tienda': typeof TiendaRoute
+  '/_authenticated/admin-catering': typeof AuthenticatedAdminCateringRoute
   '/_authenticated/admin-clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin-club': typeof AuthenticatedAdminClubRoute
+  '/_authenticated/admin-club-contenido': typeof AuthenticatedAdminClubContenidoRoute
   '/_authenticated/admin-codigos': typeof AuthenticatedAdminCodigosRoute
   '/_authenticated/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/_authenticated/admin-productos': typeof AuthenticatedAdminProductosRoute
@@ -224,8 +244,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/tienda'
+    | '/admin-catering'
     | '/admin-clientes'
     | '/admin-club'
+    | '/admin-club-contenido'
     | '/admin-codigos'
     | '/admin-cursos'
     | '/admin-productos'
@@ -246,8 +268,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/tienda'
+    | '/admin-catering'
     | '/admin-clientes'
     | '/admin-club'
+    | '/admin-club-contenido'
     | '/admin-codigos'
     | '/admin-cursos'
     | '/admin-productos'
@@ -269,8 +293,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/tienda'
+    | '/_authenticated/admin-catering'
     | '/_authenticated/admin-clientes'
     | '/_authenticated/admin-club'
+    | '/_authenticated/admin-club-contenido'
     | '/_authenticated/admin-codigos'
     | '/_authenticated/admin-cursos'
     | '/_authenticated/admin-productos'
@@ -367,6 +393,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TiendaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin-catering': {
+      id: '/_authenticated/admin-catering'
+      path: '/admin-catering'
+      fullPath: '/admin-catering'
+      preLoaderRoute: typeof AuthenticatedAdminCateringRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin-clientes': {
       id: '/_authenticated/admin-clientes'
       path: '/admin-clientes'
@@ -379,6 +412,13 @@ declare module '@tanstack/react-router' {
       path: '/admin-club'
       fullPath: '/admin-club'
       preLoaderRoute: typeof AuthenticatedAdminClubRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin-club-contenido': {
+      id: '/_authenticated/admin-club-contenido'
+      path: '/admin-club-contenido'
+      fullPath: '/admin-club-contenido'
+      preLoaderRoute: typeof AuthenticatedAdminClubContenidoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin-codigos': {
@@ -448,8 +488,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminCateringRoute: typeof AuthenticatedAdminCateringRoute
   AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
   AuthenticatedAdminClubRoute: typeof AuthenticatedAdminClubRoute
+  AuthenticatedAdminClubContenidoRoute: typeof AuthenticatedAdminClubContenidoRoute
   AuthenticatedAdminCodigosRoute: typeof AuthenticatedAdminCodigosRoute
   AuthenticatedAdminCursosRoute: typeof AuthenticatedAdminCursosRoute
   AuthenticatedAdminProductosRoute: typeof AuthenticatedAdminProductosRoute
@@ -462,8 +504,10 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminCateringRoute: AuthenticatedAdminCateringRoute,
   AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
   AuthenticatedAdminClubRoute: AuthenticatedAdminClubRoute,
+  AuthenticatedAdminClubContenidoRoute: AuthenticatedAdminClubContenidoRoute,
   AuthenticatedAdminCodigosRoute: AuthenticatedAdminCodigosRoute,
   AuthenticatedAdminCursosRoute: AuthenticatedAdminCursosRoute,
   AuthenticatedAdminProductosRoute: AuthenticatedAdminProductosRoute,

@@ -161,3 +161,152 @@ export const adminUploadCourseImage = createServerFn({ method: "POST" })
     const { data: pub } = supabaseAdmin.storage.from("course-images").getPublicUrl(path);
     return { ok: true, url: pub.publicUrl };
   });
+
+// ---- Lecciones ("subtítulos") de cada curso ----
+
+export type CourseLesson = {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string;
+  videoUrl: string | null;
+  sortOrder: number;
+};
+
+function mapLesson(row: any): CourseLesson {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    title: row.title,
+    description: row.description,
+    videoUrl: row.video_url ?? null,
+    sortOrder: row.sort_order,
+  };
+}
+
+// Público (solo lectura): lecciones de un curso, usado por /cursos para
+// socios activos a partir del lanzamiento (29 de septiembre de 2026).
+export const getPublicCourseLessons = createServerFn({ method: "GET" })
+  .inputValidator((input: { courseId: string }) => {
+    if (!input?.courseId) throw new Error("Falta el curso");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("course_lessons")
+      .select("*")
+      .eq("course_id", data.courseId)
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return (rows ?? []).map(mapLesson);
+  });
+
+export const adminListLessons = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { courseId: string }) => {
+    if (!input?.courseId) throw new Error("Falta el curso");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("course_lessons")
+      .select("*")
+      .eq("course_id", data.courseId)
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return (rows ?? []).map(mapLesson);
+  });
+
+export const adminUpsertLesson = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: {
+      id?: string;
+      courseId: string;
+      title: string;
+      description: string;
+      videoUrl?: string | null;
+      sortOrder: number;
+    }) => {
+      const title = input.title?.trim() ?? "";
+      if (!title) throw new Error("El título de la lección es obligatorio");
+      if (!input.courseId) throw new Error("Falta el curso");
+      return {
+        id: input.id,
+        courseId: input.courseId,
+        title,
+        description: input.description?.trim() ?? "",
+        videoUrl: input.videoUrl ?? null,
+        sortOrder: Number.isFinite(input.sortOrder) ? input.sortOrder : 0,
+      };
+    },
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const payload = {
+      course_id: data.courseId,
+      title: data.title,
+      description: data.description,
+      video_url: data.videoUrl,
+      sort_order: data.sortOrder,
+    };
+
+    if (data.id) {
+      const { error } = await supabaseAdmin.from("course_lessons").update(payload).eq("id", data.id);
+      if (error) throw error;
+      return { ok: true, id: data.id };
+    }
+
+    const { data: created, error } = await supabaseAdmin
+      .from("course_lessons")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return { ok: true, id: created.id };
+  });
+
+export const adminDeleteLesson = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => {
+    if (!input?.id) throw new Error("Falta la lección");
+    return { id: input.id };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("course_lessons").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+// El video se sube directo del navegador a Supabase Storage (no pasa por
+// esta función de servidor) para evitar límites de tamaño de payload. Esta
+// función solo genera una URL firmada de subida y valida que quien la pide
+// sea admin.
+export const adminCreateLessonVideoUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { fileName: string }) => {
+    if (!input?.fileName) throw new Error("Falta el archivo");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const ext = (data.fileName.split(".").pop() || "mp4").toLowerCase();
+    const path = `${context.userId}/${crypto.randomUUID()}.${ext}`;
+
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("course-videos")
+      .createSignedUploadUrl(path);
+    if (error) throw error;
+
+    const { data: pub } = supabaseAdmin.storage.from("course-videos").getPublicUrl(path);
+    return { ok: true, path, token: signed.token, publicUrl: pub.publicUrl };
+  });

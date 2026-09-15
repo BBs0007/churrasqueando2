@@ -3,11 +3,14 @@ export const CLUB = {
   name: "Club Churrasqueando",
   // Acumulación de Puntos Brasa: 1 Bs de compra = 1 punto
   bsPerPoint: 10,
+  // Canje de puntos: cada bloque de "redeemStep" puntos equivale a
+  // "redeemValueBs" Bs de descuento (solo socios activos).
+  redeemStep: 100,
+  redeemValueBs: 10,
   // Vencimiento de puntos sin comprar
   pointsExpireMonths: 10,
-  // Suscripción anual
-  monthlyPriceBs: 450,
-  annualPriceBs: 450,
+  // Suscripción (solo plan anual)
+  annualPriceBs: 699,
   planLabel: "Anual",
   singleCoursePriceBs: 250,
   coursesCount: 6,
@@ -18,11 +21,14 @@ export const CLUB = {
   },
 };
 
+// Los cursos quedan visibles para socios del Club a partir de esta fecha.
+// Antes de esa fecha, solo el equipo admin puede ver/editar el contenido.
+export const COURSES_LAUNCH_AT = "2026-09-29T00:00:00-04:00";
+
 // Oferta de lanzamiento para socios fundadores: 450 Bs anual
 export const CLUB_LAUNCH_OFFER = {
   annualPriceBs: 450,
   realAnnualPriceBs: 699,
-  monthlyActivePriceBs: 89,
 };
 
 export const CLUB_BENEFITS = [
@@ -114,7 +120,7 @@ export const CLUB_FAQS = [
     id: "pago",
     question: "¿Cómo pago la membresía?",
     answer:
-      "Por QR o transferencia. Te enviamos el acceso apenas confirmamos el pago. La membresía del Club es anual.",
+      "Por QR o transferencia, con la membresía anual. Te enviamos el acceso apenas confirmamos el pago.",
   },
   {
     id: "cancelar",

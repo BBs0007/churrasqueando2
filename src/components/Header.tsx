@@ -13,15 +13,15 @@ const NAV = [
 export function Header() {
   const { totalItems, setOpen } = useCart();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const search = useRouterState({ select: (s) => s.location.search as { from?: string } });
   const isHome = pathname === "/";
 
-  // Cuando el cliente entra a la Tienda desde su panel (Mi cuenta), el navbar
-  // se muestra reducido: sin "Club Churrasqueando" ni "Puntos de ventas". Al
-  // volver a la página principal, el navbar vuelve a mostrarse completo.
-  const isDashboardTienda = pathname === "/tienda" && search?.from === "dashboard";
-  const visibleNav = isDashboardTienda ? NAV.filter((item) => item.to !== "/club") : NAV;
-  const showBranchesLink = !isDashboardTienda;
+  // Mientras el cliente está en la Tienda, el navbar se muestra reducido
+  // (sin Catering, Club Churrasqueando ni Puntos de ventas). Al volver a la
+  // página principal o a cualquier otra sección, el navbar vuelve a
+  // mostrarse completo.
+  const isTienda = pathname === "/tienda";
+  const visibleNav = isTienda ? NAV.filter((item) => item.to === "/tienda") : NAV;
+  const showBranchesLink = !isTienda;
 
   const goToBranches = () => {
     const el = document.getElementById("puntos-de-venta");

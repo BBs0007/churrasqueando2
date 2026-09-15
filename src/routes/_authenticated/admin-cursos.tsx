@@ -10,7 +10,12 @@ import {
   adminUpsertCourse,
   adminDeleteCourse,
   adminUploadCourseImage,
+  adminListLessons,
+  adminUpsertLesson,
+  adminDeleteLesson,
+  adminCreateLessonVideoUploadUrl,
   type ClubCourse,
+  type CourseLesson,
 } from "@/lib/courses.functions";
 import { ClubShell } from "@/components/ClubShell";
 import { Button } from "@/components/ui/button";
@@ -110,6 +115,7 @@ function AdminCursos() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ClubCourse | null>(null);
+  const [lessonsCourse, setLessonsCourse] = useState<ClubCourse | null>(null);
 
   const upsertMutation = useMutation({
     mutationFn: (vars: FormState) =>
@@ -280,6 +286,9 @@ function AdminCursos() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setLessonsCourse(c)}>
+                        <GraduationCap className="h-3.5 w-3.5" /> Lecciones
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => openEdit(c)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -457,6 +466,273 @@ function AdminCursos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {lessonsCourse && (
+        <LessonsDialog course={lessonsCourse} onClose={() => setLessonsCourse(null)} />
+      )}
     </ClubShell>
+  );
+}
+
+function emptyLessonForm() {
+  return { id: undefined as string | undefined, title: "", description: "", videoUrl: "", sortOrder: "0" };
+}
+
+function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () => void }) {
+  const fetchLessons = useServerFn(adminListLessons);
+  const upsertLesson = useServerFn(adminUpsertLesson);
+  const deleteLesson = useServerFn(adminDeleteLesson);
+  const createUploadUrl = useServerFn(adminCreateLessonVideoUploadUrl);
+  const queryClient = useQueryClient();
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const lessons = useQuery({
+    queryKey: ["admin", "lessons", course.id],
+    queryFn: () => fetchLessons({ data: { courseId: course.id } }),
+  });
+
+  const [form, setForm] = useState(emptyLessonForm());
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<CourseLesson | null>(null);
+
+  const upsertMutation = useMutation({
+    mutationFn: (vars: typeof form) =>
+      upsertLesson({
+        data: {
+          id: vars.id,
+          courseId: course.id,
+          title: vars.title,
+          description: vars.description,
+          videoUrl: vars.videoUrl || null,
+          sortOrder: Number(vars.sortOrder) || 0,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(form.id ? "Lección actualizada" : "Lección agregada");
+      queryClient.invalidateQueries({ queryKey: ["admin", "lessons", course.id] });
+      queryClient.invalidateQueries({ queryKey: ["club", "course-lessons", course.id] });
+      setForm(emptyLessonForm());
+    },
+    onError: (err: any) => toast.error(err?.message ?? "No se pudo guardar la lección"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteLesson({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Lección eliminada");
+      queryClient.invalidateQueries({ queryKey: ["admin", "lessons", course.id] });
+      queryClient.invalidateQueries({ queryKey: ["club", "course-lessons", course.id] });
+      setDeleteTarget(null);
+    },
+    onError: (err: any) => toast.error(err?.message ?? "No se pudo eliminar la lección"),
+  });
+
+  const openEdit = (l: CourseLesson) => {
+    setForm({
+      id: l.id,
+      title: l.title,
+      description: l.description,
+      videoUrl: l.videoUrl ?? "",
+      sortOrder: String(l.sortOrder),
+    });
+  };
+
+  const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) {
+      toast.error("Selecciona un archivo de video");
+      return;
+    }
+    setUploadingVideo(true);
+    setUploadProgress(0);
+    try {
+      const { path, token, publicUrl } = await createUploadUrl({ data: { fileName: file.name } });
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error } = await supabase.storage
+        .from("course-videos")
+        .uploadToSignedUrl(path, token, file);
+      if (error) throw error;
+      setForm((f) => ({ ...f, videoUrl: publicUrl }));
+      toast.success("Video subido");
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo subir el video");
+    } finally {
+      setUploadingVideo(false);
+      setUploadProgress(0);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+    }
+  };
+
+  const list = lessons.data ?? [];
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Lecciones de "{course.title}"</DialogTitle>
+          <DialogDescription>
+            Cada lección tiene su propio título, descripción y video. Los socios las ven en orden
+            dentro de /cursos.
+          </DialogDescription>
+        </DialogHeader>
+
+        {lessons.isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {list.map((l, idx) => (
+              <div
+                key={l.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-5 shrink-0 text-xs text-muted-foreground">{idx + 1}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{l.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {l.videoUrl ? "Video cargado" : "Sin video todavía"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button variant="outline" size="sm" onClick={() => openEdit(l)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setDeleteTarget(l)}>
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {list.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Todavía no hay lecciones. Agrega la primera abajo.
+              </p>
+            )}
+          </div>
+        )}
+
+        <form
+          className="mt-4 space-y-4 rounded-2xl border border-border bg-secondary/30 p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            upsertMutation.mutate(form);
+          }}
+        >
+          <p className="font-cond text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {form.id ? "Editar lección" : "Nueva lección"}
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="l-title">Título de la lección</Label>
+            <Input
+              id="l-title"
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="Ej: Cómo elegir cortes de buena calidad"
+              required
+              maxLength={150}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="l-description">Descripción</Label>
+            <Textarea
+              id="l-description"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              rows={2}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Video</Label>
+            {form.videoUrl ? (
+              <video src={form.videoUrl} controls className="max-h-40 w-full rounded-lg bg-black" />
+            ) : (
+              <div className="flex h-24 w-full items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
+                Sin video todavía
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingVideo}
+                onClick={() => videoInputRef.current?.click()}
+              >
+                {uploadingVideo ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                {uploadingVideo ? "Subiendo..." : form.videoUrl ? "Reemplazar video" : "Subir video"}
+              </Button>
+              {form.videoUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setForm((f) => ({ ...f, videoUrl: "" }))}
+                >
+                  Quitar
+                </Button>
+              )}
+            </div>
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              onChange={handleVideoChange}
+              className="hidden"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+            <div className="space-y-1.5">
+              <Label htmlFor="l-sort">Orden</Label>
+              <Input
+                id="l-sort"
+                type="number"
+                value={form.sortOrder}
+                onChange={(e) => setForm((f) => ({ ...f, sortOrder: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-end gap-2">
+              {form.id && (
+                <Button type="button" variant="ghost" onClick={() => setForm(emptyLessonForm())}>
+                  Cancelar edición
+                </Button>
+              )}
+              <Button type="submit" disabled={upsertMutation.isPending} className="font-cond uppercase tracking-wide">
+                {upsertMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {form.id ? "Guardar cambios" : "Agregar lección"}
+              </Button>
+            </div>
+          </div>
+        </form>
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar esta lección?</AlertDialogTitle>
+              <AlertDialogDescription>
+                "{deleteTarget?.title}" se eliminará del curso. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DialogContent>
+    </Dialog>
   );
 }

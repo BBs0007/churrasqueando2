@@ -20,10 +20,11 @@ import {
 } from "lucide-react";
 import { getMyClub } from "@/lib/club.functions";
 import { getPublicCourses } from "@/lib/courses.functions";
+import { getClubContent } from "@/lib/club-content.functions";
 import {
   CLUB,
-  CLUB_BENEFITS,
   CLUB_LAUNCH_OFFER,
+  CLUB_BENEFITS,
   PUNTOS_BRASA_STEPS,
   FOUNDER_PERKS,
   CLUB_TESTIMONIALS,
@@ -84,7 +85,14 @@ const PERK_ICONS: Record<string, React.ReactNode> = {
 function ClubPage() {
   const fetchClub = useServerFn(getMyClub);
   const fetchCourses = useServerFn(getPublicCourses);
+  const fetchContent = useServerFn(getClubContent);
   const { session, loading: sessionLoading } = useSession();
+
+  const clubContentQuery = useQuery({ queryKey: ["club-content"], queryFn: () => fetchContent() });
+  const c = clubContentQuery.data ?? {};
+  // Devuelve el texto editado por el admin, o el valor por defecto si no se editó.
+  const t = (key: string, fallback: string) => (c[key]?.trim() ? c[key] : fallback);
+  const img = (key: string, fallback: string) => (c[key]?.trim() ? c[key] : fallback);
 
   const { data } = useQuery({
     queryKey: ["club", "me"],
@@ -103,7 +111,7 @@ function ClubPage() {
   const isAdmin = !!data?.isAdmin;
 
   const waMessage = encodeURIComponent(
-    `¡Hola Churrasqueando! Quiero activar mi membresía anual del ${CLUB.name} (${CLUB.planLabel}, ${CLUB.annualPriceBs} ${CURRENCY}).${
+    `¡Hola Churrasqueando! Quiero activar mi membresía del ${CLUB.name} (Anual, ${CLUB_LAUNCH_OFFER.annualPriceBs} ${CURRENCY}).${
       profile?.email ? `\nMi cuenta: ${profile.email}` : ""
     }\nEnvíenme el QR de pago, por favor.`,
   );
@@ -125,7 +133,7 @@ function ClubPage() {
       {/* HERO */}
       <section className="relative -mx-4 overflow-hidden rounded-none border-y border-border/70 sm:mx-0 sm:rounded-3xl sm:border">
         <img
-          src={clubHero}
+          src={img("hero_image", clubHero)}
           alt="Cortes sellándose sobre brasas"
           width={1600}
           height={900}
@@ -140,12 +148,20 @@ function ClubPage() {
             {CLUB.name}
           </p>
           <h1 className="font-display mx-auto mt-3 max-w-3xl text-3xl uppercase leading-tight tracking-wide text-foreground sm:text-5xl">
-            La plataforma más completa para{" "}
-            <span className="text-gradient-fire">dominar la parrilla</span>
+            {c.hero_title?.trim() ? (
+              c.hero_title
+            ) : (
+              <>
+                La plataforma más completa para{" "}
+                <span className="text-gradient-fire">dominar la parrilla</span>
+              </>
+            )}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            {CLUB.coursesCount} cursos, recetarios y el soporte de nuestros parrilleros. Más una
-            comunidad, Puntos Brasa y beneficios exclusivos de socio.
+            {t(
+              "hero_subtitle",
+              `${CLUB.coursesCount} cursos, recetarios y el soporte de nuestros parrilleros. Más una comunidad, Puntos Brasa y beneficios exclusivos de socio.`,
+            )}
           </p>
 
           <p className="font-cond mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
@@ -218,12 +234,19 @@ function ClubPage() {
       <section className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 text-center sm:px-12 sm:py-16">
         <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">El problema</p>
         <h2 className="font-display mx-auto mt-3 max-w-2xl text-2xl uppercase leading-tight tracking-wide text-foreground sm:text-4xl">
-          ¿Cansado de que cada asado sea una <span className="text-primary">lotería</span>?
+          {c.problem_title?.trim() ? (
+            c.problem_title
+          ) : (
+            <>
+              ¿Cansado de que cada asado sea una <span className="text-primary">lotería</span>?
+            </>
+          )}
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Invitás gente y rezás para que la carne salga bien. A veces seca, a veces cruda. La
-          verdad es simple: la buena carne hace el trabajo — solo falta que alguien te enseñe a no
-          arruinarla. Eso es el {CLUB.name}.
+          {t(
+            "problem_body",
+            `Invitás gente y rezás para que la carne salga bien. A veces seca, a veces cruda. La verdad es simple: la buena carne hace el trabajo — solo falta que alguien te enseñe a no arruinarla. Eso es el ${CLUB.name}.`,
+          )}
         </p>
       </section>
 
@@ -238,7 +261,7 @@ function ClubPage() {
 
         <div className="relative mt-8 overflow-hidden rounded-3xl border border-border">
           <img
-            src={clubVideo}
+            src={img("video_image", clubVideo)}
             alt="Video de presentación del Club Churrasqueando"
             loading="lazy"
             width={1600}
@@ -552,8 +575,10 @@ function ClubPage() {
             <span className="text-lg text-muted-foreground"> {CURRENCY} / año</span>
           </p>
           <div className="mt-4 space-y-2 text-sm text-foreground/90">
-            <p>Membresía anual lanzamiento: {CLUB_LAUNCH_OFFER.annualPriceBs} Bs</p>
-            <p className="text-muted-foreground">Precio real luego: {CLUB_LAUNCH_OFFER.realAnnualPriceBs} Bs anual</p>
+            <p>Precio de lanzamiento, solo membresía anual</p>
+            <p className="text-muted-foreground">
+              Precio real luego: {CLUB_LAUNCH_OFFER.realAnnualPriceBs} {CURRENCY} anual
+            </p>
           </div>
 
           <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">

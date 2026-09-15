@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
@@ -18,7 +18,7 @@ import {
 import { useCart } from "@/contexts/CartContext";
 import { CURRENCY } from "@/data/products";
 import { BUSINESS } from "@/data/business";
-import { isKgProduct } from "@/lib/units";
+import { isKgProduct, estimateItemWeightKg } from "@/lib/units";
 import { BOLIVIA, DEPARTAMENTOS } from "@/data/bolivia";
 import { submitOrder, type OrderResult } from "@/lib/order.functions";
 import { recordOrder } from "@/lib/club.functions";
@@ -39,12 +39,21 @@ import {
 import logo from "@/assets/logo-churrasqueando.png";
 
 const COOLER_OPTIONS = [
-  { id: "13 L", label: "13 litros", maxWeight: "8 kg", price: 45 },
-  { id: "25 L", label: "25 litros", maxWeight: "16 kg", price: 75 },
-  { id: "50 L", label: "50 litros", maxWeight: "25 kg", price: 105 },
-  { id: "75 L", label: "75 litros", maxWeight: "35 kg", price: 175 },
-  { id: "100 L", label: "100 litros", maxWeight: "50 kg", price: 245 },
+  { id: "13 L", label: "13 litros", maxWeight: "8 kg", maxKg: 8, price: 45 },
+  { id: "25 L", label: "25 litros", maxWeight: "16 kg", maxKg: 16, price: 75 },
+  { id: "50 L", label: "50 litros", maxWeight: "25 kg", maxKg: 25, price: 105 },
+  { id: "75 L", label: "75 litros", maxWeight: "35 kg", maxKg: 35, price: 175 },
+  { id: "100 L", label: "100 litros", maxWeight: "50 kg", maxKg: 50, price: 245 },
 ] as const;
+
+// Precio mínimo referencial del transporte a provincia. Es informativo: se
+// muestra en el resumen pero NO se suma al total (se coordina y cobra aparte
+// por WhatsApp). Lo único que se suma al total es la conservadora.
+const SHIPPING_METHODS = {
+  bidmodal: { label: "Terminal Bimodal / flota", minPrice: 50 },
+  avion: { label: "Por avión", minPrice: 90 },
+  trufi: { label: "Trufi", minPrice: 40 },
+} as const;
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -106,12 +115,34 @@ function Checkout() {
   );
 
   const discountAmount = appliedDiscount?.valid ? appliedDiscount.discountAmount ?? 0 : 0;
-  const finalTotal = Math.max(0, Math.round((totalPrice - discountAmount) * 100) / 100);
-  const provinceShippingEstimate = {
-    bidmodal: "Aprox. 60 a 150 Bs",
-    avion: "Aprox. 100 a 180 Bs o más",
-    trufi: "Aprox. 60 a 90 Bs",
-  } as const;
+
+  // Peso estimado del pedido, para saber qué conservadoras alcanzan.
+  const orderWeightKg = useMemo(
+    () => items.reduce((sum, i) => sum + estimateItemWeightKg(i.product.unit, i.quantity), 0),
+    [items],
+  );
+  const availableCoolers = useMemo(
+    () => COOLER_OPTIONS.map((c) => ({ ...c, fits: c.maxKg >= orderWeightKg })),
+    [orderWeightKg],
+  );
+
+  // Si el pedido creció y la conservadora elegida ya no alcanza, se deselecciona.
+  useEffect(() => {
+    if (!coolerSize) return;
+    const current = COOLER_OPTIONS.find((c) => c.id === coolerSize);
+    if (current && current.maxKg < orderWeightKg) setCoolerSize("");
+  }, [orderWeightKg, coolerSize]);
+
+  // Solo el precio de la conservadora se suma al total. El transporte
+  // (bimodal, avión, trufi) es referencial y se coordina aparte.
+  const coolerPrice =
+    deliveryType === "province" && coolerSize
+      ? COOLER_OPTIONS.find((c) => c.id === coolerSize)?.price ?? 0
+      : 0;
+  const finalTotal = Math.max(
+    0,
+    Math.round((totalPrice - discountAmount + coolerPrice) * 100) / 100,
+  );
 
   const handleApplyDiscount = async () => {
     if (!discountInput.trim()) return;
@@ -448,8 +479,9 @@ function Checkout() {
                         Envío con costo adicional
                       </p>
                       <p className="text-muted-foreground">
-                        El precio depende del destino, el peso del pedido y el tamaño de la conservadora.
-                        El monto final se confirma por WhatsApp antes del pago.
+                        El transporte (Bimodal, avión o trufi) tiene un precio mínimo referencial
+                        y se coordina y cobra aparte por WhatsApp. Al total de este pedido solo se
+                        suma el costo de la conservadora obligatoria.
                       </p>
                     </div>
                   </div>
@@ -470,34 +502,39 @@ function Checkout() {
                       active={shippingMethod === "bidmodal"}
                       onClick={() => setShippingMethod("bidmodal")}
                       icon={<Truck className="h-4 w-4" />}
-                      title="Bidmodal / flota"
-                      price="60 a 150 Bs"
+                      title={SHIPPING_METHODS.bidmodal.label}
+                      price={`Desde ${SHIPPING_METHODS.bidmodal.minPrice} Bs`}
                     />
                     <ShippingOption
                       active={shippingMethod === "avion"}
                       onClick={() => setShippingMethod("avion")}
                       icon={<Plane className="h-4 w-4" />}
-                      title="Por avión"
-                      price="100 a 180 Bs o más"
+                      title={SHIPPING_METHODS.avion.label}
+                      price={`Desde ${SHIPPING_METHODS.avion.minPrice} Bs`}
                     />
                     <ShippingOption
                       active={shippingMethod === "trufi"}
                       onClick={() => setShippingMethod("trufi")}
                       icon={<RouteIcon className="h-4 w-4" />}
-                      title="Trufi"
-                      price="60 a 90 Bs"
+                      title={SHIPPING_METHODS.trufi.label}
+                      price={`Desde ${SHIPPING_METHODS.trufi.minPrice} Bs`}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Trufi disponible para el Norte o doble vía La Guardia. Los rangos son referenciales.
+                    Trufi disponible para el Norte o doble vía La Guardia. Los precios son mínimos
+                    referenciales; el monto final se coordina y se cobra aparte por WhatsApp, no
+                    forma parte del total de este pedido.
                   </p>
                   <div className="rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-foreground">
                     <span className="font-cond font-semibold uppercase tracking-wide text-primary">
-                      Costo aproximado del envío:
+                      Transporte ({SHIPPING_METHODS[shippingMethod].label}):
                     </span>{" "}
-                    <span className="font-semibold">{provinceShippingEstimate[shippingMethod]}</span>
+                    <span className="font-semibold">
+                      desde {SHIPPING_METHODS[shippingMethod].minPrice} Bs
+                    </span>
                     <span className="text-muted-foreground">
-                      {" "}más el costo de la conservadora según el pedido.
+                      {" "}
+                      — referencial, no se suma al total. Solo se cobra la conservadora aquí.
                     </span>
                   </div>
                 </div>
@@ -510,32 +547,44 @@ function Checkout() {
                         Conservadora obligatoria
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Selecciona según el peso aproximado de tu pedido.
+                        Tu pedido pesa aprox. {orderWeightKg.toFixed(1)} kg. Elegimos automáticamente
+                        qué tamaños alcanzan.
                       </p>
                     </div>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {COOLER_OPTIONS.map((cooler) => (
+                    {availableCoolers.map((cooler) => (
                       <button
                         key={cooler.id}
                         type="button"
-                        onClick={() => setCoolerSize(cooler.id)}
+                        disabled={!cooler.fits}
+                        onClick={() => cooler.fits && setCoolerSize(cooler.id)}
                         className={`flex items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors ${
-                          coolerSize === cooler.id
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/50"
+                          !cooler.fits
+                            ? "cursor-not-allowed border-border/60 opacity-40"
+                            : coolerSize === cooler.id
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
                         }`}
                       >
                         <span>
                           <span className="block font-cond font-semibold uppercase tracking-wide text-foreground">
                             {cooler.label}
                           </span>
-                          <span className="block text-xs text-muted-foreground">Máximo {cooler.maxWeight}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {cooler.fits ? `Máximo ${cooler.maxWeight}` : `No alcanza (máx. ${cooler.maxWeight})`}
+                          </span>
                         </span>
                         <span className="font-cond shrink-0 font-semibold text-primary">{cooler.price} Bs</span>
                       </button>
                     ))}
                   </div>
+                  {availableCoolers.every((c) => !c.fits) && (
+                    <p className="text-xs text-destructive">
+                      Tu pedido supera la conservadora más grande disponible. Escríbenos por
+                      WhatsApp para coordinar un envío especial.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -626,6 +675,27 @@ function Checkout() {
                   </span>
                 </div>
               )}
+              {deliveryType === "province" && (
+                <>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>
+                      Transporte ({SHIPPING_METHODS[shippingMethod].label})
+                      <span className="ml-1 text-[11px]">— no incluido</span>
+                    </span>
+                    <span className="font-cond">
+                      desde {SHIPPING_METHODS[shippingMethod].minPrice} {CURRENCY}
+                    </span>
+                  </div>
+                  {coolerSize && (
+                    <div className="flex items-center justify-between text-sm text-foreground">
+                      <span>Conservadora ({coolerSize})</span>
+                      <span className="font-cond font-semibold">
+                        +{coolerPrice} {CURRENCY}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
               <div className="flex items-center justify-between">
                 <span className="font-cond uppercase tracking-wide text-muted-foreground">
                   Total ({totalItems})
@@ -634,6 +704,12 @@ function Checkout() {
                   {finalTotal} {CURRENCY}
                 </span>
               </div>
+              {deliveryType === "province" && (
+                <p className="text-[11px] text-muted-foreground">
+                  El transporte se coordina y paga aparte por WhatsApp. Este total solo incluye
+                  productos{coolerSize ? " y conservadora" : ""}.
+                </p>
+              )}
             </div>
 
             {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
