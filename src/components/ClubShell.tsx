@@ -14,6 +14,7 @@ import {
   MapPin,
   UtensilsCrossed,
   FileEdit,
+  Gift,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,6 +122,11 @@ export function ClubShell({
                   <DropdownMenuItem asChild>
                     <Link to="/admin-catering" className="flex items-center gap-2">
                       <UtensilsCrossed className="h-3.5 w-3.5" /> Catering
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-promociones" className="flex items-center gap-2">
+                      <Gift className="h-3.5 w-3.5" /> Promociones (tienda socios)
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

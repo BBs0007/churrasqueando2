@@ -1,8 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { Flame, Star } from "lucide-react";
+import { Flame, Star, Phone } from "lucide-react";
 import heroTeam from "@/assets/hero-team.webp";
 import { BUSINESS } from "@/data/business";
 import { Button } from "@/components/ui/button";
+
+const WHATSAPP_URL =
+  "https://api.whatsapp.com/send/?phone=59175358008&text&type=phone_number&app_absent=0";
 
 export function Hero() {
   return (
@@ -45,10 +48,21 @@ export function Hero() {
               <Flame className="h-5 w-5" /> RESERVAR CATERING CHURRASQUERO
             </Link>
           </Button>
-          <span className="font-cond rounded-full border border-border bg-card/60 px-4 py-2 text-sm uppercase tracking-wide text-muted-foreground backdrop-blur">
-            {BUSINESS.hours}
-          </span>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="font-cond border-primary text-base font-bold uppercase tracking-wide text-primary hover:bg-primary hover:text-primary-foreground"
+          >
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+              <Phone className="h-5 w-5" /> ESCRÍBENOS POR WHATSAPP
+            </a>
+          </Button>
         </div>
+
+        <span className="font-cond rounded-full border border-border bg-card/60 px-4 py-2 text-sm uppercase tracking-wide text-muted-foreground backdrop-blur">
+          {BUSINESS.hours}
+        </span>
       </div>
     </section>
   );
