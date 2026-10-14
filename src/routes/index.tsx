@@ -5,12 +5,10 @@ import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { CombosSection } from "@/components/CombosSection";
 import { ProductCard } from "@/components/ProductCard";
-import { SucursalesSection } from "@/components/SucursalesSection";
 import { CartDrawer } from "@/components/CartDrawer";
 import { WhatsAppFab } from "@/components/WhatsAppFab";
 import { Button } from "@/components/ui/button";
 import { getStoreCatalog } from "@/lib/catalog.functions";
-import { getPublicBranches } from "@/lib/branches.functions";
 import { BUSINESS } from "@/data/business";
 import {
   Flame,
@@ -55,8 +53,6 @@ function Index() {
   const fetchCatalog = useServerFn(getStoreCatalog);
   const catalog = useQuery({ queryKey: ["store-catalog"], queryFn: () => fetchCatalog() });
 
-  const fetchBranches = useServerFn(getPublicBranches);
-  const branches = useQuery({ queryKey: ["public-branches"], queryFn: () => fetchBranches() });
   const bestSellers = catalog.data?.bestSellers ?? [];
   const combos = catalog.data?.combos ?? [];
 
@@ -174,8 +170,9 @@ function Index() {
               </h2>
             </div>
             <p className="mb-8 max-w-2xl text-muted-foreground">
-              Registro gratuito: acumula 1 punto por cada 10 Bs de compra y sigue tus pedidos.
-              Activa la membresía por 89 Bs al mes y desbloquea todos los beneficios.
+              Registro gratuito: aprende con los cursos y gana Puntos de Brasa para canjear
+              descuentos en productos, combos y la tienda del Club. Activa la membresía y
+              desbloquea todos los beneficios.
             </p>
             <div className="grid gap-4 sm:grid-cols-3">
               <Benefit icon={<GraduationCap className="h-6 w-6" />} title="Cursos churrasqueros">
@@ -185,7 +182,7 @@ function Index() {
                 Precios especiales en cortes, linguiças y combos.
               </Benefit>
               <Benefit icon={<Gift className="h-6 w-6" />} title="Canjes por puntos">
-                Cambia tus puntos por productos y sorpresas.
+                Canjea tus Puntos de Brasa por descuentos en tus pedidos.
               </Benefit>
             </div>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -203,9 +200,6 @@ function Index() {
             </div>
           </section>
         </div>
-
-        {/* Puntos de venta */}
-        <SucursalesSection branches={branches.data ?? []} />
 
         {/* Redes sociales */}
         <section className="border-t border-border bg-background">

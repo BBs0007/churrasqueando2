@@ -2,7 +2,17 @@ import { useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Pencil, Plus, Trash2, ImageOff, GraduationCap, Upload } from "lucide-react";
+import {
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  ImageOff,
+  GraduationCap,
+  Upload,
+  Layers3,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getMyClub } from "@/lib/club.functions";
 import {
@@ -10,11 +20,16 @@ import {
   adminUpsertCourse,
   adminDeleteCourse,
   adminUploadCourseImage,
+  adminListSubcourses,
+  adminUpsertSubcourse,
+  adminDeleteSubcourse,
   adminListLessons,
   adminUpsertLesson,
   adminDeleteLesson,
   adminCreateLessonVideoUploadUrl,
+  adminCreateLessonPdfUploadUrl,
   type ClubCourse,
+  type CourseSubcourse,
   type CourseLesson,
 } from "@/lib/courses.functions";
 import { ClubShell } from "@/components/ClubShell";
@@ -95,6 +110,19 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+  return fallback;
+}
+
 function AdminCursos() {
   const fetchClub = useServerFn(getMyClub);
   const fetchCourses = useServerFn(adminListCourses);
@@ -115,7 +143,8 @@ function AdminCursos() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ClubCourse | null>(null);
-  const [lessonsCourse, setLessonsCourse] = useState<ClubCourse | null>(null);
+  const [subcoursesCourse, setSubcoursesCourse] = useState<ClubCourse | null>(null);
+  const [lessonsSubcourse, setLessonsSubcourse] = useState<CourseSubcourse | null>(null);
 
   const upsertMutation = useMutation({
     mutationFn: (vars: FormState) =>
@@ -126,7 +155,10 @@ function AdminCursos() {
           subtitle: vars.subtitle,
           tag: vars.tag,
           description: vars.description,
-          bullets: vars.bullets.split("\n").map((b) => b.trim()).filter(Boolean),
+          bullets: vars.bullets
+            .split("\n")
+            .map((b) => b.trim())
+            .filter(Boolean),
           imageUrl: vars.imageUrl || null,
           active: vars.active,
           sortOrder: Number(vars.sortOrder) || 0,
@@ -138,7 +170,7 @@ function AdminCursos() {
       queryClient.invalidateQueries({ queryKey: ["club", "courses"] });
       setDialogOpen(false);
     },
-    onError: (err: any) => toast.error(err?.message ?? "No se pudo guardar el curso"),
+    onError: (err: unknown) => toast.error(errorMessage(err, "No se pudo guardar el curso")),
   });
 
   const deleteMutation = useMutation({
@@ -149,7 +181,7 @@ function AdminCursos() {
       queryClient.invalidateQueries({ queryKey: ["club", "courses"] });
       setDeleteTarget(null);
     },
-    onError: (err: any) => toast.error(err?.message ?? "No se pudo eliminar el curso"),
+    onError: (err: unknown) => toast.error(errorMessage(err, "No se pudo eliminar el curso")),
   });
 
   const openCreate = () => {
@@ -185,8 +217,8 @@ function AdminCursos() {
       const res = await uploadImage({ data: { fileName: file.name, dataUrl } });
       setForm((f) => ({ ...f, imageUrl: res.url }));
       toast.success("Imagen subida");
-    } catch (err: any) {
-      toast.error(err?.message ?? "No se pudo subir la imagen");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "No se pudo subir la imagen"));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -286,8 +318,8 @@ function AdminCursos() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setLessonsCourse(c)}>
-                        <GraduationCap className="h-3.5 w-3.5" /> Lecciones
+                      <Button variant="outline" size="sm" onClick={() => setSubcoursesCourse(c)}>
+                        <Layers3 className="h-3.5 w-3.5" /> Subcursos
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => openEdit(c)}>
                         <Pencil className="h-3.5 w-3.5" />
@@ -301,7 +333,10 @@ function AdminCursos() {
               ))}
               {list.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
                     <GraduationCap className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
                     Todavía no hay cursos. Crea el primero.
                   </TableCell>
@@ -467,32 +502,289 @@ function AdminCursos() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {lessonsCourse && (
-        <LessonsDialog course={lessonsCourse} onClose={() => setLessonsCourse(null)} />
+      {subcoursesCourse && (
+        <SubcoursesDialog
+          course={subcoursesCourse}
+          onClose={() => setSubcoursesCourse(null)}
+          onManageLessons={(subcourse) => {
+            setSubcoursesCourse(null);
+            setLessonsSubcourse(subcourse);
+          }}
+        />
+      )}
+      {lessonsSubcourse && (
+        <LessonsDialog subcourse={lessonsSubcourse} onClose={() => setLessonsSubcourse(null)} />
       )}
     </ClubShell>
   );
 }
 
-function emptyLessonForm() {
-  return { id: undefined as string | undefined, title: "", description: "", videoUrl: "", sortOrder: "0" };
+function SubcoursesDialog({
+  course,
+  onClose,
+  onManageLessons,
+}: {
+  course: ClubCourse;
+  onClose: () => void;
+  onManageLessons: (subcourse: CourseSubcourse) => void;
+}) {
+  const fetchSubcourses = useServerFn(adminListSubcourses);
+  const upsertSubcourse = useServerFn(adminUpsertSubcourse);
+  const deleteSubcourse = useServerFn(adminDeleteSubcourse);
+  const queryClient = useQueryClient();
+  const subcourses = useQuery({
+    queryKey: ["admin", "subcourses", course.id],
+    queryFn: () => fetchSubcourses({ data: { courseId: course.id } }),
+  });
+  const [form, setForm] = useState({
+    id: undefined as string | undefined,
+    title: "",
+    description: "",
+    active: true,
+    sortOrder: "0",
+  });
+  const [deleteTarget, setDeleteTarget] = useState<CourseSubcourse | null>(null);
+  const list = subcourses.data ?? [];
+
+  const resetForm = () =>
+    setForm({ id: undefined, title: "", description: "", active: true, sortOrder: "0" });
+
+  const upsertMutation = useMutation({
+    mutationFn: () =>
+      upsertSubcourse({
+        data: {
+          id: form.id,
+          courseId: course.id,
+          title: form.title,
+          description: form.description,
+          active: form.active,
+          sortOrder: Number(form.sortOrder) || 0,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(form.id ? "Subcurso actualizado" : "Subcurso creado");
+      queryClient.invalidateQueries({ queryKey: ["admin", "subcourses", course.id] });
+      queryClient.invalidateQueries({ queryKey: ["club", "course-subcourses", course.id] });
+      resetForm();
+    },
+    onError: (error: unknown) => toast.error(errorMessage(error, "No se pudo guardar el subcurso")),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteSubcourse({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Subcurso eliminado");
+      queryClient.invalidateQueries({ queryKey: ["admin", "subcourses", course.id] });
+      queryClient.invalidateQueries({ queryKey: ["club", "course-subcourses", course.id] });
+      queryClient.invalidateQueries({ queryKey: ["club", "course-lessons"] });
+      setDeleteTarget(null);
+    },
+    onError: (error: unknown) =>
+      toast.error(errorMessage(error, "No se pudo eliminar el subcurso")),
+  });
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Subcursos de "{course.title}"</DialogTitle>
+          <DialogDescription>
+            Organiza el contenido del curso en subcursos y administra sus lecciones por separado.
+          </DialogDescription>
+        </DialogHeader>
+
+        {subcourses.isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        ) : subcourses.isError ? (
+          <p className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            {errorMessage(subcourses.error, "No se pudieron cargar los subcursos.")}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {list.map((subcourse, index) => (
+              <div
+                key={subcourse.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-5 shrink-0 text-xs text-muted-foreground">{index + 1}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {subcourse.title}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {subcourse.active ? "Visible para socios" : "Oculto"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button variant="outline" size="sm" onClick={() => onManageLessons(subcourse)}>
+                    <GraduationCap className="h-3.5 w-3.5" /> Lecciones
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setForm({
+                        id: subcourse.id,
+                        title: subcourse.title,
+                        description: subcourse.description,
+                        active: subcourse.active,
+                        sortOrder: String(subcourse.sortOrder),
+                      })
+                    }
+                    aria-label={`Editar ${subcourse.title}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDeleteTarget(subcourse)}
+                    aria-label={`Eliminar ${subcourse.title}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {list.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Este curso aún no tiene subcursos.
+              </p>
+            )}
+          </div>
+        )}
+
+        <form
+          className="mt-4 space-y-4 rounded-2xl border border-border bg-secondary/30 p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            upsertMutation.mutate();
+          }}
+        >
+          <p className="font-cond text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {form.id ? "Editar subcurso" : "Nuevo subcurso"}
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="subcourse-title">Título</Label>
+            <Input
+              id="subcourse-title"
+              value={form.title}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, title: event.target.value }))
+              }
+              maxLength={150}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="subcourse-description">Descripción</Label>
+            <Textarea
+              id="subcourse-description"
+              value={form.description}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, description: event.target.value }))
+              }
+              rows={2}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+            <div className="space-y-1.5">
+              <Label htmlFor="subcourse-sort">Orden</Label>
+              <Input
+                id="subcourse-sort"
+                type="number"
+                value={form.sortOrder}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, sortOrder: event.target.value }))
+                }
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <Switch
+                id="subcourse-active"
+                checked={form.active}
+                onCheckedChange={(active) => setForm((current) => ({ ...current, active }))}
+              />
+              <Label htmlFor="subcourse-active">Visible para socios</Label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            {form.id && (
+              <Button type="button" variant="ghost" onClick={resetForm}>
+                Cancelar edición
+              </Button>
+            )}
+            <Button type="submit" disabled={upsertMutation.isPending}>
+              {upsertMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {form.id ? "Guardar cambios" : "Agregar subcurso"}
+            </Button>
+          </div>
+        </form>
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar este subcurso?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se eliminarán "{deleteTarget?.title}", todas sus lecciones y los comentarios
+                asociados. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () => void }) {
+function emptyLessonForm() {
+  return {
+    id: undefined as string | undefined,
+    title: "",
+    description: "",
+    videoUrl: "",
+    pdfUrl: "",
+    sortOrder: "0",
+  };
+}
+
+function LessonsDialog({
+  subcourse,
+  onClose,
+}: {
+  subcourse: CourseSubcourse;
+  onClose: () => void;
+}) {
   const fetchLessons = useServerFn(adminListLessons);
   const upsertLesson = useServerFn(adminUpsertLesson);
   const deleteLesson = useServerFn(adminDeleteLesson);
   const createUploadUrl = useServerFn(adminCreateLessonVideoUploadUrl);
+  const createPdfUploadUrl = useServerFn(adminCreateLessonPdfUploadUrl);
   const queryClient = useQueryClient();
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const lessons = useQuery({
-    queryKey: ["admin", "lessons", course.id],
-    queryFn: () => fetchLessons({ data: { courseId: course.id } }),
+    queryKey: ["admin", "lessons", subcourse.id],
+    queryFn: () => fetchLessons({ data: { subcourseId: subcourse.id } }),
   });
 
   const [form, setForm] = useState(emptyLessonForm());
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<CourseLesson | null>(null);
 
@@ -501,31 +793,33 @@ function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () =>
       upsertLesson({
         data: {
           id: vars.id,
-          courseId: course.id,
+          courseId: subcourse.courseId,
+          subcourseId: subcourse.id,
           title: vars.title,
           description: vars.description,
           videoUrl: vars.videoUrl || null,
+          pdfUrl: vars.pdfUrl || null,
           sortOrder: Number(vars.sortOrder) || 0,
         },
       }),
     onSuccess: () => {
       toast.success(form.id ? "Lección actualizada" : "Lección agregada");
-      queryClient.invalidateQueries({ queryKey: ["admin", "lessons", course.id] });
-      queryClient.invalidateQueries({ queryKey: ["club", "course-lessons", course.id] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "lessons", subcourse.id] });
+      queryClient.invalidateQueries({ queryKey: ["club", "course-lessons", subcourse.id] });
       setForm(emptyLessonForm());
     },
-    onError: (err: any) => toast.error(err?.message ?? "No se pudo guardar la lección"),
+    onError: (err: unknown) => toast.error(errorMessage(err, "No se pudo guardar la lección")),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteLesson({ data: { id } }),
     onSuccess: () => {
       toast.success("Lección eliminada");
-      queryClient.invalidateQueries({ queryKey: ["admin", "lessons", course.id] });
-      queryClient.invalidateQueries({ queryKey: ["club", "course-lessons", course.id] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "lessons", subcourse.id] });
+      queryClient.invalidateQueries({ queryKey: ["club", "course-lessons", subcourse.id] });
       setDeleteTarget(null);
     },
-    onError: (err: any) => toast.error(err?.message ?? "No se pudo eliminar la lección"),
+    onError: (err: unknown) => toast.error(errorMessage(err, "No se pudo eliminar la lección")),
   });
 
   const openEdit = (l: CourseLesson) => {
@@ -534,6 +828,7 @@ function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () =>
       title: l.title,
       description: l.description,
       videoUrl: l.videoUrl ?? "",
+      pdfUrl: l.pdfUrl ?? "",
       sortOrder: String(l.sortOrder),
     });
   };
@@ -556,12 +851,43 @@ function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () =>
       if (error) throw error;
       setForm((f) => ({ ...f, videoUrl: publicUrl }));
       toast.success("Video subido");
-    } catch (err: any) {
-      toast.error(err?.message ?? "No se pudo subir el video");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "No se pudo subir el video"));
     } finally {
       setUploadingVideo(false);
       setUploadProgress(0);
       if (videoInputRef.current) videoInputRef.current.value = "";
+    }
+  };
+
+  const handlePdfChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".pdf") || file.type !== "application/pdf") {
+      toast.error("Selecciona un archivo PDF");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("El PDF no debe superar 20 MB");
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const { path, token, publicUrl } = await createPdfUploadUrl({
+        data: { fileName: file.name },
+      });
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error } = await supabase.storage
+        .from("course-materials")
+        .uploadToSignedUrl(path, token, file, { contentType: "application/pdf" });
+      if (error) throw error;
+      setForm((f) => ({ ...f, pdfUrl: publicUrl }));
+      toast.success("PDF subido");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "No se pudo subir el PDF"));
+    } finally {
+      setUploadingPdf(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
     }
   };
 
@@ -571,10 +897,10 @@ function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () =>
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Lecciones de "{course.title}"</DialogTitle>
+          <DialogTitle>Lecciones de "{subcourse.title}"</DialogTitle>
           <DialogDescription>
-            Cada lección tiene su propio título, descripción y video. Los socios las ven en orden
-            dentro de /cursos.
+            Cada lección tiene su título, descripción, video y material PDF opcional. Los socios las
+            ven en el orden indicado.
           </DialogDescription>
         </DialogHeader>
 
@@ -594,7 +920,9 @@ function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () =>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{l.title}</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {l.videoUrl ? "Video cargado" : "Sin video todavía"}
+                      {[l.videoUrl ? "Video cargado" : "Sin video", l.pdfUrl ? "PDF cargado" : null]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   </div>
                 </div>
@@ -668,7 +996,11 @@ function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () =>
                 ) : (
                   <Upload className="h-3.5 w-3.5" />
                 )}
-                {uploadingVideo ? "Subiendo..." : form.videoUrl ? "Reemplazar video" : "Subir video"}
+                {uploadingVideo
+                  ? "Subiendo..."
+                  : form.videoUrl
+                    ? "Reemplazar video"
+                    : "Subir video"}
               </Button>
               {form.videoUrl && (
                 <Button
@@ -689,6 +1021,58 @@ function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () =>
               className="hidden"
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="l-pdf">Material PDF (opcional)</Label>
+            {form.pdfUrl ? (
+              <a
+                href={form.pdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 rounded-lg border border-border p-3 text-sm text-foreground hover:bg-secondary/50"
+              >
+                <FileText className="h-4 w-4 shrink-0 text-primary" />
+                Ver PDF cargado
+              </a>
+            ) : (
+              <div className="flex h-16 w-full items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
+                Sin material PDF
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingPdf}
+                onClick={() => pdfInputRef.current?.click()}
+              >
+                {uploadingPdf ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                {uploadingPdf ? "Subiendo..." : form.pdfUrl ? "Reemplazar PDF" : "Subir PDF"}
+              </Button>
+              {form.pdfUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setForm((f) => ({ ...f, pdfUrl: "" }))}
+                >
+                  Quitar
+                </Button>
+              )}
+            </div>
+            <input
+              id="l-pdf"
+              ref={pdfInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={handlePdfChange}
+              className="hidden"
+            />
+          </div>
           <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
             <div className="space-y-1.5">
               <Label htmlFor="l-sort">Orden</Label>
@@ -705,7 +1089,11 @@ function LessonsDialog({ course, onClose }: { course: ClubCourse; onClose: () =>
                   Cancelar edición
                 </Button>
               )}
-              <Button type="submit" disabled={upsertMutation.isPending} className="font-cond uppercase tracking-wide">
+              <Button
+                type="submit"
+                disabled={upsertMutation.isPending || uploadingVideo || uploadingPdf}
+                className="font-cond uppercase tracking-wide"
+              >
                 {upsertMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 {form.id ? "Guardar cambios" : "Agregar lección"}
               </Button>

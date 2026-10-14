@@ -5,7 +5,7 @@ import {
   Loader2,
   Lock,
   Unlock,
-  MessageCircle,
+  AlertCircle,
   Play,
   Check,
   Flame,
@@ -22,15 +22,18 @@ import { getMyClub } from "@/lib/club.functions";
 import { getPublicCourses } from "@/lib/courses.functions";
 import { getClubContent } from "@/lib/club-content.functions";
 import {
-  CLUB,
-  CLUB_LAUNCH_OFFER,
+  CLUB_LANDING_DEFAULTS,
+  getClubLandingCollection,
+  getClubLandingNumber,
+  getClubLandingText,
+} from "@/lib/club-landing-content";
+import {
   CLUB_BENEFITS,
   PUNTOS_BRASA_STEPS,
   FOUNDER_PERKS,
   CLUB_TESTIMONIALS,
   CLUB_FAQS,
 } from "@/lib/club";
-import { BUSINESS } from "@/data/business";
 import { CURRENCY } from "@/data/products";
 import { ClubShell } from "@/components/ClubShell";
 import { Header } from "@/components/Header";
@@ -48,23 +51,23 @@ import clubVideo from "@/assets/club/club-video-thumb.jpg";
 import logo from "@/assets/logo-churrasqueando.png";
 
 export const Route = createFileRoute("/club")({
-  head: () => ({
-    meta: [
-      { title: "Club Churrasqueando · La plataforma para dominar la parrilla" },
-      {
-        name: "description",
-        content:
-          "6 cursos, recetarios y el soporte de nuestros parrilleros. Comunidad, Puntos Brasa y beneficios exclusivos de Socio Fundador.",
-      },
-      { property: "og:title", content: "Club Churrasqueando · Domina la parrilla" },
-      {
-        property: "og:description",
-        content: "Cursos, comunidad, Puntos Brasa y beneficios exclusivos para socios del Club Churrasqueando.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  loader: () => getClubContent(),
+  head: ({ loaderData }) => {
+    const content = loaderData ?? {};
+    return {
+      meta: [
+        { title: getClubLandingText(content, "seo_title") },
+        { name: "description", content: getClubLandingText(content, "seo_description") },
+        { property: "og:title", content: getClubLandingText(content, "seo_social_title") },
+        {
+          property: "og:description",
+          content: getClubLandingText(content, "seo_social_description"),
+        },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
+  },
   component: ClubPage,
 });
 
@@ -86,13 +89,17 @@ function ClubPage() {
   const fetchClub = useServerFn(getMyClub);
   const fetchCourses = useServerFn(getPublicCourses);
   const fetchContent = useServerFn(getClubContent);
+  const routeContent = Route.useLoaderData();
   const { session, loading: sessionLoading } = useSession();
 
-  const clubContentQuery = useQuery({ queryKey: ["club-content"], queryFn: () => fetchContent() });
+  const clubContentQuery = useQuery({
+    queryKey: ["club-content"],
+    queryFn: () => fetchContent(),
+    initialData: routeContent,
+  });
   const c = clubContentQuery.data ?? {};
-  // Devuelve el texto editado por el admin, o el valor por defecto si no se editó.
-  const t = (key: string, fallback: string) => (c[key]?.trim() ? c[key] : fallback);
-  const img = (key: string, fallback: string) => (c[key]?.trim() ? c[key] : fallback);
+  const t = (key: string) => getClubLandingText(c, key);
+  const img = (key: string, fallback: string) => c[key]?.trim() || fallback;
 
   const { data } = useQuery({
     queryKey: ["club", "me"],
@@ -110,15 +117,34 @@ function ClubPage() {
   const isMember = !!data?.isMember;
   const isAdmin = !!data?.isAdmin;
 
-  const waMessage = encodeURIComponent(
-    `¡Hola Churrasqueando! Quiero activar mi membresía del ${CLUB.name} (Anual, ${CLUB_LAUNCH_OFFER.annualPriceBs} ${CURRENCY}).${
-      profile?.email ? `\nMi cuenta: ${profile.email}` : ""
-    }\nEnvíenme el QR de pago, por favor.`,
+  const foundersTotal = Math.max(0, getClubLandingNumber(c, "founders_total"));
+  const foundersRemaining = Math.min(
+    foundersTotal,
+    Math.max(0, getClubLandingNumber(c, "founders_remaining")),
   );
-  const waUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${waMessage}`;
-
-  const foundersUsed = CLUB.founders.total - CLUB.founders.remaining;
-  const foundersPct = Math.round((foundersUsed / CLUB.founders.total) * 100);
+  const foundersUsed = foundersTotal - foundersRemaining;
+  const foundersPct = foundersTotal > 0 ? Math.round((foundersUsed / foundersTotal) * 100) : 0;
+  const hasPendingMembership = data?.requests.some((request) => request.status === "pending");
+  const benefits = getClubLandingCollection<(typeof CLUB_BENEFITS)[number]>(c, "benefits");
+  const pointsSteps = getClubLandingCollection<(typeof PUNTOS_BRASA_STEPS)[number]>(
+    c,
+    "points_steps",
+  );
+  const founderPerks = getClubLandingCollection<(typeof FOUNDER_PERKS)[number]>(c, "founder_perks");
+  const testimonials = getClubLandingCollection<(typeof CLUB_TESTIMONIALS)[number]>(
+    c,
+    "testimonials",
+  );
+  const membershipPerks = getClubLandingCollection<{ text: string }>(c, "membership_perks");
+  const faqs = getClubLandingCollection<(typeof CLUB_FAQS)[number]>(c, "faqs");
+  const annualPrice = getClubLandingNumber(c, "membership_annual_price");
+  const regularPrice = getClubLandingNumber(c, "membership_regular_price");
+  const testimonialsNote = Object.hasOwn(c, "testimonials_note")
+    ? c.testimonials_note
+    : CLUB_LANDING_DEFAULTS.testimonials_note;
+  const heroTitle = t("hero_title");
+  const problemTitle = t("problem_title");
+  const foundersTitle = t("founders_title");
 
   const content = (
     <>
@@ -126,7 +152,7 @@ function ClubPage() {
       <div className="-mx-4 mb-6 flex items-center justify-center gap-2.5 bg-primary px-4 py-3 text-center shadow-fire sm:mx-0 sm:rounded-2xl">
         <Flame className="h-4 w-4 shrink-0 text-primary-foreground" />
         <p className="font-cond text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:text-sm">
-          Lanzamiento del {CLUB.name} · 29 de septiembre
+          {t("launch_banner")}
         </p>
       </div>
 
@@ -134,7 +160,7 @@ function ClubPage() {
       <section className="relative -mx-4 overflow-hidden rounded-none border-y border-border/70 sm:mx-0 sm:rounded-3xl sm:border">
         <img
           src={img("hero_image", clubHero)}
-          alt="Cortes sellándose sobre brasas"
+          alt={t("hero_image_alt")}
           width={1600}
           height={900}
           className="absolute inset-0 h-full w-full object-cover"
@@ -145,42 +171,40 @@ function ClubPage() {
             <Sparkles className="h-4 w-4" />
           </span>
           <p className="font-cond mt-5 text-xs uppercase tracking-[0.4em] text-primary">
-            {CLUB.name}
+            {t("hero_brand")}
           </p>
           <h1 className="font-display mx-auto mt-3 max-w-3xl text-3xl uppercase leading-tight tracking-wide text-foreground sm:text-5xl">
-            {c.hero_title?.trim() ? (
-              c.hero_title
-            ) : (
+            {heroTitle === CLUB_LANDING_DEFAULTS.hero_title ? (
               <>
                 La plataforma más completa para{" "}
                 <span className="text-gradient-fire">dominar la parrilla</span>
               </>
+            ) : (
+              heroTitle
             )}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            {t(
-              "hero_subtitle",
-              `${CLUB.coursesCount} cursos, recetarios y el soporte de nuestros parrilleros. Más una comunidad, Puntos Brasa y beneficios exclusivos de socio.`,
-            )}
+            {t("hero_subtitle")}
           </p>
 
           <p className="font-cond mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-            <Star className="h-3.5 w-3.5 fill-primary" /> Precio de socio fundador · congelado de
-            por vida
+            <Star className="h-3.5 w-3.5 fill-primary" /> {t("hero_founder_badge")}
           </p>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <a href="#suscribirse">
+            <Link to={isMember ? "/cursos" : "/club-pago"}>
               <Button size="lg" className="font-cond uppercase tracking-wide">
                 <Flame className="h-4 w-4" />
                 {isMember
-                  ? "Ver mis beneficios"
-                  : `Suscribirme hoy · ${CLUB_LAUNCH_OFFER.annualPriceBs} ${CURRENCY}/año`}
+                  ? "Ver mis cursos"
+                  : hasPendingMembership
+                    ? "Ver estado de mi pago"
+                    : `${t("hero_cta")} · ${annualPrice} ${CURRENCY}/año`}
               </Button>
-            </a>
+            </Link>
             <a href="#video">
               <Button size="lg" variant="outline" className="font-cond uppercase tracking-wide">
-                <Play className="h-4 w-4" /> Ver el video
+                <Play className="h-4 w-4" /> {t("hero_video_cta")}
               </Button>
             </a>
           </div>
@@ -201,7 +225,7 @@ function ClubPage() {
           )}
           {!session && !sessionLoading && (
             <div className="mt-5 flex justify-center">
-              <Link to="/auth">
+              <Link to="/club-pago">
                 <Button variant="ghost" size="sm" className="font-cond uppercase tracking-wide">
                   <UserPlus className="h-4 w-4" /> Crear cuenta gratis
                 </Button>
@@ -211,10 +235,10 @@ function ClubPage() {
 
           <dl className="mx-auto mt-10 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { k: String(CLUB.coursesCount), v: "Cursos" },
-              { k: "+120", v: "Lecciones" },
-              { k: "+300", v: "Recetas" },
-              { k: "24/7", v: "Acceso" },
+              { k: t("hero_stat_courses"), v: t("hero_stat_courses_label") },
+              { k: t("hero_stat_lessons"), v: t("hero_stat_lessons_label") },
+              { k: t("hero_stat_recipes"), v: t("hero_stat_recipes_label") },
+              { k: t("hero_stat_access"), v: t("hero_stat_access_label") },
             ].map((s) => (
               <div
                 key={s.v}
@@ -232,37 +256,36 @@ function ClubPage() {
 
       {/* EL PROBLEMA */}
       <section className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 text-center sm:px-12 sm:py-16">
-        <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">El problema</p>
+        <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">
+          {t("problem_eyebrow")}
+        </p>
         <h2 className="font-display mx-auto mt-3 max-w-2xl text-2xl uppercase leading-tight tracking-wide text-foreground sm:text-4xl">
-          {c.problem_title?.trim() ? (
-            c.problem_title
-          ) : (
+          {problemTitle === CLUB_LANDING_DEFAULTS.problem_title ? (
             <>
               ¿Cansado de que cada asado sea una <span className="text-primary">lotería</span>?
             </>
+          ) : (
+            problemTitle
           )}
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          {t(
-            "problem_body",
-            `Invitás gente y rezás para que la carne salga bien. A veces seca, a veces cruda. La verdad es simple: la buena carne hace el trabajo — solo falta que alguien te enseñe a no arruinarla. Eso es el ${CLUB.name}.`,
-          )}
+          {t("problem_body")}
         </p>
       </section>
 
       {/* VIDEO */}
       <section id="video" className="mt-14 scroll-mt-24">
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
-          Así se vive el Club
+          {t("video_eyebrow")}
         </p>
         <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-          Mirá de qué se trata
+          {t("video_title")}
         </h2>
 
         <div className="relative mt-8 overflow-hidden rounded-3xl border border-border">
           <img
             src={img("video_image", clubVideo)}
-            alt="Video de presentación del Club Churrasqueando"
+            alt={t("video_image_alt")}
             loading="lazy"
             width={1600}
             height={900}
@@ -270,18 +293,18 @@ function ClubPage() {
           />
           <div className="absolute inset-0 bg-background/45" />
           <span className="font-cond absolute right-4 top-4 rounded-full bg-background/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground backdrop-blur">
-            Video del Club · 3–4 min
+            {t("video_badge")}
           </span>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fire">
               <Play className="h-8 w-8" />
             </span>
             <p className="font-display px-6 text-xl uppercase tracking-wide text-foreground sm:text-2xl">
-              Así se vive el Club Churrasqueando
+              {t("video_overlay_title")}
             </p>
           </div>
           <span className="font-cond absolute bottom-4 right-4 rounded-full bg-background/85 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-            3:50
+            {t("video_duration")}
           </span>
         </div>
       </section>
@@ -289,14 +312,13 @@ function ClubPage() {
       {/* CURSOS */}
       <section className="mt-14">
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
-          Todo incluido en tu membresía
+          {t("courses_eyebrow")}
         </p>
         <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-          Conocé nuestros {CLUB.coursesCount} cursos
+          {t("courses_title")}
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground">
-          Cada curso está pensado para llevarte de donde estás a donde querés llegar. Todos
-          incluidos en el Club.
+          {t("courses_description")}
         </p>
 
         <div className="mt-10 space-y-6">
@@ -365,15 +387,19 @@ function ClubPage() {
                 </ul>
                 <div className="mt-5">
                   {isMember ? (
-                    <Button variant="outline" className="font-cond uppercase tracking-wide" disabled>
+                    <Button
+                      variant="outline"
+                      className="font-cond uppercase tracking-wide"
+                      disabled
+                    >
                       <Play className="h-4 w-4" /> Contenido en preparación
                     </Button>
                   ) : (
-                    <a href="#suscribirse">
+                    <Link to="/club-pago">
                       <Button className="font-cond uppercase tracking-wide">
-                        <Lock className="h-4 w-4" /> Incluido · Suscríbete
+                        <Lock className="h-4 w-4" /> {t("courses_cta")}
                       </Button>
-                    </a>
+                    </Link>
                   )}
                 </div>
               </div>
@@ -385,13 +411,13 @@ function ClubPage() {
       {/* BENEFICIOS */}
       <section className="mt-14">
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
-          Más que cursos
+          {t("benefits_eyebrow")}
         </p>
         <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-          Beneficios del socio
+          {t("benefits_title")}
         </h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {CLUB_BENEFITS.map((b) => (
+          {benefits.map((b) => (
             <div key={b.id} className="flex gap-4 rounded-2xl border border-border bg-card p-5">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                 {BENEFIT_ICONS[b.icon]}
@@ -423,23 +449,22 @@ function ClubPage() {
       {/* PUNTOS BRASA */}
       <section className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 sm:px-10">
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
-          Recompensa por comprar
+          {t("points_eyebrow")}
         </p>
         <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-          Cómo funcionan los Puntos Brasa
+          {t("points_title")}
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground">
-          Simple y sin letra chica. Mientras más comprás, más productos artesanales te llevás
-          gratis.
+          {t("points_description")}
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          {PUNTOS_BRASA_STEPS.map((s) => (
+          {pointsSteps.map((s, index) => (
             <div
-              key={s.id}
+              key={s.id ?? `points-step-${index}`}
               className="rounded-2xl border border-border/70 bg-background/60 p-5 text-center"
             >
-              <p className="font-display text-3xl text-primary">{s.id}</p>
+              <p className="font-display text-3xl text-primary">{index + 1}</p>
               <h3 className="font-cond mt-2 text-sm font-semibold uppercase tracking-wide text-foreground">
                 {s.title}
               </h3>
@@ -449,29 +474,30 @@ function ClubPage() {
         </div>
 
         <p className="mx-auto mt-6 max-w-2xl text-center text-xs text-muted-foreground">
-          Ejemplo: <span className="text-foreground">200 puntos = una linguiça artesanal gratis</span>{" "}
-          · <span className="text-foreground">500 = envío gratis</span> ·{" "}
-          <span className="text-foreground">3.000 = el combo parrillero grande</span>. Los puntos
-          vencen a los {CLUB.pointsExpireMonths} meses sin comprar.
+          {t("points_note")}
         </p>
       </section>
 
       {/* SOCIOS FUNDADORES */}
       <section className="mt-14 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card px-6 py-12 text-center sm:px-10 sm:py-16">
         <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">
-          Oferta de lanzamiento
+          {t("founders_eyebrow")}
         </p>
         <h2 className="font-display mx-auto mt-2 max-w-xl text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-          Sé <span className="text-gradient-fire">socio fundador</span>
+          {foundersTitle === CLUB_LANDING_DEFAULTS.founders_title ? (
+            <>
+              Sé <span className="text-gradient-fire">socio fundador</span>
+            </>
+          ) : (
+            foundersTitle
+          )}
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
-          Los primeros {CLUB.founders.total} socios entran a un precio que queda congelado para
-          siempre, con beneficios que nadie más va a tener. Cuando se llenan los cupos, esta
-          puerta se cierra.
+          {t("founders_description")}
         </p>
 
         <div className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-2">
-          {FOUNDER_PERKS.map((p) => (
+          {founderPerks.map((p) => (
             <span
               key={p.id}
               className="font-cond inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
@@ -484,34 +510,36 @@ function ClubPage() {
         <div className="mx-auto mt-8 max-w-md">
           <Progress value={foundersPct} className="h-2" />
           <div className="font-cond mt-2 flex justify-between text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            <span>Cupos de fundador</span>
+            <span>{t("founders_quota_label")}</span>
             <span className="text-primary">
-              Quedan {CLUB.founders.remaining} de {CLUB.founders.total}
+              {t("founders_remaining_label")} {foundersRemaining} de {foundersTotal}
             </span>
           </div>
         </div>
 
-        <a href="#suscribirse" className="mt-8 inline-block">
+        <Link to="/club-pago" className="mt-8 inline-block">
           <Button size="lg" className="font-cond uppercase tracking-wide">
-            <Star className="h-4 w-4" /> Quiero ser fundador
+            <Star className="h-4 w-4" /> {t("founders_cta")}
           </Button>
-        </a>
+        </Link>
       </section>
 
       {/* TESTIMONIOS */}
       <section className="mt-14">
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
-          Lo que dicen los socios
+          {t("testimonials_eyebrow")}
         </p>
         <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-          Historias del fuego
+          {t("testimonials_title")}
         </h2>
-        <p className="mt-2 text-center text-xs italic text-muted-foreground">
-          (Testimonios de ejemplo — reemplazar con socios reales)
-        </p>
+        {testimonialsNote.trim() && (
+          <p className="mt-2 text-center text-xs italic text-muted-foreground">
+            {testimonialsNote}
+          </p>
+        )}
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {CLUB_TESTIMONIALS.map((t) => (
+          {testimonials.map((t) => (
             <div key={t.id} className="rounded-2xl border border-border bg-card p-5">
               <div className="flex gap-0.5 text-primary">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -543,12 +571,9 @@ function ClubPage() {
           </span>
           <div>
             <h3 className="font-display text-lg uppercase tracking-wide text-foreground">
-              Probá 7 días sin riesgo
+              {t("guarantee_title")}
             </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Entrá al Club, mirá los cursos y viví la comunidad. Si no es para vos, te devolvemos
-              tu dinero. Sin vueltas.
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("guarantee_body")}</p>
           </div>
         </div>
       </section>
@@ -559,39 +584,30 @@ function ClubPage() {
         className="mt-14 scroll-mt-24 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card p-6 sm:p-10"
       >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
-          Una sola membresía, todo adentro
+          {t("membership_eyebrow")}
         </p>
         <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-          Sumate al Club
+          {t("membership_title")}
         </h2>
 
         <div className="mx-auto mt-8 max-w-md rounded-2xl border border-border bg-background/70 p-6 text-center">
-          <p className="text-xs text-muted-foreground">
-            Un solo curso suelto cuesta {CLUB.singleCoursePriceBs} {CURRENCY}. Adentro del Club los
-            tenés los {CLUB.coursesCount}.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("membership_course_intro")}</p>
           <p className="font-display mt-3 text-5xl text-foreground">
-            {CLUB_LAUNCH_OFFER.annualPriceBs}
-            <span className="text-lg text-muted-foreground"> {CURRENCY} / año</span>
+            {annualPrice}
+            <span className="text-lg text-muted-foreground"> {t("membership_period_label")}</span>
           </p>
           <div className="mt-4 space-y-2 text-sm text-foreground/90">
-            <p>Precio de lanzamiento, solo membresía anual</p>
+            <p>{t("membership_price_caption")}</p>
             <p className="text-muted-foreground">
-              Precio real luego: {CLUB_LAUNCH_OFFER.realAnnualPriceBs} {CURRENCY} anual
+              Precio real luego: {regularPrice} {CURRENCY} anual
             </p>
           </div>
 
           <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">
-            {[
-              "Los 6 cursos y recetarios completos",
-              "Comunidad privada de parrilleros",
-              "Puntos Brasa canjeables por productos",
-              "Merch y precio congelado de fundador",
-              "Acceso a las grabaciones en vivo",
-            ].map((f) => (
-              <li key={f} className="flex gap-2">
+            {membershipPerks.map((perk) => (
+              <li key={perk.id ?? perk.text} className="flex gap-2">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span>{f}</span>
+                <span>{perk.text}</span>
               </li>
             ))}
           </ul>
@@ -599,19 +615,13 @@ function ClubPage() {
           <div className="mt-7">
             {!session ? (
               <div className="space-y-3">
-                <Link to="/auth" className="block">
+                <Link to="/club-pago" className="block">
                   <Button className="w-full font-cond uppercase tracking-wide">
-                    <UserPlus className="h-4 w-4" /> Crear cuenta / Iniciar sesión
+                    <Flame className="h-4 w-4" /> Suscribirme · Elegir método de pago
                   </Button>
                 </Link>
-                <a href={waUrl} target="_blank" rel="noreferrer" className="block">
-                  <Button variant="outline" className="w-full font-cond uppercase tracking-wide">
-                    <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
-                  </Button>
-                </a>
                 <p className="text-xs text-muted-foreground">
-                  Regístrate gratis para acumular Puntos Brasa y activar tu membresía cuando
-                  quieras.
+                  Primero crea tu cuenta; el acceso se activa después de verificar el pago.
                 </p>
               </div>
             ) : isMember ? (
@@ -620,19 +630,24 @@ function ClubPage() {
                   Tu membresía está activa
                 </p>
                 <p className="mt-1">
-                  Disfruta de todos los beneficios y acumula puntos con cada pedido. Tienes{" "}
-                  {profile?.points ?? 0} pts.
+                  Disfruta de todos los beneficios. Tienes {profile?.points ?? 0} Puntos de Brasa.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                <a href={waUrl} target="_blank" rel="noreferrer" className="block">
+                <Link to="/club-pago" className="block">
                   <Button className="w-full font-cond uppercase tracking-wide">
-                    <MessageCircle className="h-4 w-4" /> Consultar por WhatsApp
+                    {hasPendingMembership ? (
+                      <AlertCircle className="h-4 w-4" />
+                    ) : (
+                      <Flame className="h-4 w-4" />
+                    )}
+                    {hasPendingMembership ? "Ver estado del pago" : "Suscribirme"}
                   </Button>
-                </a>
+                </Link>
                 <p className="text-xs text-muted-foreground">
-                  Escríbenos por WhatsApp y te ayudamos a activar tu membresía.
+                  Tras enviar el comprobante, el administrador verificará el pago antes de activar
+                  tu membresía.
                 </p>
               </div>
             )}
@@ -643,14 +658,14 @@ function ClubPage() {
       {/* FAQ */}
       <section className="mt-14">
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
-          Dudas
+          {t("faq_eyebrow")}
         </p>
         <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
-          Preguntas frecuentes
+          {t("faq_title")}
         </h2>
 
         <Accordion type="single" collapsible className="mx-auto mt-8 max-w-2xl space-y-3">
-          {CLUB_FAQS.map((f) => (
+          {faqs.map((f) => (
             <AccordionItem
               key={f.id}
               value={f.id}
@@ -670,17 +685,17 @@ function ClubPage() {
       {/* FOOTER MINI */}
       <div className="mt-16 border-t border-border pt-8 text-center">
         <img
-          src={logo}
-          alt={CLUB.name}
+          src={img("footer_logo", logo)}
+          alt={t("footer_logo_alt")}
           width={40}
           height={40}
           className="mx-auto h-10 w-10 rounded-xl object-cover ring-1 ring-primary/40"
         />
         <p className="font-display mt-3 text-xl uppercase tracking-wide text-foreground">
-          Churrasqueando
+          {t("footer_brand")}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {CLUB.name} · Santa Cruz de la Sierra, Bolivia · churrasqueando.shop
+          {t("hero_brand")} · {t("footer_location")} · {t("footer_website")}
         </p>
       </div>
     </>

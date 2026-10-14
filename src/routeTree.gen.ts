@@ -14,6 +14,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ClubRouteImport } from './routes/club'
+import { Route as ClubPagoRouteImport } from './routes/club-pago'
+import { Route as PuntosDeVentaRouteImport } from './routes/puntos-de-venta'
 import { Route as ReservaCateringRouteImport } from './routes/reserva-catering'
 import { Route as ReservarCateringRouteImport } from './routes/reservar-catering'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -56,6 +58,16 @@ const CheckoutRoute = CheckoutRouteImport.update({
 const ClubRoute = ClubRouteImport.update({
   id: '/club',
   path: '/club',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClubPagoRoute = ClubPagoRouteImport.update({
+  id: '/club-pago',
+  path: '/club-pago',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PuntosDeVentaRoute = PuntosDeVentaRouteImport.update({
+  id: '/puntos-de-venta',
+  path: '/puntos-de-venta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReservaCateringRoute = ReservaCateringRouteImport.update({
@@ -170,6 +182,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/club': typeof ClubRoute
+  '/club-pago': typeof ClubPagoRoute
+  '/puntos-de-venta': typeof PuntosDeVentaRoute
   '/reserva-catering': typeof ReservaCateringRoute
   '/reservar-catering': typeof ReservarCateringRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -195,6 +209,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/club': typeof ClubRoute
+  '/club-pago': typeof ClubPagoRoute
+  '/puntos-de-venta': typeof PuntosDeVentaRoute
   '/reserva-catering': typeof ReservaCateringRoute
   '/reservar-catering': typeof ReservarCateringRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -222,6 +238,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/club': typeof ClubRoute
+  '/club-pago': typeof ClubPagoRoute
+  '/puntos-de-venta': typeof PuntosDeVentaRoute
   '/reserva-catering': typeof ReservaCateringRoute
   '/reservar-catering': typeof ReservarCateringRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -249,6 +267,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/club'
+    | '/club-pago'
+    | '/puntos-de-venta'
     | '/reserva-catering'
     | '/reservar-catering'
     | '/reset-password'
@@ -274,6 +294,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/club'
+    | '/club-pago'
+    | '/puntos-de-venta'
     | '/reserva-catering'
     | '/reservar-catering'
     | '/reset-password'
@@ -300,6 +322,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/club'
+    | '/club-pago'
+    | '/puntos-de-venta'
     | '/reserva-catering'
     | '/reservar-catering'
     | '/reset-password'
@@ -327,6 +351,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CheckoutRoute: typeof CheckoutRoute
   ClubRoute: typeof ClubRoute
+  ClubPagoRoute: typeof ClubPagoRoute
+  PuntosDeVentaRoute: typeof PuntosDeVentaRoute
   ReservaCateringRoute: typeof ReservaCateringRoute
   ReservarCateringRoute: typeof ReservarCateringRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -369,6 +395,20 @@ declare module '@tanstack/react-router' {
       path: '/club'
       fullPath: '/club'
       preLoaderRoute: typeof ClubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/club-pago': {
+      id: '/club-pago'
+      path: '/club-pago'
+      fullPath: '/club-pago'
+      preLoaderRoute: typeof ClubPagoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/puntos-de-venta': {
+      id: '/puntos-de-venta'
+      path: '/puntos-de-venta'
+      fullPath: '/puntos-de-venta'
+      preLoaderRoute: typeof PuntosDeVentaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reserva-catering': {
@@ -550,6 +590,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CheckoutRoute: CheckoutRoute,
   ClubRoute: ClubRoute,
+  ClubPagoRoute: ClubPagoRoute,
+  PuntosDeVentaRoute: PuntosDeVentaRoute,
   ReservaCateringRoute: ReservaCateringRoute,
   ReservarCateringRoute: ReservarCateringRoute,
   ResetPasswordRoute: ResetPasswordRoute,

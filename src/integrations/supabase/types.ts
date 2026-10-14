@@ -14,12 +14,188 @@ export type Database = {
   }
   public: {
     Tables: {
+      club_courses: {
+        Row: {
+          active: boolean
+          bullets: Json
+          created_at: string
+          description: string
+          id: string
+          image_url: string | null
+          sort_order: number
+          subtitle: string
+          tag: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          bullets?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          sort_order?: number
+          subtitle?: string
+          tag?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          bullets?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          sort_order?: number
+          subtitle?: string
+          tag?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      club_subcourses: {
+        Row: {
+          active: boolean
+          course_id: string
+          created_at: string
+          description: string
+          id: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          course_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          course_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      course_lessons: {
+        Row: {
+          course_id: string
+          created_at: string
+          description: string
+          id: string
+          pdf_url: string | null
+          sort_order: number
+          subcourse_id: string
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          pdf_url?: string | null
+          sort_order?: number
+          subcourse_id: string
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          pdf_url?: string | null
+          sort_order?: number
+          subcourse_id?: string
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      course_lesson_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          lesson_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          lesson_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      course_lesson_progress: {
+        Row: {
+          completed_at: string
+          lesson_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          lesson_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          lesson_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      course_completion_rewards: {
+        Row: {
+          completed_at: string
+          course_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          course_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          course_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       membership_requests: {
         Row: {
           amount: number
           created_at: string
           id: string
+          country_code: string
           plan: string
+          payment_method: string
           reference: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -30,7 +206,9 @@ export type Database = {
           amount?: number
           created_at?: string
           id?: string
+          country_code?: string
           plan?: string
+          payment_method?: string
           reference?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -41,12 +219,32 @@ export type Database = {
           amount?: number
           created_at?: string
           id?: string
+          country_code?: string
           plan?: string
+          payment_method?: string
           reference?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      membership_payment_settings: {
+        Row: {
+          bolivia_qr_url: string | null
+          id: boolean
+          international_instructions: string
+        }
+        Insert: {
+          bolivia_qr_url?: string | null
+          id?: boolean
+          international_instructions?: string
+        }
+        Update: {
+          bolivia_qr_url?: string | null
+          id?: boolean
+          international_instructions?: string
         }
         Relationships: []
       }
@@ -69,6 +267,10 @@ export type Database = {
           total: number
           town: string | null
           user_id: string | null
+          brasa_discount_amount: number
+          brasa_points_redeemed: number
+          discount_code: string | null
+          discount_amount: number
         }
         Insert: {
           address?: string | null
@@ -88,6 +290,10 @@ export type Database = {
           total?: number
           town?: string | null
           user_id?: string | null
+          brasa_discount_amount?: number
+          brasa_points_redeemed?: number
+          discount_code?: string | null
+          discount_amount?: number
         }
         Update: {
           address?: string | null
@@ -107,6 +313,10 @@ export type Database = {
           total?: number
           town?: string | null
           user_id?: string | null
+          brasa_discount_amount?: number
+          brasa_points_redeemed?: number
+          discount_code?: string | null
+          discount_amount?: number
         }
         Relationships: []
       }
@@ -213,6 +423,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      complete_course_lesson: {
+        Args: { p_lesson_id: string }
+        Returns: {
+          course_bonus: number
+          course_completed: boolean
+          lesson_points: number
+        }[]
+      }
+      redeem_brasa_points: {
+        Args: { p_order_id: string; p_points: number }
+        Returns: number
+      }
+      review_membership_request: {
+        Args: { p_approve: boolean; p_request_id: string }
+        Returns: undefined
       }
     }
     Enums: {

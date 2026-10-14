@@ -13,20 +13,12 @@ const NAV = [
 export function Header() {
   const { totalItems, setOpen } = useCart();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isHome = pathname === "/";
 
   // Mientras el cliente está en la Tienda, el navbar se muestra reducido
-  // (sin Catering, Club Churrasqueando ni Puntos de ventas). Al volver a la
-  // página principal o a cualquier otra sección, el navbar vuelve a
-  // mostrarse completo.
+  // (sin Catering, Club Churrasqueando ni Puntos de ventas).
   const isTienda = pathname === "/tienda";
   const visibleNav = isTienda ? NAV.filter((item) => item.to === "/tienda") : NAV;
   const showBranchesLink = !isTienda;
-
-  const goToBranches = () => {
-    const el = document.getElementById("puntos-de-venta");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
@@ -56,23 +48,15 @@ export function Header() {
               {item.label}
             </Link>
           ))}
-          {showBranchesLink &&
-            (isHome ? (
-              <button
-                onClick={goToBranches}
-                className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                Puntos de ventas
-              </button>
-            ) : (
-              <Link
-                to="/"
-                hash="puntos-de-venta"
-                className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                Puntos de ventas
-              </Link>
-            ))}
+          {showBranchesLink && (
+            <Link
+              to="/puntos-de-venta"
+              className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              activeProps={{ className: "text-primary" }}
+            >
+              Puntos de ventas
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -110,8 +94,7 @@ export function Header() {
         ))}
         {showBranchesLink && (
           <Link
-            to="/"
-            hash="puntos-de-venta"
+            to="/puntos-de-venta"
             className="font-cond shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
           >
             Puntos de ventas

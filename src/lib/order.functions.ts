@@ -11,8 +11,8 @@ export type OrderInput = {
   customerName: string;
   customerPhone: string;
   // Whether the customer is logged in. When true, the order is saved
-  // separately (with points) via recordOrder, so we skip the guest insert
-  // here to avoid a duplicate row in admin sales.
+  // separately via recordOrder, so we skip the guest insert to avoid a
+  // duplicate row in admin sales.
   hasAccount?: boolean;
   deliveryType: "delivery" | "pickup" | "province";
   address?: string;

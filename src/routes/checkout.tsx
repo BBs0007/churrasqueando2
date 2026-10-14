@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
@@ -14,6 +15,7 @@ import {
   CheckCircle2,
   MessageCircle,
   ShoppingBag,
+  Flame,
 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { CURRENCY } from "@/data/products";
@@ -21,7 +23,9 @@ import { BUSINESS } from "@/data/business";
 import { isKgProduct, estimateItemWeightKg } from "@/lib/units";
 import { BOLIVIA, DEPARTAMENTOS } from "@/data/bolivia";
 import { submitOrder, type OrderResult } from "@/lib/order.functions";
-import { recordOrder } from "@/lib/club.functions";
+import { getMyClub, recordOrder } from "@/lib/club.functions";
+import { CLUB } from "@/lib/club";
+import { useSession } from "@/hooks/useSession";
 import { validateDiscountCode, type ValidateDiscountResult } from "@/lib/discounts.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPicker, type LatLng } from "@/components/MapPicker";
@@ -29,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -80,14 +85,23 @@ function buildWhatsappUrl(result: OrderResult): string {
 function Checkout() {
   const { items, totalPrice, totalItems, clear } = useCart();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { session } = useSession();
   const submit = useServerFn(submitOrder);
   const saveOrder = useServerFn(recordOrder);
   const validateCode = useServerFn(validateDiscountCode);
+  const fetchClub = useServerFn(getMyClub);
+  const club = useQuery({
+    queryKey: ["club", "me"],
+    queryFn: () => fetchClub(),
+    enabled: !!session,
+  });
 
   const [discountInput, setDiscountInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<ValidateDiscountResult | null>(null);
   const [discountLoading, setDiscountLoading] = useState(false);
   const [discountError, setDiscountError] = useState<string | null>(null);
+  const [useBrasaPoints, setUseBrasaPoints] = useState(false);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -103,7 +117,7 @@ function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OrderResult | null>(null);
-  const [earnedPoints, setEarnedPoints] = useState<number | null>(null);
+  const [redeemedPoints, setRedeemedPoints] = useState<number | null>(null);
 
   const provincesList = useMemo(
     () => (department ? Object.keys(BOLIVIA[department] ?? {}) : []),
@@ -115,6 +129,16 @@ function Checkout() {
   );
 
   const discountAmount = appliedDiscount?.valid ? appliedDiscount.discountAmount ?? 0 : 0;
+  const availablePoints = session ? (club.data?.profile.points ?? 0) : 0;
+  const brasaPointsToRedeem =
+    useBrasaPoints && availablePoints >= CLUB.redeemStep
+      ? Math.min(
+          Math.floor(availablePoints / CLUB.redeemStep),
+          Math.floor(Math.max(0, totalPrice - discountAmount) / CLUB.redeemValueBs),
+        ) * CLUB.redeemStep
+      : 0;
+  const brasaDiscountAmount = (brasaPointsToRedeem / CLUB.redeemStep) * CLUB.redeemValueBs;
+  const totalDiscountAmount = discountAmount + brasaDiscountAmount;
 
   // Peso estimado del pedido, para saber qué conservadoras alcanzan.
   const orderWeightKg = useMemo(
@@ -141,7 +165,7 @@ function Checkout() {
       : 0;
   const finalTotal = Math.max(
     0,
-    Math.round((totalPrice - discountAmount + coolerPrice) * 100) / 100,
+    Math.round((totalPrice - totalDiscountAmount + coolerPrice) * 100) / 100,
   );
 
   const handleApplyDiscount = async () => {
@@ -191,6 +215,48 @@ function Checkout() {
       const { data: sessionData } = await supabase.auth.getSession();
       const hasAccount = !!sessionData.session;
 
+      if (hasAccount) {
+        const saved = await saveOrder({
+          data: {
+            customerName: name.trim(),
+            customerPhone: phone.trim(),
+            deliveryType,
+            address: address.trim() || null,
+            lat: deliveryType === "delivery" ? (location?.lat ?? null) : null,
+            lng: deliveryType === "delivery" ? (location?.lng ?? null) : null,
+            department: deliveryType === "province" ? department : null,
+            province: deliveryType === "province" ? province : null,
+            town: deliveryType === "province" ? town : null,
+            notes:
+              [
+                notes.trim(),
+                deliveryType === "province"
+                  ? `Envío: ${shippingMethod}; Conservadora: ${coolerSize}`
+                  : "",
+              ]
+                .filter(Boolean)
+                .join("\n") || null,
+            items: items.map((i) => ({
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.product.price,
+              unit: i.product.unit,
+            })),
+            total: finalTotal,
+            discountCode: appliedDiscount?.valid ? appliedDiscount.code : null,
+            discountAmount: totalDiscountAmount > 0 ? totalDiscountAmount : null,
+            pointsToRedeem: hasAccount ? brasaPointsToRedeem : 0,
+            brasaDiscountAmount: hasAccount ? brasaDiscountAmount : 0,
+          },
+        });
+        setRedeemedPoints(saved.pointsRedeemed);
+        if (saved.pointsRedeemed > 0) {
+          await queryClient.invalidateQueries({ queryKey: ["club", "me"] });
+        }
+      } else if (brasaPointsToRedeem > 0) {
+        throw new Error("Inicia sesión para canjear tus Puntos de Brasa");
+      }
+
       const res = await submit({
         data: {
           customerName: name.trim(),
@@ -219,47 +285,10 @@ function Checkout() {
           })),
           total: finalTotal,
           discountCode: appliedDiscount?.valid ? appliedDiscount.code : undefined,
-          discountAmount: discountAmount > 0 ? discountAmount : undefined,
+          discountAmount: totalDiscountAmount > 0 ? totalDiscountAmount : undefined,
         },
       });
       setResult(res);
-
-      // Si el cliente tiene sesión, guardamos el pedido y sumamos sus puntos del Club.
-      try {
-        if (hasAccount) {
-          const saved = await saveOrder({
-            data: {
-              customerName: name.trim(),
-              customerPhone: phone.trim(),
-              deliveryType,
-              address: address.trim() || null,
-              lat: deliveryType === "delivery" ? location?.lat ?? null : null,
-              lng: deliveryType === "delivery" ? location?.lng ?? null : null,
-              department: deliveryType === "province" ? department : null,
-              province: deliveryType === "province" ? province : null,
-              town: deliveryType === "province" ? town : null,
-              notes: [
-                notes.trim(),
-                deliveryType === "province" ? `Envío: ${shippingMethod}; Conservadora: ${coolerSize}` : "",
-              ]
-                .filter(Boolean)
-                .join("\n") || null,
-              items: items.map((i) => ({
-                name: i.product.name,
-                quantity: i.quantity,
-                price: i.product.price,
-                unit: i.product.unit,
-              })),
-              total: finalTotal,
-              discountCode: appliedDiscount?.valid ? appliedDiscount.code : null,
-              discountAmount: discountAmount > 0 ? discountAmount : null,
-            },
-          });
-          setEarnedPoints(saved.points);
-        }
-      } catch {
-        /* el pedido por WhatsApp ya se envió; los puntos se pueden ajustar manualmente */
-      }
 
       clear();
       if (!res.autoSent) {
@@ -276,7 +305,7 @@ function Checkout() {
     return (
       <SuccessView
         result={result}
-        earnedPoints={earnedPoints}
+        redeemedPoints={redeemedPoints}
         onHome={() => navigate({ to: "/" })}
       />
     );
@@ -666,14 +695,73 @@ function Checkout() {
               )}
             </div>
 
+            {session && (
+              <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <Checkbox
+                    checked={useBrasaPoints}
+                    onCheckedChange={(checked) => setUseBrasaPoints(checked === true)}
+                    disabled={
+                      club.isLoading ||
+                      club.isError ||
+                      (!useBrasaPoints &&
+                        (availablePoints < CLUB.redeemStep ||
+                        Math.floor(Math.max(0, totalPrice - discountAmount) / CLUB.redeemValueBs) <
+                          1))
+                    }
+                    className="mt-0.5"
+                  />
+                  <span className="flex-1">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                      <Flame className="h-4 w-4 text-primary" />
+                      Usar Puntos de Brasa
+                    </span>
+                    {club.isLoading ? (
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        Cargando saldo…
+                      </span>
+                    ) : club.isError ? (
+                      <span className="mt-1 block text-xs text-destructive">
+                        No se pudo cargar tu saldo de puntos.
+                      </span>
+                    ) : (
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        Tienes {availablePoints} puntos. Cada {CLUB.redeemStep} puntos descuentan{" "}
+                        {CLUB.redeemValueBs} {CURRENCY}.
+                        {brasaPointsToRedeem > 0 &&
+                          ` Se usarán ${brasaPointsToRedeem} puntos para descontar ${brasaDiscountAmount} ${CURRENCY}.`}
+                        {useBrasaPoints && brasaPointsToRedeem === 0 &&
+                          " El saldo o el subtotal restante no alcanza para otro descuento."}
+                        {availablePoints < CLUB.redeemStep &&
+                          ` Te faltan ${CLUB.redeemStep - availablePoints} puntos para el primer descuento.`}
+                      </span>
+                    )}
+                  </span>
+                </label>
+                {availablePoints < CLUB.redeemStep && !club.isLoading && !club.isError && (
+                  <Link
+                    to="/cursos"
+                    className="mt-2 inline-block pl-7 text-xs text-primary hover:underline"
+                  >
+                    Completa videos en tus cursos para ganar puntos
+                  </Link>
+                )}
+              </div>
+            )}
+
             <div className="mt-3 space-y-1">
-              {discountAmount > 0 && (
+              {totalDiscountAmount > 0 && (
                 <div className="flex items-center justify-between text-sm text-primary">
-                  <span>Descuento</span>
+                  <span>Descuento total</span>
                   <span className="font-cond font-semibold">
-                    -{discountAmount} {CURRENCY}
+                    -{totalDiscountAmount} {CURRENCY}
                   </span>
                 </div>
+              )}
+              {brasaDiscountAmount > 0 && (
+                <p className="text-right text-xs text-muted-foreground">
+                  Incluye {brasaPointsToRedeem} Puntos de Brasa canjeados
+                </p>
               )}
               {deliveryType === "province" && (
                 <>
@@ -740,11 +828,11 @@ function Checkout() {
 function SuccessView({
   result,
   onHome,
-  earnedPoints,
+  redeemedPoints,
 }: {
   result: OrderResult;
   onHome: () => void;
-  earnedPoints: number | null;
+  redeemedPoints: number | null;
 }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-background px-4 py-12 text-center">
@@ -756,16 +844,17 @@ function SuccessView({
           : "Abrimos WhatsApp con tu pedido. Envíalo y te contactaremos para coordinar el pago y la entrega."}
       </p>
 
-      {earnedPoints !== null ? (
+      {redeemedPoints !== null && redeemedPoints > 0 ? (
         <p className="rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-foreground">
-          Sumaste <span className="font-semibold text-primary">{earnedPoints} puntos</span> al Club
-          Churrasqueando con esta compra.
+          Canjeaste{" "}
+          <span className="font-semibold text-primary">{redeemedPoints} Puntos de Brasa</span> en
+          este pedido.
         </p>
-      ) : (
+      ) : redeemedPoints === null ? (
         <Link to="/auth" className="text-sm text-primary hover:underline">
-          Crea tu cuenta gratis del Club y suma puntos con cada compra
+          Inicia sesión para canjear Puntos de Brasa o completar cursos para ganarlos
         </Link>
-      )}
+      ) : null}
 
 
 

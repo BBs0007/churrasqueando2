@@ -1,14 +1,11 @@
 // Reglas del Club Churrasqueando (editables)
 export const CLUB = {
   name: "Club Churrasqueando",
-  // Acumulación de Puntos Brasa: 1 Bs de compra = 1 punto
-  bsPerPoint: 10,
-  // Canje de puntos: cada bloque de "redeemStep" puntos equivale a
-  // "redeemValueBs" Bs de descuento (solo socios activos).
+  // Puntos Brasa se ganan al completar videos y cursos; canjeables en pedidos.
+  pointsPerCompletedLesson: 10,
+  pointsPerCompletedCourse: 50,
   redeemStep: 100,
   redeemValueBs: 10,
-  // Vencimiento de puntos sin comprar
-  pointsExpireMonths: 10,
   // Suscripción (solo plan anual)
   annualPriceBs: 699,
   planLabel: "Anual",
@@ -54,7 +51,7 @@ export const CLUB_BENEFITS = [
     title: "Puntos Brasa",
     badge: "Cambia",
     description:
-      "Sumás puntos con cada compra en la tienda y los canjeás por linguiças, chorizos y productos artesanales.",
+      "Sumás puntos al completar videos y cursos, y los canjeás por descuentos en productos, combos y la tienda del Club.",
   },
   {
     id: "grabaciones",
@@ -69,18 +66,18 @@ export const CLUB_BENEFITS = [
 export const PUNTOS_BRASA_STEPS = [
   {
     id: "1",
-    title: "Comprás en la tienda",
-    description: "Cada 10 Bs de compra suma 1 Punto Brasa a tu cuenta de socio.",
+    title: "Aprendés con cada video",
+    description: `Cada video completado suma ${CLUB.pointsPerCompletedLesson} Puntos de Brasa.`,
   },
   {
     id: "2",
-    title: "Sumás puntos",
-    description: "Se acumulan solos. Ganás bonos por reseñas, referidos y tu cumpleaños.",
+    title: "Completás un curso",
+    description: `Al terminar todos sus videos, recibís ${CLUB.pointsPerCompletedCourse} Puntos de Brasa extra.`,
   },
   {
     id: "3",
-    title: "Canjeás productos",
-    description: "Cambiás tus puntos por linguiças, chorizos y combos artesanales Churrasqueando.",
+    title: "Canjeás descuentos",
+    description: `Cada ${CLUB.redeemStep} Puntos de Brasa equivalen a Bs ${CLUB.redeemValueBs} de descuento en la tienda.`,
   },
 ];
 
@@ -109,7 +106,7 @@ export const CLUB_TESTIMONIALS = [
   {
     id: "daniela",
     quote:
-      "Los Puntos Brasa son lo mejor: compro seguido igual, y encima me llevo linguiças gratis. La comunidad es un plus.",
+      "Los Puntos Brasa son lo mejor: cada curso que termino me acerca a descuentos para mi próximo asado.",
     name: "Daniela P.",
     role: "Socia desde el mes 2",
   },
@@ -137,10 +134,6 @@ export const CLUB_FAQS = [
     id: "puntos",
     question: "¿Cómo uso los Puntos Brasa?",
     answer:
-      "Se acumulan solos con cada compra en la tienda y los canjeás por productos artesanales en tu próximo pedido.",
+      `Ganás Puntos de Brasa al completar videos y cursos. Cada ${CLUB.redeemStep} puntos equivalen a Bs ${CLUB.redeemValueBs} de descuento en productos, combos y la tienda del Club.`,
   },
 ];
-
-export function pointsForAmount(totalBs: number): number {
-  return Math.floor(totalBs / CLUB.bsPerPoint);
-}

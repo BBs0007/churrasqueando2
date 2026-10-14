@@ -6,7 +6,9 @@ import { Loader2, Star, Package, UserCog, Lock, Unlock, Camera, User } from "luc
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { getMyClub, updateMyProfile, uploadMyAvatar } from "@/lib/club.functions";
-import { CLUB, CLUB_LAUNCH_OFFER } from "@/lib/club";
+import { getClubContent } from "@/lib/club-content.functions";
+import { getClubLandingNumber } from "@/lib/club-landing-content";
+import { CLUB } from "@/lib/club";
 import { ClubShell } from "@/components/ClubShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +21,10 @@ export const Route = createFileRoute("/_authenticated/cuenta")({
       { title: "Mi cuenta · Club Churrasqueando" },
       {
         name: "description",
-        content: "Consulta tus puntos, tus compras y edita tus datos en el Club Churrasqueando.",
+        content: "Consulta tus Puntos de Brasa, tus compras y edita tus datos en el Club Churrasqueando.",
       },
       { property: "og:title", content: "Mi cuenta · Club Churrasqueando" },
-      { property: "og:description", content: "Tus puntos, tus compras y tu perfil de socio." },
+      { property: "og:description", content: "Tus Puntos de Brasa, tus compras y tu perfil de socio." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -41,6 +43,7 @@ function fileToDataUrl(file: File): Promise<string> {
 
 function Cuenta() {
   const fetchClub = useServerFn(getMyClub);
+  const fetchClubContent = useServerFn(getClubContent);
   const saveProfile = useServerFn(updateMyProfile);
   const uploadAvatar = useServerFn(uploadMyAvatar);
   const queryClient = useQueryClient();
@@ -50,6 +53,14 @@ function Cuenta() {
     queryKey: ["club", "me"],
     queryFn: () => fetchClub(),
   });
+  const clubContent = useQuery({
+    queryKey: ["club-content"],
+    queryFn: () => fetchClubContent(),
+  });
+  const annualMembershipPrice = getClubLandingNumber(
+    clubContent.data ?? {},
+    "membership_annual_price",
+  );
 
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -144,20 +155,20 @@ function Cuenta() {
         </h1>
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
-        1 punto por cada {CLUB.bsPerPoint} {CURRENCY} de compra. {CLUB.redeemStep} puntos ={" "}
-        {CLUB.redeemValueBs} {CURRENCY} de descuento (solo socios activos).
+        Completa los videos de tus cursos para ganar Puntos de Brasa. Cada {CLUB.redeemStep} puntos
+        equivalen a {CLUB.redeemValueBs} {CURRENCY} de descuento en la tienda.
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="font-cond text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Mis puntos
+            Mis Puntos de Brasa
           </p>
           <p className="mt-2 flex items-center gap-2 font-display text-4xl text-primary">
             <Star className="h-7 w-7" /> {profile.points}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Equivalen a {redeemable} {CURRENCY} en descuentos
+            Puedes canjear hasta {redeemable} {CURRENCY} de descuento en tus pedidos
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-5">
@@ -190,7 +201,7 @@ function Cuenta() {
             </p>
           ) : (
             <Link to="/club" className="mt-2 inline-block text-xs text-primary hover:underline">
-              Activar por {CLUB_LAUNCH_OFFER.annualPriceBs} {CURRENCY}/año
+              Activar por {annualMembershipPrice} {CURRENCY}/año
             </Link>
           )}
         </div>
@@ -288,7 +299,7 @@ function Cuenta() {
           {orders.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
               Todavía no tienes compras registradas. Los pedidos que hagas con tu cuenta abierta se
-              guardan aquí y suman puntos automáticamente.
+              guardan aquí.
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-border">
@@ -311,7 +322,6 @@ function Cuenta() {
                     <p className="font-display text-lg text-foreground">
                       {Number(o.total).toFixed(2)} {CURRENCY}
                     </p>
-                    <p className="text-xs text-primary">+{o.points_earned} pts</p>
                   </div>
                 </li>
               ))}
@@ -321,7 +331,7 @@ function Cuenta() {
           {transactions.length > 0 && (
             <>
               <h3 className="font-cond mt-6 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                Movimiento de puntos
+                Movimiento de Puntos de Brasa
               </h3>
               <ul className="mt-2 space-y-1 text-sm">
                 {transactions.slice(0, 8).map((t) => (

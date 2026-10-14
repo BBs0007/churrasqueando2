@@ -219,7 +219,9 @@ function PromoProductsSection() {
   });
 
   const openCreate = () => {
-    setForm(EMPTY_PRODUCT_FORM);
+    const nextSortOrder =
+      (products.data ?? []).reduce((max, product) => Math.max(max, product.sort_order), -1) + 1;
+    setForm({ ...EMPTY_PRODUCT_FORM, sortOrder: String(nextSortOrder) });
     setDialogOpen(true);
   };
   const openEdit = (p: PromoProduct) => {

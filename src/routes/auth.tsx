@@ -21,8 +21,9 @@ import logo from "@/assets/logo-churrasqueando.png";
 type Mode = "login" | "signup" | "forgot";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; mode?: "signup" } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+    mode: search.mode === "signup" ? "signup" : undefined,
   }),
   head: () => ({
     meta: [
@@ -30,12 +31,13 @@ export const Route = createFileRoute("/auth")({
       {
         name: "description",
         content:
-          "Crea tu cuenta gratis en Churrasqueando, acumula puntos con cada compra y accede a los beneficios del Club.",
+          "Crea tu cuenta gratis en Churrasqueando, gana Puntos de Brasa al completar videos y cursos, y accede a los beneficios del Club.",
       },
       { property: "og:title", content: "Ingresar al Club Churrasqueando" },
       {
         property: "og:description",
-        content: "Registro gratuito, acumula puntos y desbloquea beneficios del Club Churrasqueando.",
+        content:
+          "Registro gratuito, gana Puntos de Brasa aprendiendo y desbloquea beneficios del Club Churrasqueando.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -54,7 +56,7 @@ function AuthPage() {
   const search = useSearch({ from: "/auth" });
   const dest = safePath(search.redirect);
 
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(search.mode === "signup" ? "signup" : "login");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -154,7 +156,11 @@ function AuthPage() {
 
         <div className="rounded-3xl border border-border bg-card/80 p-6 shadow-card backdrop-blur sm:p-8">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Churrasqueando" className="h-12 w-12 rounded-xl object-cover ring-1 ring-primary/40" />
+            <img
+              src={logo}
+              alt="Churrasqueando"
+              className="h-12 w-12 rounded-xl object-cover ring-1 ring-primary/40"
+            />
             <div>
               <h1 className="font-display text-2xl uppercase tracking-wide text-foreground">
                 {CLUB.name}
@@ -167,10 +173,10 @@ function AuthPage() {
 
           <p className="mt-4 text-sm text-muted-foreground">
             {mode === "signup"
-              ? `Crea tu cuenta gratis y acumula 1 punto por cada ${CLUB.bsPerPoint} Bs de compra.`
+              ? "Crea tu cuenta gratis y gana Puntos de Brasa completando videos y cursos del Club."
               : mode === "forgot"
                 ? "Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña."
-                : "Ingresa para ver tus puntos, tus compras y los beneficios del Club."}
+                : "Ingresa para ver tus Puntos de Brasa, tus compras y los beneficios del Club."}
           </p>
 
           {info && (
@@ -301,9 +307,21 @@ function AuthPage() {
               </>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full font-cond uppercase tracking-wide">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
-              {mode === "signup" ? "Crear mi cuenta" : mode === "forgot" ? "Enviar enlace" : "Ingresar"}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full font-cond uppercase tracking-wide"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Flame className="h-4 w-4" />
+              )}
+              {mode === "signup"
+                ? "Crear mi cuenta"
+                : mode === "forgot"
+                  ? "Enviar enlace"
+                  : "Ingresar"}
             </Button>
           </form>
 
@@ -311,7 +329,9 @@ function AuthPage() {
             <>
               <div className="my-5 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
-                <span className="font-cond text-xs uppercase tracking-widest text-muted-foreground">o</span>
+                <span className="font-cond text-xs uppercase tracking-widest text-muted-foreground">
+                  o
+                </span>
                 <div className="h-px flex-1 bg-border" />
               </div>
               <Button

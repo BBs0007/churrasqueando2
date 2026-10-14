@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CLUB, CLUB_LAUNCH_OFFER, pointsForAmount } from "@/lib/club";
+import { CLUB } from "@/lib/club";
+import { CLUB_LANDING_DEFAULTS } from "@/lib/club-landing-content";
 
 export type ClubProfile = {
   id: string;
@@ -18,7 +19,6 @@ export type ClubProfile = {
 export type ClubOrder = {
   id: string;
   total: number;
-  points_earned: number;
   status: string;
   delivery_type: string;
   created_at: string;
@@ -37,6 +37,8 @@ export type ClubRequest = {
   plan: string;
   amount: number;
   status: "pending" | "approved" | "rejected";
+  payment_method: "bolivia_qr" | "binance";
+  country_code: "BO" | "INT";
   created_at: string;
 };
 
@@ -78,7 +80,7 @@ export const getMyClub = createServerFn({ method: "GET" })
     const [orders, transactions, requests, roles] = await Promise.all([
       context.supabase
         .from("orders")
-        .select("id, total, points_earned, status, delivery_type, created_at, items")
+        .select("id, total, status, delivery_type, created_at, items")
         .order("created_at", { ascending: false })
         .limit(50),
       context.supabase
@@ -88,7 +90,7 @@ export const getMyClub = createServerFn({ method: "GET" })
         .limit(50),
       context.supabase
         .from("membership_requests")
-        .select("id, plan, amount, status, created_at")
+        .select("id, plan, amount, status, payment_method, country_code, created_at")
         .order("created_at", { ascending: false })
         .limit(10),
       context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
@@ -170,26 +172,124 @@ export const uploadMyAvatar = createServerFn({ method: "POST" })
 
 export const requestMembership = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { reference?: string }) => ({
-    reference: input?.reference?.trim().slice(0, 200) || null,
-  }))
+  .inputValidator(
+    (input: { paymentMethod: "bolivia_qr" | "binance"; countryCode: "BO" | "INT" }) => {
+      if (!["bolivia_qr", "binance"].includes(input?.paymentMethod)) {
+        throw new Error("Selecciona un método de pago válido");
+      }
+      if (!["BO", "INT"].includes(input?.countryCode)) {
+        throw new Error("Selecciona un país válido");
+      }
+      if (
+        (input.countryCode === "BO" && input.paymentMethod !== "bolivia_qr") ||
+        (input.countryCode === "INT" && input.paymentMethod !== "binance")
+      ) {
+        throw new Error("El método de pago no corresponde al país seleccionado");
+      }
+      return input;
+    },
+  )
   .handler(async ({ data, context }) => {
-    const { data: pending } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pending, error: pendingError } = await context.supabase
       .from("membership_requests")
-      .select("id")
+      .select("id, amount, payment_method, country_code")
       .eq("user_id", context.userId)
       .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
-    if (pending) return { ok: true, alreadyPending: true };
+    if (pendingError) throw pendingError;
+    if (pending) return { ok: true, alreadyPending: true, request: pending };
 
-    const { error } = await context.supabase.from("membership_requests").insert({
-      user_id: context.userId,
-      plan: "annual",
-      amount: CLUB_LAUNCH_OFFER.annualPriceBs,
-      reference: data.reference,
-    });
+    const { data: priceSetting, error: priceError } = await supabaseAdmin
+      .from("club_content")
+      .select("value")
+      .eq("key", "membership_annual_price")
+      .maybeSingle();
+    if (priceError) throw priceError;
+    const amount = Number(priceSetting?.value ?? CLUB_LANDING_DEFAULTS.membership_annual_price);
+    if (!Number.isSafeInteger(amount) || amount < 1) {
+      throw new Error("El precio de membresía configurado no es válido");
+    }
+
+    const { data: request, error } = await context.supabase
+      .from("membership_requests")
+      .insert({
+        user_id: context.userId,
+        plan: "annual",
+        amount,
+        payment_method: data.paymentMethod,
+        country_code: data.countryCode,
+      })
+      .select("id, amount, payment_method, country_code")
+      .single();
     if (error) throw error;
-    return { ok: true, alreadyPending: false };
+    return { ok: true, alreadyPending: false, request };
+  });
+
+export const getMembershipPaymentSettings = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("membership_payment_settings")
+    .select("bolivia_qr_url, international_instructions")
+    .eq("id", true)
+    .single();
+  if (error) throw error;
+  return {
+    boliviaQrUrl: data.bolivia_qr_url,
+    internationalInstructions: data.international_instructions,
+  };
+});
+
+export const adminSaveMembershipPaymentSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { internationalInstructions: string; boliviaQrUrl: string | null }) => {
+    const internationalInstructions = input.internationalInstructions?.trim() ?? "";
+    if (internationalInstructions.length > 1200) {
+      throw new Error("Las instrucciones no deben superar 1200 caracteres");
+    }
+    const boliviaQrUrl = input.boliviaQrUrl?.trim() || null;
+    if (boliviaQrUrl && (!boliviaQrUrl.startsWith("https://") || boliviaQrUrl.length > 1000)) {
+      throw new Error("La dirección del QR no es válida");
+    }
+    return { internationalInstructions, boliviaQrUrl };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("membership_payment_settings")
+      .update({
+        international_instructions: data.internationalInstructions,
+        bolivia_qr_url: data.boliviaQrUrl,
+      })
+      .eq("id", true);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const adminCreateMembershipQrUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { fileName: string; contentType: string }) => {
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!allowedTypes.includes(input?.contentType)) throw new Error("Formato de imagen no válido");
+    if (!input?.fileName) throw new Error("Falta el archivo");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const ext = data.contentType === "image/jpeg" ? "jpg" : data.contentType.split("/")[1];
+    const path = `club-membership/${crypto.randomUUID()}.${ext}`;
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("membership-payments")
+      .createSignedUploadUrl(path);
+    if (error) throw error;
+    const { data: publicData } = supabaseAdmin.storage
+      .from("membership-payments")
+      .getPublicUrl(path);
+    return { path, token: signed.token, publicUrl: publicData.publicUrl };
   });
 
 export const recordOrder = createServerFn({ method: "POST" })
@@ -210,15 +310,54 @@ export const recordOrder = createServerFn({ method: "POST" })
       total: number;
       discountCode?: string | null;
       discountAmount?: number | null;
+      pointsToRedeem?: number;
+      brasaDiscountAmount?: number;
     }) => {
       if (!input.items?.length) throw new Error("El pedido está vacío");
-      if (!(input.total >= 0)) throw new Error("Total inválido");
-      return input;
+      if (!Number.isFinite(input.total) || input.total < 0) throw new Error("Total inválido");
+      if (
+        input.items.some(
+          (item) =>
+            !Number.isFinite(item.price) ||
+            item.price < 0 ||
+            !Number.isFinite(item.quantity) ||
+            item.quantity <= 0,
+        )
+      ) {
+        throw new Error("Los productos del pedido no son válidos");
+      }
+      const pointsToRedeem = input.pointsToRedeem ?? 0;
+      const brasaDiscountAmount = input.brasaDiscountAmount ?? 0;
+      const discountAmount = input.discountAmount ?? 0;
+      if (
+        !Number.isInteger(pointsToRedeem) ||
+        pointsToRedeem < 0 ||
+        pointsToRedeem % CLUB.redeemStep !== 0
+      ) {
+        throw new Error("La cantidad de Puntos de Brasa a canjear no es válida");
+      }
+      if (!Number.isFinite(brasaDiscountAmount) || brasaDiscountAmount < 0) {
+        throw new Error("El descuento de Puntos de Brasa no es válido");
+      }
+      if (!Number.isFinite(discountAmount) || discountAmount < 0) {
+        throw new Error("El descuento del pedido no es válido");
+      }
+      return { ...input, pointsToRedeem, brasaDiscountAmount, discountAmount };
     },
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const points = pointsForAmount(data.total);
+    const brasaDiscount = (data.pointsToRedeem / CLUB.redeemStep) * CLUB.redeemValueBs;
+    const itemsSubtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    if (
+      !Number.isFinite(itemsSubtotal) ||
+      data.brasaDiscountAmount !== brasaDiscount ||
+      brasaDiscount > itemsSubtotal ||
+      data.discountAmount > itemsSubtotal ||
+      (brasaDiscount > 0 && (data.discountAmount ?? 0) < brasaDiscount)
+    ) {
+      throw new Error("El descuento de Puntos de Brasa no coincide con el pedido");
+    }
 
     const { data: order, error } = await supabaseAdmin
       .from("orders")
@@ -236,33 +375,41 @@ export const recordOrder = createServerFn({ method: "POST" })
         notes: data.notes ?? null,
         items: data.items,
         total: data.total,
-        points_earned: points,
+        points_earned: 0,
         discount_code: data.discountCode ?? null,
         discount_amount: data.discountAmount ?? 0,
+        brasa_points_redeemed: data.pointsToRedeem,
+        brasa_discount_amount: data.brasaDiscountAmount,
       })
       .select("id")
       .single();
     if (error) throw error;
 
-    if (points > 0) {
-      await supabaseAdmin.from("point_transactions").insert({
-        user_id: context.userId,
-        points,
-        reason: "Compra registrada",
-        order_id: order.id,
+    if (data.pointsToRedeem > 0) {
+      const { error: redeemError } = await context.supabase.rpc("redeem_brasa_points", {
+        p_order_id: order.id,
+        p_points: data.pointsToRedeem,
       });
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("points")
-        .eq("id", context.userId)
-        .maybeSingle();
-      await supabaseAdmin
-        .from("profiles")
-        .update({ points: (profile?.points ?? 0) + points })
-        .eq("id", context.userId);
+      if (redeemError) {
+        const { error: cleanupError } = await supabaseAdmin
+          .from("orders")
+          .delete()
+          .eq("id", order.id);
+        if (cleanupError) {
+          console.error(
+            "No se pudo quitar un pedido tras fallar el canje de Puntos de Brasa",
+            cleanupError,
+          );
+        }
+        throw redeemError;
+      }
     }
 
-    return { ok: true, points };
+    return {
+      ok: true,
+      pointsRedeemed: data.pointsToRedeem,
+      discountAmount: data.brasaDiscountAmount,
+    };
   });
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -280,7 +427,9 @@ export const adminListRequests = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: requests, error } = await supabaseAdmin
       .from("membership_requests")
-      .select("id, user_id, plan, amount, status, reference, created_at")
+      .select(
+        "id, user_id, plan, amount, status, reference, payment_method, country_code, created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw error;
@@ -305,30 +454,10 @@ export const adminReviewRequest = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: req, error } = await supabaseAdmin
-      .from("membership_requests")
-      .update({
-        status: data.approve ? "approved" : "rejected",
-        reviewed_by: context.userId,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", data.id)
-      .select("user_id")
-      .single();
+    const { error } = await context.supabase.rpc("review_membership_request", {
+      p_request_id: data.id,
+      p_approve: data.approve,
+    });
     if (error) throw error;
-
-    if (data.approve) {
-      const expires = new Date();
-      expires.setMonth(expires.getMonth() + 1);
-      await supabaseAdmin
-        .from("profiles")
-        .update({
-          membership_status: "active",
-          membership_expires_at: expires.toISOString(),
-        })
-        .eq("id", req.user_id);
-    }
     return { ok: true };
   });

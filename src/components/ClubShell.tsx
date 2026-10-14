@@ -15,10 +15,14 @@ import {
   UtensilsCrossed,
   FileEdit,
   Gift,
+  AlertCircle,
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { getMyClub } from "@/lib/club.functions";
+import { useSession } from "@/hooks/useSession";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -43,6 +47,16 @@ export function ClubShell({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { session } = useSession();
+  const fetchClub = useServerFn(getMyClub);
+  const clubStatus = useQuery({
+    queryKey: ["club", "me"],
+    queryFn: () => fetchClub(),
+    enabled: !!session && !isAdmin,
+  });
+  const hasPendingMembership = clubStatus.data?.requests.some(
+    (request) => request.status === "pending",
+  );
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -71,8 +85,12 @@ export function ClubShell({
 
           <nav className="flex flex-wrap items-center gap-2">
             {typeof points === "number" && (
-              <span className="font-cond inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-secondary-foreground">
-                <Star className="h-3.5 w-3.5 text-primary" /> {points} pts
+              <span
+                aria-label={`${points} Puntos de Brasa`}
+                title="Puntos de Brasa"
+                className="font-cond inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-secondary-foreground"
+              >
+                <Star className="h-3.5 w-3.5 text-primary" /> {points} PB
               </span>
             )}
             <Link
@@ -161,7 +179,7 @@ export function ClubShell({
                   </DropdownMenuLabel>
                   <DropdownMenuItem asChild>
                     <Link to="/admin-club-contenido" className="flex items-center gap-2">
-                      <FileEdit className="h-3.5 w-3.5" /> Contenido de /club
+                      <FileEdit className="h-3.5 w-3.5" /> Editar página del Club
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -194,6 +212,23 @@ export function ClubShell({
           </nav>
         </div>
       </header>
+      {hasPendingMembership && !clubStatus.data?.isMember && (
+        <div className="border-b border-primary/30 bg-primary/10 px-4 py-3">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-2 text-sm text-foreground">
+              <AlertCircle className="h-4 w-4 shrink-0 text-primary" />
+              Tu pago está pendiente de verificación. El contenido se habilitará cuando aprobemos tu
+              membresía.
+            </p>
+            <Link
+              to="/club-pago"
+              className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              Ver estado
+            </Link>
+          </div>
+        </div>
+      )}
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
     </div>
   );
