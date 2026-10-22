@@ -26,9 +26,11 @@ import {
   CLUB_LANDING_COLLECTION_DEFAULTS,
   CLUB_LANDING_DEFAULTS,
   CLUB_LANDING_SECTIONS,
+  getClubBuilderLayout,
   type ClubLandingCollection,
   type ClubLandingField,
 } from "@/lib/club-landing-content";
+import { ClubLandingBuilderEditor } from "@/components/ClubLandingBuilder";
 import { ClubShell } from "@/components/ClubShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,6 +104,7 @@ function AdminClubContenido() {
 
   const [form, setForm] = useState<Record<string, string>>({});
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const builderLayout = getClubBuilderLayout(form.club_builder);
 
   useEffect(() => {
     if (content.data) setForm({ ...CLUB_LANDING_DEFAULTS, ...content.data });
@@ -142,6 +145,21 @@ function AdminClubContenido() {
       setUploadingKey(null);
       const input = fileInputs.current[key];
       if (input) input.value = "";
+    }
+  };
+
+  const uploadBuilderImage = async (file: File) => {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      throw new Error("Usa una imagen PNG, JPG o WebP");
+    }
+    if (file.size > 6_000_000) throw new Error("La imagen no debe superar 6 MB");
+    setUploadingKey("builder");
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const result = await uploadImage({ data: { fileName: file.name, dataUrl } });
+      return result.url;
+    } finally {
+      setUploadingKey(null);
     }
   };
 
@@ -232,6 +250,13 @@ function AdminClubContenido() {
           }}
         >
           <div className="space-y-3">
+            <ClubLandingBuilderEditor
+              layout={builderLayout}
+              onImageUpload={uploadBuilderImage}
+              onChange={(layout) =>
+                setForm((current) => ({ ...current, club_builder: JSON.stringify(layout) }))
+              }
+            />
             {CLUB_LANDING_SECTIONS.map((section) => (
               <details key={section.id} className="group rounded-2xl border border-border bg-card">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">

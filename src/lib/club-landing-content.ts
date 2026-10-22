@@ -30,6 +30,153 @@ export type ClubLandingSection = {
   collections?: ClubLandingCollection[];
 };
 
+export const CLUB_BUILDER_SECTIONS = [
+  { id: "banner", title: "Franja de lanzamiento" },
+  { id: "hero", title: "Portada" },
+  { id: "problem", title: "El problema" },
+  { id: "video", title: "Presentación del Club" },
+  { id: "courses", title: "Cursos" },
+  { id: "benefits", title: "Beneficios" },
+  { id: "points", title: "Puntos de Brasa" },
+  { id: "founders", title: "Socios fundadores" },
+  { id: "testimonials", title: "Testimonios" },
+  { id: "guarantee", title: "Garantía" },
+  { id: "membership", title: "Oferta y suscripción" },
+  { id: "faq", title: "Preguntas frecuentes" },
+  { id: "footer", title: "Pie de página" },
+] as const;
+
+export type ClubBuilderBlockType =
+  "heading" | "subtitle" | "paragraph" | "image" | "price" | "button" | "subsection";
+export type ClubBuilderContentBlockType = Exclude<ClubBuilderBlockType, "subsection">;
+export type ClubBuilderBlock = {
+  id: string;
+  type: ClubBuilderBlockType;
+  title: string;
+  text: string;
+  url: string;
+  children: ClubBuilderBlock[];
+};
+export type ClubBuilderSection = {
+  id: string;
+  title: string;
+  enabled: boolean;
+  background: "none" | "card" | "dark" | "fire";
+  width: "contained" | "full";
+  blocks: ClubBuilderBlock[];
+};
+export type ClubBuilderLayout = {
+  order: string[];
+  hiddenSectionIds: string[];
+  customSections: ClubBuilderSection[];
+};
+
+const BUILDER_BLOCK_TYPES: ClubBuilderBlockType[] = [
+  "heading",
+  "subtitle",
+  "paragraph",
+  "image",
+  "price",
+  "button",
+  "subsection",
+];
+
+function isSafeBuilderUrl(value: string) {
+  return (
+    !value || (value.startsWith("/") && !value.startsWith("//")) || /^https?:\/\//i.test(value)
+  );
+}
+
+export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error("La estructura de secciones tiene un formato inválido");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("La estructura de secciones no es válida");
+  }
+
+  const layout = parsed as Partial<ClubBuilderLayout>;
+  if (
+    !Array.isArray(layout.customSections) ||
+    layout.customSections.length > 30 ||
+    !Array.isArray(layout.order) ||
+    !Array.isArray(layout.hiddenSectionIds)
+  ) {
+    throw new Error("La estructura de secciones no es válida o supera el límite permitido");
+  }
+
+  const ids = new Set<string>(CLUB_BUILDER_SECTIONS.map((section) => section.id));
+  for (const section of layout.customSections) {
+    if (
+      !section ||
+      typeof section !== "object" ||
+      typeof section.id !== "string" ||
+      !/^custom-[\w-]{1,70}$/.test(section.id) ||
+      ids.has(section.id) ||
+      typeof section.title !== "string" ||
+      section.title.length > 120 ||
+      typeof section.enabled !== "boolean" ||
+      !["none", "card", "dark", "fire"].includes(section.background) ||
+      !["contained", "full"].includes(section.width) ||
+      !Array.isArray(section.blocks) ||
+      section.blocks.length > 40
+    ) {
+      throw new Error("Una sección personalizada tiene datos inválidos");
+    }
+    ids.add(section.id);
+
+    const blockIds = new Set<string>();
+    const validateBlock = (block: ClubBuilderBlock, nested: boolean) => {
+      if (
+        !block ||
+        typeof block !== "object" ||
+        typeof block.id !== "string" ||
+        !/^[\w-]{1,80}$/.test(block.id) ||
+        blockIds.has(block.id) ||
+        !BUILDER_BLOCK_TYPES.includes(block.type) ||
+        (nested && block.type === "subsection") ||
+        typeof block.title !== "string" ||
+        block.title.length > 500 ||
+        typeof block.text !== "string" ||
+        block.text.length > 5_000 ||
+        typeof block.url !== "string" ||
+        block.url.length > 2_000 ||
+        !isSafeBuilderUrl(block.url) ||
+        !Array.isArray(block.children) ||
+        block.children.length > 20 ||
+        (block.type !== "subsection" && block.children.length > 0)
+      ) {
+        throw new Error("Un elemento de sección tiene datos inválidos");
+      }
+      blockIds.add(block.id);
+      block.children.forEach((child) => validateBlock(child, true));
+    };
+    section.blocks.forEach((block) => validateBlock(block, false));
+  }
+
+  if (
+    layout.order.length !== ids.size ||
+    layout.order.some((id) => typeof id !== "string" || !ids.has(id)) ||
+    new Set(layout.order).size !== layout.order.length ||
+    layout.hiddenSectionIds.some(
+      (id) => typeof id !== "string" || !CLUB_BUILDER_SECTIONS.some((section) => section.id === id),
+    )
+  ) {
+    throw new Error("El orden o la visibilidad de las secciones no es válida");
+  }
+
+  return layout as ClubBuilderLayout;
+}
+
+export const DEFAULT_CLUB_BUILDER_LAYOUT: ClubBuilderLayout = {
+  order: CLUB_BUILDER_SECTIONS.map((section) => section.id),
+  hiddenSectionIds: [],
+  customSections: [],
+};
+
 const collectionDefaults = {
   benefits: CLUB_BENEFITS,
   points_steps: PUNTOS_BRASA_STEPS,
@@ -119,6 +266,7 @@ export const CLUB_LANDING_DEFAULTS: Record<string, string> = {
   seo_social_title: "Club Churrasqueando · Domina la parrilla",
   seo_social_description:
     "Cursos, comunidad, Puntos Brasa y beneficios exclusivos para socios del Club Churrasqueando.",
+  club_builder: JSON.stringify(DEFAULT_CLUB_BUILDER_LAYOUT),
 };
 
 export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
@@ -378,4 +526,45 @@ export function getClubLandingCollection<T>(content: Record<string, string>, key
     // Invalid admin-edited JSON falls back to the shipped defaults.
   }
   return (CLUB_LANDING_COLLECTION_DEFAULTS[key] ?? []) as T[];
+}
+
+export function getClubBuilderLayout(value: string | undefined): ClubBuilderLayout {
+  try {
+    const parsed: unknown = JSON.parse(value ?? "");
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return DEFAULT_CLUB_BUILDER_LAYOUT;
+    }
+    const layout = parsed as Partial<ClubBuilderLayout>;
+    const customSections = Array.isArray(layout.customSections)
+      ? layout.customSections.filter(
+          (section): section is ClubBuilderSection =>
+            !!section &&
+            typeof section === "object" &&
+            typeof section.id === "string" &&
+            typeof section.title === "string" &&
+            Array.isArray(section.blocks),
+        )
+      : [];
+    const customIds = customSections.map((section) => section.id);
+    const availableIds = new Set([
+      ...CLUB_BUILDER_SECTIONS.map((section) => section.id),
+      ...customIds,
+    ]);
+    const requestedOrder = Array.isArray(layout.order)
+      ? layout.order.filter((id): id is string => typeof id === "string" && availableIds.has(id))
+      : [];
+    const order = [
+      ...requestedOrder,
+      ...[...availableIds].filter((id) => !requestedOrder.includes(id)),
+    ];
+    return {
+      order,
+      hiddenSectionIds: Array.isArray(layout.hiddenSectionIds)
+        ? layout.hiddenSectionIds.filter((id): id is string => typeof id === "string")
+        : [],
+      customSections,
+    };
+  } catch {
+    return DEFAULT_CLUB_BUILDER_LAYOUT;
+  }
 }

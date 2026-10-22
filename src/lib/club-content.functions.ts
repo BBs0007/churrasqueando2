@@ -6,6 +6,7 @@ import {
   CLUB_LANDING_COLLECTION_DEFAULTS,
   CLUB_LANDING_DEFAULTS,
   CLUB_LANDING_SECTIONS,
+  validateClubBuilderLayout,
 } from "@/lib/club-landing-content";
 
 // El contenido editado de /club se almacena por clave; los valores iniciales
@@ -46,6 +47,7 @@ export const adminSaveClubContent = createServerFn({ method: "POST" })
       if (typeof value !== "string" || value.length > 30_000) {
         throw new Error(`El campo ${key} no es válido o es demasiado largo`);
       }
+      if (key === "club_builder") validateClubBuilderLayout(value);
       if (Object.hasOwn(CLUB_LANDING_COLLECTION_DEFAULTS, key)) {
         let collection: unknown;
         try {

@@ -22,8 +22,10 @@ import { getMyClub } from "@/lib/club.functions";
 import { getPublicCourses } from "@/lib/courses.functions";
 import { getClubContent } from "@/lib/club-content.functions";
 import {
+  CLUB_BUILDER_SECTIONS,
   CLUB_LANDING_DEFAULTS,
   getClubLandingCollection,
+  getClubBuilderLayout,
   getClubLandingNumber,
   getClubLandingText,
 } from "@/lib/club-landing-content";
@@ -46,6 +48,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useSession } from "@/hooks/useSession";
+import { ClubLandingCustomSections } from "@/components/ClubLandingBuilder";
 import clubHero from "@/assets/club/club-hero.jpg";
 import clubVideo from "@/assets/club/club-video-thumb.jpg";
 import logo from "@/assets/logo-churrasqueando.png";
@@ -100,6 +103,12 @@ function ClubPage() {
   const c = clubContentQuery.data ?? {};
   const t = (key: string) => getClubLandingText(c, key);
   const img = (key: string, fallback: string) => c[key]?.trim() || fallback;
+  const builderLayout = getClubBuilderLayout(c.club_builder);
+  const sectionOrder = (id: string) => {
+    const index = builderLayout.order.indexOf(id);
+    return index < 0 ? CLUB_BUILDER_SECTIONS.findIndex((section) => section.id === id) : index;
+  };
+  const isSectionVisible = (id: string) => !builderLayout.hiddenSectionIds.includes(id);
 
   const { data } = useQuery({
     queryKey: ["club", "me"],
@@ -147,9 +156,13 @@ function ClubPage() {
   const foundersTitle = t("founders_title");
 
   const content = (
-    <>
+    <div className="flex flex-col">
       {/* FRANJA DE LANZAMIENTO */}
-      <div className="-mx-4 mb-6 flex items-center justify-center gap-2.5 bg-primary px-4 py-3 text-center shadow-fire sm:mx-0 sm:rounded-2xl">
+      <div
+        hidden={!isSectionVisible("banner")}
+        style={{ order: sectionOrder("banner") }}
+        className="-mx-4 mb-6 flex items-center justify-center gap-2.5 bg-primary px-4 py-3 text-center shadow-fire sm:mx-0 sm:rounded-2xl"
+      >
         <Flame className="h-4 w-4 shrink-0 text-primary-foreground" />
         <p className="font-cond text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:text-sm">
           {t("launch_banner")}
@@ -157,7 +170,11 @@ function ClubPage() {
       </div>
 
       {/* HERO */}
-      <section className="relative -mx-4 overflow-hidden rounded-none border-y border-border/70 sm:mx-0 sm:rounded-3xl sm:border">
+      <section
+        hidden={!isSectionVisible("hero")}
+        style={{ order: sectionOrder("hero") }}
+        className="relative -mx-4 overflow-hidden rounded-none border-y border-border/70 sm:mx-0 sm:rounded-3xl sm:border"
+      >
         <img
           src={img("hero_image", clubHero)}
           alt={t("hero_image_alt")}
@@ -255,7 +272,11 @@ function ClubPage() {
       </section>
 
       {/* EL PROBLEMA */}
-      <section className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 text-center sm:px-12 sm:py-16">
+      <section
+        hidden={!isSectionVisible("problem")}
+        style={{ order: sectionOrder("problem") }}
+        className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 text-center sm:px-12 sm:py-16"
+      >
         <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">
           {t("problem_eyebrow")}
         </p>
@@ -274,7 +295,12 @@ function ClubPage() {
       </section>
 
       {/* VIDEO */}
-      <section id="video" className="mt-14 scroll-mt-24">
+      <section
+        id="video"
+        hidden={!isSectionVisible("video")}
+        style={{ order: sectionOrder("video") }}
+        className="mt-14 scroll-mt-24"
+      >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
           {t("video_eyebrow")}
         </p>
@@ -310,7 +336,11 @@ function ClubPage() {
       </section>
 
       {/* CURSOS */}
-      <section className="mt-14">
+      <section
+        hidden={!isSectionVisible("courses")}
+        style={{ order: sectionOrder("courses") }}
+        className="mt-14"
+      >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
           {t("courses_eyebrow")}
         </p>
@@ -409,7 +439,11 @@ function ClubPage() {
       </section>
 
       {/* BENEFICIOS */}
-      <section className="mt-14">
+      <section
+        hidden={!isSectionVisible("benefits")}
+        style={{ order: sectionOrder("benefits") }}
+        className="mt-14"
+      >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
           {t("benefits_eyebrow")}
         </p>
@@ -447,7 +481,11 @@ function ClubPage() {
       </section>
 
       {/* PUNTOS BRASA */}
-      <section className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 sm:px-10">
+      <section
+        hidden={!isSectionVisible("points")}
+        style={{ order: sectionOrder("points") }}
+        className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 sm:px-10"
+      >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
           {t("points_eyebrow")}
         </p>
@@ -479,7 +517,11 @@ function ClubPage() {
       </section>
 
       {/* SOCIOS FUNDADORES */}
-      <section className="mt-14 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card px-6 py-12 text-center sm:px-10 sm:py-16">
+      <section
+        hidden={!isSectionVisible("founders")}
+        style={{ order: sectionOrder("founders") }}
+        className="mt-14 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card px-6 py-12 text-center sm:px-10 sm:py-16"
+      >
         <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">
           {t("founders_eyebrow")}
         </p>
@@ -525,7 +567,11 @@ function ClubPage() {
       </section>
 
       {/* TESTIMONIOS */}
-      <section className="mt-14">
+      <section
+        hidden={!isSectionVisible("testimonials")}
+        style={{ order: sectionOrder("testimonials") }}
+        className="mt-14"
+      >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
           {t("testimonials_eyebrow")}
         </p>
@@ -564,7 +610,11 @@ function ClubPage() {
       </section>
 
       {/* GARANTÍA */}
-      <section className="mt-10">
+      <section
+        hidden={!isSectionVisible("guarantee")}
+        style={{ order: sectionOrder("guarantee") }}
+        className="mt-10"
+      >
         <div className="mx-auto flex max-w-2xl items-start gap-4 rounded-2xl border border-border bg-card p-5">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
             <Heart className="h-5 w-5" />
@@ -581,6 +631,8 @@ function ClubPage() {
       {/* SUSCRIPCIÓN */}
       <section
         id="suscribirse"
+        hidden={!isSectionVisible("membership")}
+        style={{ order: sectionOrder("membership") }}
         className="mt-14 scroll-mt-24 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card p-6 sm:p-10"
       >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
@@ -656,7 +708,11 @@ function ClubPage() {
       </section>
 
       {/* FAQ */}
-      <section className="mt-14">
+      <section
+        hidden={!isSectionVisible("faq")}
+        style={{ order: sectionOrder("faq") }}
+        className="mt-14"
+      >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
           {t("faq_eyebrow")}
         </p>
@@ -683,7 +739,11 @@ function ClubPage() {
       </section>
 
       {/* FOOTER MINI */}
-      <div className="mt-16 border-t border-border pt-8 text-center">
+      <div
+        hidden={!isSectionVisible("footer")}
+        style={{ order: sectionOrder("footer") }}
+        className="mt-16 border-t border-border pt-8 text-center"
+      >
         <img
           src={img("footer_logo", logo)}
           alt={t("footer_logo_alt")}
@@ -698,7 +758,8 @@ function ClubPage() {
           {t("hero_brand")} · {t("footer_location")} · {t("footer_website")}
         </p>
       </div>
-    </>
+      <ClubLandingCustomSections layout={builderLayout} />
+    </div>
   );
 
   if (session && data) {
