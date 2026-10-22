@@ -16,11 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BUSINESS } from "@/data/business";
-import {
-  CATERING_MIN_PEOPLE,
-  cateringNotes,
-  cateringPackages,
-} from "@/data/catering";
+import { CATERING_MIN_PEOPLE, cateringNotes, cateringPackages } from "@/data/catering";
 
 export const Route = createFileRoute("/reserva-catering")({
   head: () => ({
@@ -34,8 +30,7 @@ export const Route = createFileRoute("/reserva-catering")({
       { property: "og:title", content: "Reserva tu Catering · Churrasqueando" },
       {
         property: "og:description",
-        content:
-          "Catering churrasquero para tu evento. Mínimo 17 personas. Reserva por WhatsApp.",
+        content: "Catering churrasquero para tu evento. Mínimo 17 personas. Reserva por WhatsApp.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -47,7 +42,8 @@ export const Route = createFileRoute("/reserva-catering")({
 function ReservaCatering() {
   const [selectedId, setSelectedId] = useState(cateringPackages[0]!.id);
   const selected = cateringPackages.find((p) => p.id === selectedId) ?? cateringPackages[0]!;
-  const selectedLabel = `${selected.name} ${selected.highlight ?? ""}`.trim() + ` — ${selected.price} Bs p/p`;
+  const selectedLabel =
+    `${selected.name} ${selected.highlight ?? ""}`.trim() + ` — ${selected.price} Bs p/p`;
 
   const [form, setForm] = useState({
     name: "",
@@ -62,14 +58,14 @@ function ReservaCatering() {
   const [mapLocation, setMapLocation] = useState<LatLng | null>(null);
 
   const guestsValue = form.guests === "" ? 0 : Number(form.guests);
-  const guestCount = Number.isFinite(guestsValue) && guestsValue >= CATERING_MIN_PEOPLE ? guestsValue : 0;
+  const guestCount =
+    Number.isFinite(guestsValue) && guestsValue >= CATERING_MIN_PEOPLE ? guestsValue : 0;
   const estimatedBase = guestCount * selected.price;
   const transportFee = 70;
   const estimatedTotal = estimatedBase + transportFee;
 
   const update =
-    (k: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = e.target.value;
 
       if (k === "guests") {
@@ -126,7 +122,7 @@ function ReservaCatering() {
         </Link>
 
         <div className="flex flex-col items-center gap-3 text-center">
-          <h1 className="font-display text-4xl uppercase leading-none tracking-[0.08em] text-foreground sm:text-6xl">
+          <h1 className="font-display text-3xl uppercase leading-none tracking-[0.03em] text-foreground sm:text-6xl sm:tracking-[0.08em]">
             Reserva tu <span className="text-gradient-fire">evento</span>
           </h1>
           <p className="font-cond text-sm font-bold uppercase tracking-[0.25em] text-primary">
@@ -134,14 +130,16 @@ function ReservaCatering() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_420px]">
-          <section className="rounded-3xl border border-border bg-card p-6 shadow-card sm:p-8">
+        <div className="mt-10 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <section className="min-w-0 rounded-3xl border border-border bg-card p-4 shadow-card sm:p-8">
             <h2 className="font-display text-2xl uppercase tracking-wide text-foreground">
               Paquete seleccionado
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">{selectedLabel}</p>
             <div className="mt-4 space-y-2">
-              <p className="font-cond text-sm font-bold uppercase tracking-[0.2em] text-primary">Incluye:</p>
+              <p className="font-cond text-sm font-bold uppercase tracking-[0.2em] text-primary">
+                Incluye:
+              </p>
               <ul className="grid gap-2 sm:grid-cols-2">
                 {selected.cortes.map((c) => (
                   <li key={c} className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -162,7 +160,7 @@ function ReservaCatering() {
             </div>
           </section>
 
-          <div className="rounded-3xl border border-border bg-card p-6 shadow-card lg:sticky lg:top-24 lg:self-start">
+          <div className="min-w-0 rounded-3xl border border-border bg-card p-4 shadow-card sm:p-6 lg:sticky lg:top-24 lg:self-start">
             {sent ? (
               <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 text-primary">
@@ -173,17 +171,24 @@ function ReservaCatering() {
                     ¡Solicitud enviada!
                   </h3>
                   <p className="text-muted-foreground">
-                    Te redirigimos a WhatsApp para que envíes tu solicitud. Te contactaremos pronto con la cotización.
+                    Te redirigimos a WhatsApp para que envíes tu solicitud. Te contactaremos pronto
+                    con la cotización.
                   </p>
                 </div>
-                <Button onClick={() => setSent(false)} variant="outline" className="font-cond uppercase tracking-wide">
+                <Button
+                  onClick={() => setSent(false)}
+                  variant="outline"
+                  className="font-cond uppercase tracking-wide"
+                >
                   Hacer otra solicitud
                 </Button>
               </div>
             ) : (
               <form onSubmit={send} className="space-y-4">
                 <div>
-                  <h2 className="font-display text-2xl uppercase tracking-wide text-foreground">Reservar evento</h2>
+                  <h2 className="font-display text-2xl uppercase tracking-wide text-foreground">
+                    Reservar evento
+                  </h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Paquete: <span className="text-foreground">{selectedLabel}</span>
                   </p>
@@ -212,7 +217,8 @@ function ReservaCatering() {
                     placeholder={`Mínimo ${CATERING_MIN_PEOPLE}`}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Mínimo {CATERING_MIN_PEOPLE} personas. Si escribes un número menor, se ajustará automáticamente.
+                    Mínimo {CATERING_MIN_PEOPLE} personas. Si escribes un número menor, se ajustará
+                    automáticamente.
                   </p>
                   {guestCount > 0 && (
                     <div className="mt-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-foreground">
@@ -246,11 +252,23 @@ function ReservaCatering() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="catering-date">Día</Label>
-                    <Input id="catering-date" required type="date" value={form.date} onChange={update("date")} />
+                    <Input
+                      id="catering-date"
+                      required
+                      type="date"
+                      value={form.date}
+                      onChange={update("date")}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="catering-time">Hora para comer</Label>
-                    <Input id="catering-time" required type="time" value={form.time} onChange={update("time")} />
+                    <Input
+                      id="catering-time"
+                      required
+                      type="time"
+                      value={form.time}
+                      onChange={update("time")}
+                    />
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -263,10 +281,14 @@ function ReservaCatering() {
                     onChange={update("location")}
                     placeholder="Zona / dirección del evento"
                   />
-                  <p className="text-xs text-muted-foreground">Marca en el mapa el punto exacto de tu evento.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Marca en el mapa el punto exacto de tu evento.
+                  </p>
                   <MapPicker value={mapLocation} onChange={setMapLocation} />
                   {!mapLocation && (
-                    <p className="text-xs text-primary">Selecciona un punto en el mapa para continuar.</p>
+                    <p className="text-xs text-primary">
+                      Selecciona un punto en el mapa para continuar.
+                    </p>
                   )}
                 </div>
                 <div className="space-y-1.5">
@@ -327,9 +349,15 @@ function ReservaCatering() {
 
       <footer className="border-t border-border bg-background">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-2 px-4 py-8 text-center">
-          <p className="font-display text-2xl uppercase tracking-wide text-foreground">CHURRASQUEANDO</p>
-          <p className="font-cond text-sm uppercase tracking-[0.3em] text-primary">Lo mejor para tu churrasco</p>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Churrasqueando</p>
+          <p className="font-display text-2xl uppercase tracking-wide text-foreground">
+            CHURRASQUEANDO
+          </p>
+          <p className="font-cond text-sm uppercase tracking-[0.3em] text-primary">
+            Lo mejor para tu churrasco
+          </p>
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Churrasqueando
+          </p>
         </div>
       </footer>
     </div>

@@ -18,6 +18,8 @@ export const CLUB = {
   },
 };
 
+export const CLUB_WHATSAPP = "59169190624";
+
 // Los cursos quedan visibles para socios del Club a partir de esta fecha.
 // Antes de esa fecha, solo el equipo admin puede ver/editar el contenido.
 export const COURSES_LAUNCH_AT = "2026-09-29T00:00:00-04:00";
@@ -82,10 +84,20 @@ export const PUNTOS_BRASA_STEPS = [
 ];
 
 export const FOUNDER_PERKS = [
-  { id: "precio", icon: "lock", label: "Precio congelado de por vida", strong: "congelado de por vida" },
+  {
+    id: "precio",
+    icon: "lock",
+    label: "Precio congelado de por vida",
+    strong: "congelado de por vida",
+  },
   { id: "merch", icon: "award", label: "Merch exclusivo de fundador", strong: "exclusivo" },
   { id: "numero", icon: "star", label: "Número de socio fundador", strong: "Número de socio" },
-  { id: "grabaciones", icon: "video", label: "Acceso a grabaciones en vivo", strong: "grabaciones en vivo" },
+  {
+    id: "grabaciones",
+    icon: "video",
+    label: "Acceso a grabaciones en vivo",
+    strong: "grabaciones en vivo",
+  },
 ];
 
 export const CLUB_TESTIMONIALS = [
@@ -122,7 +134,8 @@ export const CLUB_FAQS = [
   {
     id: "cancelar",
     question: "¿Puedo cancelar cuando quiera?",
-    answer: "Sí, sin permanencia. Ojo: si cancelás, perdés el precio congelado de fundador y no vuelve.",
+    answer:
+      "Sí, sin permanencia. Ojo: si cancelás, perdés el precio congelado de fundador y no vuelve.",
   },
   {
     id: "disponibilidad",
@@ -133,7 +146,6 @@ export const CLUB_FAQS = [
   {
     id: "puntos",
     question: "¿Cómo uso los Puntos Brasa?",
-    answer:
-      `Ganás Puntos de Brasa al completar videos y cursos. Cada ${CLUB.redeemStep} puntos equivalen a Bs ${CLUB.redeemValueBs} de descuento en productos, combos y la tienda del Club.`,
+    answer: `Ganás Puntos de Brasa al completar videos y cursos. Cada ${CLUB.redeemStep} puntos equivalen a Bs ${CLUB.redeemValueBs} de descuento en productos, combos y la tienda del Club.`,
   },
 ];

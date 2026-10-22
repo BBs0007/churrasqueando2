@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Check, X, Save, Upload, QrCode } from "lucide-react";
+import { Loader2, Check, X, Save, Upload, QrCode, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   adminCreateMembershipQrUploadUrl,
@@ -15,7 +15,22 @@ import {
 import { ClubShell } from "@/components/ClubShell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CURRENCY } from "@/data/products";
+import {
+  adminDeleteMembershipPlan,
+  adminListMembershipPlans,
+  adminSaveMembershipPlan,
+  type MembershipPlan,
+} from "@/lib/membership-plans.functions";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/admin-club")({
   head: () => ({
@@ -41,10 +56,24 @@ function AdminClub() {
   const fetchPaymentSettings = useServerFn(getMembershipPaymentSettings);
   const createQrUploadUrl = useServerFn(adminCreateMembershipQrUploadUrl);
   const savePaymentSettings = useServerFn(adminSaveMembershipPaymentSettings);
+  const fetchPlans = useServerFn(adminListMembershipPlans);
+  const savePlan = useServerFn(adminSaveMembershipPlan);
+  const deletePlan = useServerFn(adminDeleteMembershipPlan);
   const queryClient = useQueryClient();
   const qrInputRef = useRef<HTMLInputElement>(null);
   const [qrUrl, setQrUrl] = useState("");
   const [internationalInstructions, setInternationalInstructions] = useState("");
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null);
+  const [planForm, setPlanForm] = useState({
+    name: "",
+    interval: "annual" as MembershipPlan["interval"],
+    durationDays: "365",
+    price: "",
+    currency: "Bs" as MembershipPlan["currency"],
+    active: true,
+    sortOrder: "0",
+  });
 
   const me = useQuery({ queryKey: ["club", "me"], queryFn: () => fetchClub() });
   const requests = useQuery({
@@ -56,6 +85,45 @@ function AdminClub() {
     queryKey: ["club", "payment-settings"],
     queryFn: () => fetchPaymentSettings(),
     enabled: !!me.data?.isAdmin,
+  });
+  const plans = useQuery({
+    queryKey: ["club", "admin-membership-plans"],
+    queryFn: () => fetchPlans(),
+    enabled: !!me.data?.isAdmin,
+  });
+
+  const savePlanMutation = useMutation({
+    mutationFn: () =>
+      savePlan({
+        data: {
+          id: editingPlan?.id,
+          name: planForm.name,
+          interval: planForm.interval,
+          durationDays: Number(planForm.durationDays),
+          price: Number(planForm.price),
+          currency: planForm.currency,
+          active: planForm.active,
+          sortOrder: Number(planForm.sortOrder),
+        },
+      }),
+    onSuccess: async () => {
+      toast.success(editingPlan ? "Plan actualizado" : "Plan creado");
+      setPlanDialogOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["club", "admin-membership-plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["club", "membership-plans"] });
+    },
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el plan"),
+  });
+  const deletePlanMutation = useMutation({
+    mutationFn: (id: string) => deletePlan({ data: { id } }),
+    onSuccess: async () => {
+      toast.success("Plan eliminado");
+      await queryClient.invalidateQueries({ queryKey: ["club", "admin-membership-plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["club", "membership-plans"] });
+    },
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar el plan"),
   });
 
   useEffect(() => {
@@ -116,6 +184,35 @@ function AdminClub() {
     event.target.value = "";
   };
 
+  const openNewPlan = () => {
+    setEditingPlan(null);
+    setPlanForm({
+      name: "",
+      interval: "annual",
+      durationDays: "365",
+      price: "",
+      currency: "Bs",
+      active: true,
+      sortOrder: String(plans.data?.length ?? 0),
+    });
+    setPlanDialogOpen(true);
+  };
+  const openEditPlan = (plan: MembershipPlan) => {
+    setEditingPlan(plan);
+    setPlanForm({
+      name: plan.name,
+      interval: plan.interval,
+      durationDays: String(plan.duration_days),
+      price: String(plan.price),
+      currency: plan.currency,
+      active: plan.active,
+      sortOrder: String(plan.sort_order),
+    });
+    setPlanDialogOpen(true);
+  };
+  const planPeriod = (plan: MembershipPlan) =>
+    plan.interval === "annual" ? "Anual" : plan.interval === "quarterly" ? "Trimestral" : "Mensual";
+
   if (me.isLoading) {
     return (
       <ClubShell>
@@ -155,8 +252,200 @@ function AdminClub() {
         Solicitudes de membresía
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Aprueba una solicitud para activar la membresía anual.
+        Administra planes y verifica los pagos antes de activar una membresía.
       </p>
+
+      <section className="mt-6 rounded-2xl border border-border bg-card p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl uppercase tracking-wide text-foreground">
+              Planes de suscripción
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Crea y edita planes mensuales, trimestrales o anuales. Los planes en uso pueden
+              desactivarse, pero no eliminarse.
+            </p>
+          </div>
+          <Button type="button" onClick={openNewPlan} className="font-cond uppercase tracking-wide">
+            <Plus className="h-4 w-4" /> Nuevo plan
+          </Button>
+        </div>
+        {plans.isLoading ? (
+          <Loader2 className="mt-5 h-5 w-5 animate-spin text-primary" />
+        ) : plans.isError ? (
+          <p role="alert" className="mt-4 text-sm text-destructive">
+            No se pudieron cargar los planes.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {plans.data?.map((plan) => (
+              <article key={plan.id} className="rounded-xl border border-border p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-foreground">{plan.name}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {planPeriod(plan)} · {plan.duration_days} días
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      plan.active
+                        ? "bg-primary/15 text-primary"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {plan.active ? "Activo" : "Inactivo"}
+                  </span>
+                </div>
+                <p className="font-display mt-3 text-2xl text-primary">
+                  {Number(plan.price).toLocaleString("es-BO")} {plan.currency}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEditPlan(plan)}
+                    className="font-cond uppercase tracking-wide"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Editar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Eliminar plan ${plan.name}`}
+                    disabled={deletePlanMutation.isPending}
+                    onClick={() => {
+                      if (window.confirm(`¿Eliminar el plan "${plan.name}"?`)) {
+                        deletePlanMutation.mutate(plan.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </article>
+            ))}
+            {!plans.data?.length && (
+              <p className="text-sm text-muted-foreground">No hay planes creados.</p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display uppercase">
+              {editingPlan ? "Editar plan" : "Crear plan"}
+            </DialogTitle>
+            <DialogDescription>
+              Define nombre, periodo, duración y precio que verá el cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="plan-name">Nombre</Label>
+              <Input
+                id="plan-name"
+                value={planForm.name}
+                maxLength={80}
+                onChange={(event) => setPlanForm({ ...planForm, name: event.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="plan-interval">Periodo</Label>
+              <select
+                id="plan-interval"
+                value={planForm.interval}
+                onChange={(event) =>
+                  setPlanForm({
+                    ...planForm,
+                    interval: event.target.value as MembershipPlan["interval"],
+                  })
+                }
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="monthly">Mensual</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="annual">Anual</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="plan-duration">Duración (días)</Label>
+              <Input
+                id="plan-duration"
+                type="number"
+                min="1"
+                max="3660"
+                value={planForm.durationDays}
+                onChange={(event) => setPlanForm({ ...planForm, durationDays: event.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="plan-price">Precio</Label>
+              <Input
+                id="plan-price"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={planForm.price}
+                onChange={(event) => setPlanForm({ ...planForm, price: event.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="plan-currency">Moneda</Label>
+              <select
+                id="plan-currency"
+                value={planForm.currency}
+                onChange={(event) =>
+                  setPlanForm({
+                    ...planForm,
+                    currency: event.target.value as MembershipPlan["currency"],
+                  })
+                }
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="Bs">Bolivianos (Bs)</option>
+                <option value="USD">Dólares (USD)</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="plan-order">Orden</Label>
+              <Input
+                id="plan-order"
+                type="number"
+                value={planForm.sortOrder}
+                onChange={(event) => setPlanForm({ ...planForm, sortOrder: event.target.value })}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={planForm.active}
+                onChange={(event) => setPlanForm({ ...planForm, active: event.target.checked })}
+                className="accent-primary"
+              />
+              Visible para clientes
+            </label>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPlanDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={savePlanMutation.isPending}
+              onClick={() => savePlanMutation.mutate()}
+              className="font-cond uppercase tracking-wide"
+            >
+              {savePlanMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Guardar plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-4 sm:p-6">
         <div className="flex items-center gap-2">
@@ -275,7 +564,7 @@ function AdminClub() {
                   {new Date(r.created_at).toLocaleString("es-BO")}
                 </p>
                 <p className="text-xs text-primary">
-                  {Number(r.amount).toFixed(2)} {CURRENCY} · {r.plan} ·{" "}
+                  {Number(r.amount).toFixed(2)} {r.currency} · {r.plan} ·{" "}
                   {r.payment_method === "bolivia_qr" ? "QR Bolivia" : "Internacional"} ·{" "}
                   {r.country_code === "BO" ? "Bolivia" : "Otro país"} · {r.status}
                 </p>

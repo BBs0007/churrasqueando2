@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CLUB } from "@/lib/club";
-import { CLUB_LANDING_DEFAULTS } from "@/lib/club-landing-content";
+import type { Database } from "@/integrations/supabase/types";
 
 export type ClubProfile = {
   id: string;
@@ -14,6 +15,7 @@ export type ClubProfile = {
   points: number;
   membership_status: "inactive" | "active" | "expired";
   membership_expires_at: string | null;
+  membership_plan_id: string | null;
 };
 
 export type ClubOrder = {
@@ -36,6 +38,8 @@ export type ClubRequest = {
   id: string;
   plan: string;
   amount: number;
+  currency: string;
+  membership_plan_id: string | null;
   status: "pending" | "approved" | "rejected";
   payment_method: "bolivia_qr" | "binance";
   country_code: "BO" | "INT";
@@ -56,8 +60,8 @@ export const getMyClub = createServerFn({ method: "GET" })
 
     let profile = existing;
     if (!profile) {
-      const meta = (context.claims as { user_metadata?: Record<string, unknown> })
-        ?.user_metadata ?? {};
+      const meta =
+        (context.claims as { user_metadata?: Record<string, unknown> })?.user_metadata ?? {};
       const { data: created, error } = await supabaseAdmin
         .from("profiles")
         .insert({
@@ -66,7 +70,8 @@ export const getMyClub = createServerFn({ method: "GET" })
           full_name: typeof meta.full_name === "string" ? meta.full_name : "",
           phone: typeof meta.phone === "string" ? meta.phone : "",
           address: typeof meta.address === "string" ? meta.address : "",
-          birth_date: typeof meta.birth_date === "string" && meta.birth_date ? meta.birth_date : null,
+          birth_date:
+            typeof meta.birth_date === "string" && meta.birth_date ? meta.birth_date : null,
         })
         .select("*")
         .single();
@@ -90,7 +95,9 @@ export const getMyClub = createServerFn({ method: "GET" })
         .limit(50),
       context.supabase
         .from("membership_requests")
-        .select("id, plan, amount, status, payment_method, country_code, created_at")
+        .select(
+          "id, plan, amount, currency, membership_plan_id, status, payment_method, country_code, created_at",
+        )
         .order("created_at", { ascending: false })
         .limit(10),
       context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
@@ -112,16 +119,18 @@ export const getMyClub = createServerFn({ method: "GET" })
 
 export const updateMyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { fullName: string; phone: string; address: string; birthDate: string }) => {
-    const fullName = input.fullName?.trim() ?? "";
-    const phone = input.phone?.trim() ?? "";
-    const address = input.address?.trim() ?? "";
-    const birthDate = input.birthDate?.trim() || null;
-    if (fullName.length > 120 || phone.length > 30 || address.length > 200) {
-      throw new Error("Datos demasiado largos");
-    }
-    return { fullName, phone, address, birthDate };
-  })
+  .inputValidator(
+    (input: { fullName: string; phone: string; address: string; birthDate: string }) => {
+      const fullName = input.fullName?.trim() ?? "";
+      const phone = input.phone?.trim() ?? "";
+      const address = input.address?.trim() ?? "";
+      const birthDate = input.birthDate?.trim() || null;
+      if (fullName.length > 120 || phone.length > 30 || address.length > 200) {
+        throw new Error("Datos demasiado largos");
+      }
+      return { fullName, phone, address, birthDate };
+    },
+  )
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("profiles")
@@ -173,7 +182,14 @@ export const uploadMyAvatar = createServerFn({ method: "POST" })
 export const requestMembership = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: { paymentMethod: "bolivia_qr" | "binance"; countryCode: "BO" | "INT" }) => {
+    (input: {
+      planId: string;
+      paymentMethod: "bolivia_qr" | "binance";
+      countryCode: "BO" | "INT";
+    }) => {
+      if (!/^[0-9a-f-]{36}$/i.test(input?.planId ?? "")) {
+        throw new Error("Selecciona un plan de membresía válido");
+      }
       if (!["bolivia_qr", "binance"].includes(input?.paymentMethod)) {
         throw new Error("Selecciona un método de pago válido");
       }
@@ -191,38 +207,50 @@ export const requestMembership = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: plan, error: planError } = await supabaseAdmin
+      .from("club_membership_plans")
+      .select("id, name, price, currency")
+      .eq("id", data.planId)
+      .eq("active", true)
+      .single();
+    if (planError) throw planError;
+    if (plan.currency === "USD" && data.countryCode !== "INT") {
+      throw new Error("Los planes en USD deben pagarse con un método internacional");
+    }
     const { data: pending, error: pendingError } = await context.supabase
       .from("membership_requests")
-      .select("id, amount, payment_method, country_code")
+      .select("id, amount, currency, membership_plan_id, payment_method, country_code")
       .eq("user_id", context.userId)
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (pendingError) throw pendingError;
-    if (pending) return { ok: true, alreadyPending: true, request: pending };
-
-    const { data: priceSetting, error: priceError } = await supabaseAdmin
-      .from("club_content")
-      .select("value")
-      .eq("key", "membership_annual_price")
-      .maybeSingle();
-    if (priceError) throw priceError;
-    const amount = Number(priceSetting?.value ?? CLUB_LANDING_DEFAULTS.membership_annual_price);
-    if (!Number.isSafeInteger(amount) || amount < 1) {
-      throw new Error("El precio de membresía configurado no es válido");
+    if (pending) {
+      if (pending.membership_plan_id !== data.planId) {
+        throw new Error(
+          "Ya tienes una solicitud pendiente. Espera la verificación para cambiar de plan.",
+        );
+      }
+      return {
+        ok: true,
+        alreadyPending: true,
+        request: { ...pending, plan: plan.name },
+      };
     }
 
     const { data: request, error } = await context.supabase
       .from("membership_requests")
       .insert({
         user_id: context.userId,
-        plan: "annual",
-        amount,
+        plan: plan.name,
+        membership_plan_id: plan.id,
+        amount: plan.price,
+        currency: plan.currency,
         payment_method: data.paymentMethod,
         country_code: data.countryCode,
       })
-      .select("id, amount, payment_method, country_code")
+      .select("id, plan, amount, currency, membership_plan_id, payment_method, country_code")
       .single();
     if (error) throw error;
     return { ok: true, alreadyPending: false, request };
@@ -412,7 +440,7 @@ export const recordOrder = createServerFn({ method: "POST" })
     };
   });
 
-async function assertAdmin(context: { supabase: any; userId: string }) {
+async function assertAdmin(context: { supabase: SupabaseClient<Database>; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
@@ -428,21 +456,22 @@ export const adminListRequests = createServerFn({ method: "GET" })
     const { data: requests, error } = await supabaseAdmin
       .from("membership_requests")
       .select(
-        "id, user_id, plan, amount, status, reference, payment_method, country_code, created_at",
+        "id, user_id, plan, amount, currency, membership_plan_id, status, reference, payment_method, country_code, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw error;
 
     const ids = [...new Set((requests ?? []).map((r) => r.user_id))];
-    const { data: profiles } = ids.length
+    const profiles = ids.length
       ? await supabaseAdmin
           .from("profiles")
           .select("id, full_name, email, phone, membership_status, membership_expires_at")
           .in("id", ids)
-      : { data: [] as any[] };
+      : null;
+    if (profiles && profiles.error) throw profiles.error;
 
-    const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+    const byId = new Map((profiles?.data ?? []).map((p) => [p.id, p]));
     return (requests ?? []).map((r) => ({ ...r, profile: byId.get(r.user_id) ?? null }));
   });
 

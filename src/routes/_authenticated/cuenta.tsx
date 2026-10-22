@@ -6,8 +6,7 @@ import { Loader2, Star, Package, UserCog, Lock, Unlock, Camera, User } from "luc
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { getMyClub, updateMyProfile, uploadMyAvatar } from "@/lib/club.functions";
-import { getClubContent } from "@/lib/club-content.functions";
-import { getClubLandingNumber } from "@/lib/club-landing-content";
+import { getActiveMembershipPlans } from "@/lib/membership-plans.functions";
 import { CLUB } from "@/lib/club";
 import { ClubShell } from "@/components/ClubShell";
 import { Button } from "@/components/ui/button";
@@ -21,10 +20,14 @@ export const Route = createFileRoute("/_authenticated/cuenta")({
       { title: "Mi cuenta · Club Churrasqueando" },
       {
         name: "description",
-        content: "Consulta tus Puntos de Brasa, tus compras y edita tus datos en el Club Churrasqueando.",
+        content:
+          "Consulta tus Puntos de Brasa, tus compras y edita tus datos en el Club Churrasqueando.",
       },
       { property: "og:title", content: "Mi cuenta · Club Churrasqueando" },
-      { property: "og:description", content: "Tus Puntos de Brasa, tus compras y tu perfil de socio." },
+      {
+        property: "og:description",
+        content: "Tus Puntos de Brasa, tus compras y tu perfil de socio.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -43,7 +46,7 @@ function fileToDataUrl(file: File): Promise<string> {
 
 function Cuenta() {
   const fetchClub = useServerFn(getMyClub);
-  const fetchClubContent = useServerFn(getClubContent);
+  const fetchPlans = useServerFn(getActiveMembershipPlans);
   const saveProfile = useServerFn(updateMyProfile);
   const uploadAvatar = useServerFn(uploadMyAvatar);
   const queryClient = useQueryClient();
@@ -53,14 +56,11 @@ function Cuenta() {
     queryKey: ["club", "me"],
     queryFn: () => fetchClub(),
   });
-  const clubContent = useQuery({
-    queryKey: ["club-content"],
-    queryFn: () => fetchClubContent(),
+  const plans = useQuery({
+    queryKey: ["club", "membership-plans"],
+    queryFn: () => fetchPlans(),
   });
-  const annualMembershipPrice = getClubLandingNumber(
-    clubContent.data ?? {},
-    "membership_annual_price",
-  );
+  const annualPlan = plans.data?.find((plan) => plan.interval === "annual");
 
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -93,8 +93,8 @@ function Cuenta() {
       await uploadAvatar({ data: { fileName: file.name, dataUrl } });
       toast.success("Foto de perfil actualizada");
       queryClient.invalidateQueries({ queryKey: ["club", "me"] });
-    } catch (err: any) {
-      toast.error(err?.message ?? "No se pudo subir la foto");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "No se pudo subir la foto");
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";
@@ -201,7 +201,9 @@ function Cuenta() {
             </p>
           ) : (
             <Link to="/club" className="mt-2 inline-block text-xs text-primary hover:underline">
-              Activar por {annualMembershipPrice} {CURRENCY}/año
+              {annualPlan
+                ? `Activar por ${annualPlan.price} ${annualPlan.currency}/año`
+                : "Ver planes de suscripción"}
             </Link>
           )}
         </div>
@@ -239,15 +241,30 @@ function Cuenta() {
             >
               <div className="space-y-1.5">
                 <Label htmlFor="nombre">Nombre completo</Label>
-                <Input id="nombre" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={120} />
+                <Input
+                  id="nombre"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  maxLength={120}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="tel">Teléfono / WhatsApp</Label>
-                <Input id="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} />
+                <Input
+                  id="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  maxLength={30}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="dir">Dirección</Label>
-                <Input id="dir" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={200} />
+                <Input
+                  id="dir"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  maxLength={200}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="nac">Fecha de nacimiento</Label>
@@ -258,7 +275,11 @@ function Cuenta() {
                   onChange={(e) => setBirthDate(e.target.value)}
                 />
               </div>
-              <Button type="submit" disabled={mutation.isPending} className="font-cond uppercase tracking-wide">
+              <Button
+                type="submit"
+                disabled={mutation.isPending}
+                className="font-cond uppercase tracking-wide"
+              >
                 {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Guardar
               </Button>
             </form>

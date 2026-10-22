@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyClub } from "@/lib/club.functions";
+import { adminSaveClubContent, getClubContent } from "@/lib/club-content.functions";
+import { getCoursePageSections } from "@/lib/course-page-content";
+import { CoursePageBuilderEditor } from "@/components/CoursePageBuilder";
+import type { CoursePageSection } from "@/lib/course-page-content";
 import {
   adminListCourses,
   adminUpsertCourse,
@@ -77,7 +81,6 @@ export const Route = createFileRoute("/_authenticated/admin-cursos")({
   }),
   component: AdminCursos,
 });
-
 type FormState = {
   id?: string;
   title: string;
@@ -129,6 +132,9 @@ function AdminCursos() {
   const upsert = useServerFn(adminUpsertCourse);
   const remove = useServerFn(adminDeleteCourse);
   const uploadImage = useServerFn(adminUploadCourseImage);
+  const fetchPageContent = useServerFn(getClubContent);
+  const savePageContent = useServerFn(adminSaveClubContent);
+  const createVideoUploadUrl = useServerFn(adminCreateLessonVideoUploadUrl);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -138,13 +144,25 @@ function AdminCursos() {
     queryFn: () => fetchCourses(),
     enabled: !!me.data?.isAdmin,
   });
+  const pageContent = useQuery({
+    queryKey: ["admin", "courses-page-content"],
+    queryFn: () => fetchPageContent(),
+    enabled: !!me.data?.isAdmin,
+  });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
+  const [pageSections, setPageSections] = useState<CoursePageSection[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<ClubCourse | null>(null);
   const [subcoursesCourse, setSubcoursesCourse] = useState<ClubCourse | null>(null);
   const [lessonsSubcourse, setLessonsSubcourse] = useState<CourseSubcourse | null>(null);
+
+  useEffect(() => {
+    if (pageContent.data) {
+      setPageSections(getCoursePageSections(pageContent.data.courses_page_builder));
+    }
+  }, [pageContent.data]);
 
   const upsertMutation = useMutation({
     mutationFn: (vars: FormState) =>
@@ -183,6 +201,38 @@ function AdminCursos() {
     },
     onError: (err: unknown) => toast.error(errorMessage(err, "No se pudo eliminar el curso")),
   });
+
+  const savePageContentMutation = useMutation({
+    mutationFn: (sections: CoursePageSection[]) =>
+      savePageContent({ data: { entries: { courses_page_builder: JSON.stringify(sections) } } }),
+    onSuccess: () => {
+      toast.success("Contenido adicional guardado");
+      queryClient.invalidateQueries({ queryKey: ["admin", "courses-page-content"] });
+      queryClient.invalidateQueries({ queryKey: ["club", "courses-page-content"] });
+    },
+    onError: (err: unknown) =>
+      toast.error(errorMessage(err, "No se pudo guardar el contenido adicional")),
+  });
+
+  const uploadPageMedia = async (file: File, type: "image" | "video") => {
+    if (type === "image") {
+      if (file.size > 6_000_000) throw new Error("La imagen no debe superar 6 MB");
+      const dataUrl = await fileToDataUrl(file);
+      const result = await uploadImage({ data: { fileName: file.name, dataUrl } });
+      return result.url;
+    }
+    if (!["video/mp4", "video/webm", "video/ogg"].includes(file.type)) {
+      throw new Error("Usa un video MP4, WebM u OGG");
+    }
+    if (file.size > 100 * 1024 * 1024) throw new Error("El video no debe superar 100 MB");
+    const signed = await createVideoUploadUrl({ data: { fileName: file.name } });
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.storage
+      .from("course-videos")
+      .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type });
+    if (error) throw error;
+    return signed.publicUrl;
+  };
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -266,6 +316,35 @@ function AdminCursos() {
           <Plus className="h-4 w-4" /> Nuevo curso
         </Button>
       </div>
+
+      {pageContent.isLoading ? (
+        <div className="mt-6 flex items-center justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : pageContent.isError ? (
+        <p role="alert" className="mt-6 text-sm text-destructive">
+          No se pudo cargar el contenido editable de la página.
+        </p>
+      ) : (
+        <div className="mt-6 space-y-3">
+          <CoursePageBuilderEditor
+            sections={pageSections}
+            onChange={setPageSections}
+            onMediaUpload={uploadPageMedia}
+          />
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => savePageContentMutation.mutate(pageSections)}
+              disabled={savePageContentMutation.isPending}
+              className="font-cond uppercase tracking-wide"
+            >
+              {savePageContentMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Guardar contenido adicional
+            </Button>
+          </div>
+        </div>
+      )}
 
       {courses.isLoading ? (
         <div className="flex items-center justify-center py-16">

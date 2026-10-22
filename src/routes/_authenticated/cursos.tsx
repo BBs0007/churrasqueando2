@@ -15,6 +15,9 @@ import {
   FileText,
 } from "lucide-react";
 import { getMyClub } from "@/lib/club.functions";
+import { getClubContent } from "@/lib/club-content.functions";
+import { getCoursePageSections } from "@/lib/course-page-content";
+import { CoursePageBuilderContent } from "@/components/CoursePageBuilder";
 import {
   getPublicCourses,
   getPublicCourseSubcourses,
@@ -50,6 +53,7 @@ function launchCountdown(): string {
 function CursosPage() {
   const fetchClub = useServerFn(getMyClub);
   const fetchCourses = useServerFn(getPublicCourses);
+  const fetchPageContent = useServerFn(getClubContent);
   const [openCourseId, setOpenCourseId] = useState<string | null>(null);
 
   const me = useQuery({ queryKey: ["club", "me"], queryFn: () => fetchClub() });
@@ -57,6 +61,11 @@ function CursosPage() {
     queryKey: ["club", "courses"],
     queryFn: () => fetchCourses(),
     enabled: !!me.data,
+  });
+  const pageContent = useQuery({
+    queryKey: ["club", "courses-page-content"],
+    queryFn: () => fetchPageContent(),
+    enabled: !!me.data?.isMember || !!me.data?.isAdmin,
   });
 
   const isAdmin = !!me.data?.isAdmin;
@@ -203,6 +212,19 @@ function CursosPage() {
               isMember={me.data.isMember}
               onBack={() => setOpenCourseId(null)}
             />
+          )}
+          {!openCourse && (
+            <div className="mt-12">
+              {pageContent.isError ? (
+                <p role="alert" className="text-sm text-white/60">
+                  No se pudo cargar el contenido adicional.
+                </p>
+              ) : (
+                <CoursePageBuilderContent
+                  sections={getCoursePageSections(pageContent.data?.courses_page_builder)}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>

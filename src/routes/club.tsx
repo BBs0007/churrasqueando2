@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -21,6 +22,7 @@ import {
 import { getMyClub } from "@/lib/club.functions";
 import { getPublicCourses } from "@/lib/courses.functions";
 import { getClubContent } from "@/lib/club-content.functions";
+import { getActiveMembershipPlans } from "@/lib/membership-plans.functions";
 import {
   CLUB_BUILDER_SECTIONS,
   CLUB_LANDING_DEFAULTS,
@@ -48,7 +50,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useSession } from "@/hooks/useSession";
-import { ClubLandingCustomSections } from "@/components/ClubLandingBuilder";
+import {
+  ClubLandingBuiltInExtras,
+  ClubLandingCustomSections,
+} from "@/components/ClubLandingBuilder";
 import clubHero from "@/assets/club/club-hero.jpg";
 import clubVideo from "@/assets/club/club-video-thumb.jpg";
 import logo from "@/assets/logo-churrasqueando.png";
@@ -89,9 +94,11 @@ const PERK_ICONS: Record<string, React.ReactNode> = {
 };
 
 function ClubPage() {
+  const [isPresentationPlaying, setIsPresentationPlaying] = useState(false);
   const fetchClub = useServerFn(getMyClub);
   const fetchCourses = useServerFn(getPublicCourses);
   const fetchContent = useServerFn(getClubContent);
+  const fetchPlans = useServerFn(getActiveMembershipPlans);
   const routeContent = Route.useLoaderData();
   const { session, loading: sessionLoading } = useSession();
 
@@ -108,6 +115,28 @@ function ClubPage() {
     const index = builderLayout.order.indexOf(id);
     return index < 0 ? CLUB_BUILDER_SECTIONS.findIndex((section) => section.id === id) : index;
   };
+  const sectionStyle = (id: string) => {
+    const options = builderLayout.sectionOptions[id];
+    const backgrounds = {
+      card: "var(--card)",
+      dark: "var(--secondary)",
+      fire: "linear-gradient(to bottom right, oklch(0.62 0.22 35 / 0.18), var(--card), var(--card))",
+    } as const;
+    return {
+      order: sectionOrder(id),
+      ...(options?.width === "full"
+        ? {
+            position: "relative" as const,
+            left: "50%",
+            width: "100vw",
+            transform: "translateX(-50%)",
+          }
+        : {}),
+      ...(options && options.background !== "none"
+        ? { background: backgrounds[options.background] }
+        : {}),
+    };
+  };
   const isSectionVisible = (id: string) => !builderLayout.hiddenSectionIds.includes(id);
 
   const { data } = useQuery({
@@ -120,6 +149,11 @@ function ClubPage() {
     queryKey: ["club", "courses"],
     queryFn: () => fetchCourses(),
   });
+  const plans = useQuery({
+    queryKey: ["club", "membership-plans"],
+    queryFn: () => fetchPlans(),
+  });
+  const annualPlan = plans.data?.find((plan) => plan.interval === "annual");
   const clubCursos = courses.data ?? [];
 
   const profile = data?.profile;
@@ -144,9 +178,13 @@ function ClubPage() {
     c,
     "testimonials",
   );
-  const membershipPerks = getClubLandingCollection<{ text: string }>(c, "membership_perks");
+  const membershipPerks = getClubLandingCollection<{ id?: string; text: string }>(
+    c,
+    "membership_perks",
+  );
   const faqs = getClubLandingCollection<(typeof CLUB_FAQS)[number]>(c, "faqs");
-  const annualPrice = getClubLandingNumber(c, "membership_annual_price");
+  const annualPrice = annualPlan?.price ?? getClubLandingNumber(c, "membership_annual_price");
+  const annualCurrency = annualPlan?.currency ?? CURRENCY;
   const regularPrice = getClubLandingNumber(c, "membership_regular_price");
   const testimonialsNote = Object.hasOwn(c, "testimonials_note")
     ? c.testimonials_note
@@ -160,19 +198,22 @@ function ClubPage() {
       {/* FRANJA DE LANZAMIENTO */}
       <div
         hidden={!isSectionVisible("banner")}
-        style={{ order: sectionOrder("banner") }}
-        className="-mx-4 mb-6 flex items-center justify-center gap-2.5 bg-primary px-4 py-3 text-center shadow-fire sm:mx-0 sm:rounded-2xl"
+        style={sectionStyle("banner")}
+        className="-mx-4 mb-6 rounded-none bg-primary px-4 py-3 text-center shadow-fire sm:mx-0 sm:rounded-2xl"
       >
-        <Flame className="h-4 w-4 shrink-0 text-primary-foreground" />
-        <p className="font-cond text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:text-sm">
-          {t("launch_banner")}
-        </p>
+        <div className="flex items-center justify-center gap-2.5">
+          <Flame className="h-4 w-4 shrink-0 text-primary-foreground" />
+          <p className="font-cond text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:text-sm">
+            {t("launch_banner")}
+          </p>
+        </div>
+        <ClubLandingBuiltInExtras sectionId="banner" layout={builderLayout} />
       </div>
 
       {/* HERO */}
       <section
         hidden={!isSectionVisible("hero")}
-        style={{ order: sectionOrder("hero") }}
+        style={sectionStyle("hero")}
         className="relative -mx-4 overflow-hidden rounded-none border-y border-border/70 sm:mx-0 sm:rounded-3xl sm:border"
       >
         <img
@@ -216,7 +257,7 @@ function ClubPage() {
                   ? "Ver mis cursos"
                   : hasPendingMembership
                     ? "Ver estado de mi pago"
-                    : `${t("hero_cta")} · ${annualPrice} ${CURRENCY}/año`}
+                    : `${t("hero_cta")} · ${annualPrice} ${annualCurrency}/año`}
               </Button>
             </Link>
             <a href="#video">
@@ -268,13 +309,14 @@ function ClubPage() {
               </div>
             ))}
           </dl>
+          <ClubLandingBuiltInExtras sectionId="hero" layout={builderLayout} />
         </div>
       </section>
 
       {/* EL PROBLEMA */}
       <section
         hidden={!isSectionVisible("problem")}
-        style={{ order: sectionOrder("problem") }}
+        style={sectionStyle("problem")}
         className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 text-center sm:px-12 sm:py-16"
       >
         <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">
@@ -292,13 +334,14 @@ function ClubPage() {
         <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
           {t("problem_body")}
         </p>
+        <ClubLandingBuiltInExtras sectionId="problem" layout={builderLayout} />
       </section>
 
       {/* VIDEO */}
       <section
         id="video"
         hidden={!isSectionVisible("video")}
-        style={{ order: sectionOrder("video") }}
+        style={sectionStyle("video")}
         className="mt-14 scroll-mt-24"
       >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
@@ -308,37 +351,73 @@ function ClubPage() {
           {t("video_title")}
         </h2>
 
-        <div className="relative mt-8 overflow-hidden rounded-3xl border border-border">
-          <img
-            src={img("video_image", clubVideo)}
-            alt={t("video_image_alt")}
-            loading="lazy"
-            width={1600}
-            height={900}
-            className="aspect-video w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-background/45" />
-          <span className="font-cond absolute right-4 top-4 rounded-full bg-background/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground backdrop-blur">
-            {t("video_badge")}
-          </span>
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
-            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fire">
-              <Play className="h-8 w-8" />
-            </span>
-            <p className="font-display px-6 text-xl uppercase tracking-wide text-foreground sm:text-2xl">
-              {t("video_overlay_title")}
-            </p>
-          </div>
-          <span className="font-cond absolute bottom-4 right-4 rounded-full bg-background/85 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-            {t("video_duration")}
-          </span>
+        <div className="relative mt-8 overflow-hidden rounded-3xl border border-border bg-black">
+          {isPresentationPlaying && t("video_url") ? (
+            <video
+              src={t("video_url")}
+              poster={img("video_image", clubVideo)}
+              controls
+              autoPlay
+              playsInline
+              preload="metadata"
+              aria-label={t("video_image_alt")}
+              className="aspect-video w-full"
+            />
+          ) : (
+            <>
+              <img
+                src={img("video_image", clubVideo)}
+                alt={t("video_image_alt")}
+                loading="lazy"
+                width={1600}
+                height={900}
+                className="aspect-video w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-background/45" />
+              <span className="font-cond absolute right-4 top-4 rounded-full bg-background/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground backdrop-blur">
+                {t("video_badge")}
+              </span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
+                <button
+                  type="button"
+                  aria-label={
+                    t("video_url")
+                      ? "Reproducir presentación del Club"
+                      : "La presentación aún no tiene un video"
+                  }
+                  title={
+                    t("video_url")
+                      ? "Reproducir video"
+                      : "Sube el video desde el editor de contenido del Club"
+                  }
+                  disabled={!t("video_url")}
+                  onClick={() => setIsPresentationPlaying(true)}
+                  className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fire transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <Play className="h-8 w-8" />
+                </button>
+                <p className="font-display px-6 text-xl uppercase tracking-wide text-foreground sm:text-2xl">
+                  {t("video_overlay_title")}
+                </p>
+                {!t("video_url") && (
+                  <p className="text-xs text-muted-foreground">
+                    El video se puede subir desde el editor de contenido del Club.
+                  </p>
+                )}
+              </div>
+              <span className="font-cond absolute bottom-4 right-4 rounded-full bg-background/85 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+                {t("video_duration")}
+              </span>
+            </>
+          )}
         </div>
+        <ClubLandingBuiltInExtras sectionId="video" layout={builderLayout} />
       </section>
 
       {/* CURSOS */}
       <section
         hidden={!isSectionVisible("courses")}
-        style={{ order: sectionOrder("courses") }}
+        style={sectionStyle("courses")}
         className="mt-14"
       >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
@@ -436,12 +515,13 @@ function ClubPage() {
             </article>
           ))}
         </div>
+        <ClubLandingBuiltInExtras sectionId="courses" layout={builderLayout} />
       </section>
 
       {/* BENEFICIOS */}
       <section
         hidden={!isSectionVisible("benefits")}
-        style={{ order: sectionOrder("benefits") }}
+        style={sectionStyle("benefits")}
         className="mt-14"
       >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
@@ -478,12 +558,13 @@ function ClubPage() {
             </div>
           ))}
         </div>
+        <ClubLandingBuiltInExtras sectionId="benefits" layout={builderLayout} />
       </section>
 
       {/* PUNTOS BRASA */}
       <section
         hidden={!isSectionVisible("points")}
-        style={{ order: sectionOrder("points") }}
+        style={sectionStyle("points")}
         className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 sm:px-10"
       >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
@@ -514,12 +595,13 @@ function ClubPage() {
         <p className="mx-auto mt-6 max-w-2xl text-center text-xs text-muted-foreground">
           {t("points_note")}
         </p>
+        <ClubLandingBuiltInExtras sectionId="points" layout={builderLayout} />
       </section>
 
       {/* SOCIOS FUNDADORES */}
       <section
         hidden={!isSectionVisible("founders")}
-        style={{ order: sectionOrder("founders") }}
+        style={sectionStyle("founders")}
         className="mt-14 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card px-6 py-12 text-center sm:px-10 sm:py-16"
       >
         <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">
@@ -564,12 +646,13 @@ function ClubPage() {
             <Star className="h-4 w-4" /> {t("founders_cta")}
           </Button>
         </Link>
+        <ClubLandingBuiltInExtras sectionId="founders" layout={builderLayout} />
       </section>
 
       {/* TESTIMONIOS */}
       <section
         hidden={!isSectionVisible("testimonials")}
-        style={{ order: sectionOrder("testimonials") }}
+        style={sectionStyle("testimonials")}
         className="mt-14"
       >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
@@ -607,12 +690,13 @@ function ClubPage() {
             </div>
           ))}
         </div>
+        <ClubLandingBuiltInExtras sectionId="testimonials" layout={builderLayout} />
       </section>
 
       {/* GARANTÍA */}
       <section
         hidden={!isSectionVisible("guarantee")}
-        style={{ order: sectionOrder("guarantee") }}
+        style={sectionStyle("guarantee")}
         className="mt-10"
       >
         <div className="mx-auto flex max-w-2xl items-start gap-4 rounded-2xl border border-border bg-card p-5">
@@ -626,13 +710,14 @@ function ClubPage() {
             <p className="mt-1 text-sm text-muted-foreground">{t("guarantee_body")}</p>
           </div>
         </div>
+        <ClubLandingBuiltInExtras sectionId="guarantee" layout={builderLayout} />
       </section>
 
       {/* SUSCRIPCIÓN */}
       <section
         id="suscribirse"
         hidden={!isSectionVisible("membership")}
-        style={{ order: sectionOrder("membership") }}
+        style={sectionStyle("membership")}
         className="mt-14 scroll-mt-24 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card p-6 sm:p-10"
       >
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
@@ -646,7 +731,7 @@ function ClubPage() {
           <p className="text-xs text-muted-foreground">{t("membership_course_intro")}</p>
           <p className="font-display mt-3 text-5xl text-foreground">
             {annualPrice}
-            <span className="text-lg text-muted-foreground"> {t("membership_period_label")}</span>
+            <span className="text-lg text-muted-foreground"> {annualCurrency} / año</span>
           </p>
           <div className="mt-4 space-y-2 text-sm text-foreground/90">
             <p>{t("membership_price_caption")}</p>
@@ -705,14 +790,11 @@ function ClubPage() {
             )}
           </div>
         </div>
+        <ClubLandingBuiltInExtras sectionId="membership" layout={builderLayout} />
       </section>
 
       {/* FAQ */}
-      <section
-        hidden={!isSectionVisible("faq")}
-        style={{ order: sectionOrder("faq") }}
-        className="mt-14"
-      >
+      <section hidden={!isSectionVisible("faq")} style={sectionStyle("faq")} className="mt-14">
         <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
           {t("faq_eyebrow")}
         </p>
@@ -736,12 +818,13 @@ function ClubPage() {
             </AccordionItem>
           ))}
         </Accordion>
+        <ClubLandingBuiltInExtras sectionId="faq" layout={builderLayout} />
       </section>
 
       {/* FOOTER MINI */}
       <div
         hidden={!isSectionVisible("footer")}
-        style={{ order: sectionOrder("footer") }}
+        style={sectionStyle("footer")}
         className="mt-16 border-t border-border pt-8 text-center"
       >
         <img
@@ -757,6 +840,7 @@ function ClubPage() {
         <p className="mt-1 text-xs text-muted-foreground">
           {t("hero_brand")} · {t("footer_location")} · {t("footer_website")}
         </p>
+        <ClubLandingBuiltInExtras sectionId="footer" layout={builderLayout} />
       </div>
       <ClubLandingCustomSections layout={builderLayout} />
     </div>

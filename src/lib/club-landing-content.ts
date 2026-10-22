@@ -11,7 +11,7 @@ import {
 export type ClubLandingField = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "image";
+  type: "text" | "textarea" | "number" | "image" | "video";
   help?: string;
 };
 
@@ -47,7 +47,7 @@ export const CLUB_BUILDER_SECTIONS = [
 ] as const;
 
 export type ClubBuilderBlockType =
-  "heading" | "subtitle" | "paragraph" | "image" | "price" | "button" | "subsection";
+  "heading" | "subtitle" | "paragraph" | "image" | "video" | "price" | "button" | "subsection";
 export type ClubBuilderContentBlockType = Exclude<ClubBuilderBlockType, "subsection">;
 export type ClubBuilderBlock = {
   id: string;
@@ -55,6 +55,7 @@ export type ClubBuilderBlock = {
   title: string;
   text: string;
   url: string;
+  layout: "vertical" | "horizontal";
   children: ClubBuilderBlock[];
 };
 export type ClubBuilderSection = {
@@ -63,12 +64,15 @@ export type ClubBuilderSection = {
   enabled: boolean;
   background: "none" | "card" | "dark" | "fire";
   width: "contained" | "full";
+  layout: "vertical" | "horizontal";
   blocks: ClubBuilderBlock[];
 };
+export type ClubBuilderSectionOptions = Omit<ClubBuilderSection, "id" | "title" | "enabled">;
 export type ClubBuilderLayout = {
   order: string[];
   hiddenSectionIds: string[];
   customSections: ClubBuilderSection[];
+  sectionOptions: Record<string, ClubBuilderSectionOptions>;
 };
 
 const BUILDER_BLOCK_TYPES: ClubBuilderBlockType[] = [
@@ -76,6 +80,7 @@ const BUILDER_BLOCK_TYPES: ClubBuilderBlockType[] = [
   "subtitle",
   "paragraph",
   "image",
+  "video",
   "price",
   "button",
   "subsection",
@@ -103,7 +108,10 @@ export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
     !Array.isArray(layout.customSections) ||
     layout.customSections.length > 30 ||
     !Array.isArray(layout.order) ||
-    !Array.isArray(layout.hiddenSectionIds)
+    !Array.isArray(layout.hiddenSectionIds) ||
+    !layout.sectionOptions ||
+    typeof layout.sectionOptions !== "object" ||
+    Array.isArray(layout.sectionOptions)
   ) {
     throw new Error("La estructura de secciones no es válida o supera el límite permitido");
   }
@@ -121,6 +129,7 @@ export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
       typeof section.enabled !== "boolean" ||
       !["none", "card", "dark", "fire"].includes(section.background) ||
       !["contained", "full"].includes(section.width) ||
+      !["vertical", "horizontal"].includes(section.layout) ||
       !Array.isArray(section.blocks) ||
       section.blocks.length > 40
     ) {
@@ -145,6 +154,7 @@ export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
         typeof block.url !== "string" ||
         block.url.length > 2_000 ||
         !isSafeBuilderUrl(block.url) ||
+        !["vertical", "horizontal"].includes(block.layout) ||
         !Array.isArray(block.children) ||
         block.children.length > 20 ||
         (block.type !== "subsection" && block.children.length > 0)
@@ -168,13 +178,83 @@ export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
     throw new Error("El orden o la visibilidad de las secciones no es válida");
   }
 
+  const optionsIds = Object.keys(layout.sectionOptions);
+  if (
+    optionsIds.some((id) => !CLUB_BUILDER_SECTIONS.some((section) => section.id === id)) ||
+    optionsIds.length !== CLUB_BUILDER_SECTIONS.length
+  ) {
+    throw new Error("La configuración de secciones existentes no es válida");
+  }
+  for (const options of Object.values(layout.sectionOptions)) {
+    if (
+      !options ||
+      typeof options !== "object" ||
+      !["none", "card", "dark", "fire"].includes(options.background) ||
+      !["contained", "full"].includes(options.width) ||
+      !["vertical", "horizontal"].includes(options.layout) ||
+      !Array.isArray(options.blocks) ||
+      options.blocks.length > 40
+    ) {
+      throw new Error("La configuración visual de una sección no es válida");
+    }
+    const blockIds = new Set<string>();
+    const validateOptionBlock = (block: ClubBuilderBlock, nested: boolean) => {
+      if (
+        !block ||
+        typeof block !== "object" ||
+        typeof block.id !== "string" ||
+        !/^[\w-]{1,80}$/.test(block.id) ||
+        blockIds.has(block.id) ||
+        !BUILDER_BLOCK_TYPES.includes(block.type) ||
+        (nested && block.type === "subsection") ||
+        typeof block.title !== "string" ||
+        block.title.length > 500 ||
+        typeof block.text !== "string" ||
+        block.text.length > 5_000 ||
+        typeof block.url !== "string" ||
+        block.url.length > 2_000 ||
+        !isSafeBuilderUrl(block.url) ||
+        !["vertical", "horizontal"].includes(block.layout) ||
+        !Array.isArray(block.children) ||
+        block.children.length > 20 ||
+        (block.type !== "subsection" && block.children.length > 0)
+      ) {
+        throw new Error("Un elemento de sección existente tiene datos inválidos");
+      }
+      blockIds.add(block.id);
+      block.children.forEach((child) => validateOptionBlock(child, true));
+    };
+    options.blocks.forEach((block) => validateOptionBlock(block, false));
+  }
+
   return layout as ClubBuilderLayout;
+}
+
+const DEFAULT_SECTION_OPTIONS: ClubBuilderSectionOptions = {
+  background: "none",
+  width: "contained",
+  layout: "vertical",
+  blocks: [],
+};
+
+function isBuilderBackground(value: unknown): value is ClubBuilderSection["background"] {
+  return value === "none" || value === "card" || value === "dark" || value === "fire";
+}
+
+function isBuilderWidth(value: unknown): value is ClubBuilderSection["width"] {
+  return value === "contained" || value === "full";
 }
 
 export const DEFAULT_CLUB_BUILDER_LAYOUT: ClubBuilderLayout = {
   order: CLUB_BUILDER_SECTIONS.map((section) => section.id),
   hiddenSectionIds: [],
   customSections: [],
+  sectionOptions: Object.fromEntries(
+    CLUB_BUILDER_SECTIONS.map((section) => [
+      section.id,
+      { ...DEFAULT_SECTION_OPTIONS, blocks: [] },
+    ]),
+  ),
 };
 
 const collectionDefaults = {
@@ -217,6 +297,7 @@ export const CLUB_LANDING_DEFAULTS: Record<string, string> = {
   video_title: "Mirá de qué se trata",
   video_image: "",
   video_image_alt: "Video de presentación del Club Churrasqueando",
+  video_url: "",
   video_badge: "Video del Club · 3–4 min",
   video_overlay_title: "Así se vive el Club Churrasqueando",
   video_duration: "3:50",
@@ -267,6 +348,7 @@ export const CLUB_LANDING_DEFAULTS: Record<string, string> = {
   seo_social_description:
     "Cursos, comunidad, Puntos Brasa y beneficios exclusivos para socios del Club Churrasqueando.",
   club_builder: JSON.stringify(DEFAULT_CLUB_BUILDER_LAYOUT),
+  courses_page_builder: "[]",
 };
 
 export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
@@ -307,13 +389,18 @@ export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
   {
     id: "video",
     title: "Presentación del Club",
-    description:
-      "Imagen, títulos y duración de la presentación. Actualmente se muestra como imagen.",
+    description: "Imagen de portada, video, títulos y duración de la presentación.",
     fields: [
       { key: "video_eyebrow", label: "Texto pequeño", type: "text" },
       { key: "video_title", label: "Título de la sección", type: "text" },
       { key: "video_image", label: "Imagen de presentación", type: "image" },
       { key: "video_image_alt", label: "Descripción accesible de la imagen", type: "text" },
+      {
+        key: "video_url",
+        label: "Video de presentación",
+        type: "video",
+        help: "Sube un video MP4, WebM u OGG de hasta 100 MB, o pega una URL HTTPS.",
+      },
       { key: "video_badge", label: "Etiqueta sobre la imagen", type: "text" },
       { key: "video_overlay_title", label: "Título sobre la imagen", type: "text" },
       { key: "video_duration", label: "Duración mostrada", type: "text" },
@@ -431,7 +518,8 @@ export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
   {
     id: "membership",
     title: "Oferta y suscripción",
-    description: "Información comercial y lista de lo que incluye el precio.",
+    description:
+      "Información comercial y lista de beneficios. Los planes y precios se editan en Solicitudes del Club.",
     fields: [
       { key: "membership_eyebrow", label: "Texto pequeño", type: "text" },
       { key: "membership_title", label: "Título", type: "text" },
@@ -440,15 +528,8 @@ export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
         label: "Texto sobre el valor de los cursos",
         type: "textarea",
       },
-      {
-        key: "membership_annual_price",
-        label: "Precio anual de lanzamiento (Bs)",
-        type: "number",
-        help: "Este valor también se usa al registrar solicitudes de pago.",
-      },
       { key: "membership_price_caption", label: "Texto del precio", type: "text" },
       { key: "membership_regular_price", label: "Precio anual regular (Bs)", type: "number" },
-      { key: "membership_period_label", label: "Moneda y periodo junto al precio", type: "text" },
     ],
     collections: [
       {
@@ -535,16 +616,46 @@ export function getClubBuilderLayout(value: string | undefined): ClubBuilderLayo
       return DEFAULT_CLUB_BUILDER_LAYOUT;
     }
     const layout = parsed as Partial<ClubBuilderLayout>;
+    const normalizeBlocks = (blocks: ClubBuilderBlock[]): ClubBuilderBlock[] =>
+      blocks.map((block) => ({
+        ...block,
+        layout: block.layout === "horizontal" ? "horizontal" : "vertical",
+        children: Array.isArray(block.children) ? normalizeBlocks(block.children) : [],
+      }));
     const customSections = Array.isArray(layout.customSections)
-      ? layout.customSections.filter(
-          (section): section is ClubBuilderSection =>
-            !!section &&
-            typeof section === "object" &&
-            typeof section.id === "string" &&
-            typeof section.title === "string" &&
-            Array.isArray(section.blocks),
-        )
+      ? layout.customSections
+          .filter(
+            (section): section is ClubBuilderSection =>
+              !!section &&
+              typeof section === "object" &&
+              typeof section.id === "string" &&
+              typeof section.title === "string" &&
+              Array.isArray(section.blocks),
+          )
+          .map((section): ClubBuilderSection => ({
+            ...section,
+            enabled: section.enabled !== false,
+            background: isBuilderBackground(section.background) ? section.background : "card",
+            width: isBuilderWidth(section.width) ? section.width : "contained",
+            layout: section.layout === "horizontal" ? "horizontal" : "vertical",
+            blocks: normalizeBlocks(section.blocks),
+          }))
       : [];
+    const sectionOptions: Record<string, ClubBuilderSectionOptions> = Object.fromEntries(
+      CLUB_BUILDER_SECTIONS.map((section) => {
+        const options = layout.sectionOptions?.[section.id];
+        if (
+          !options ||
+          !["none", "card", "dark", "fire"].includes(options.background) ||
+          !["contained", "full"].includes(options.width) ||
+          !["vertical", "horizontal"].includes(options.layout) ||
+          !Array.isArray(options.blocks)
+        ) {
+          return [section.id, { ...DEFAULT_SECTION_OPTIONS, blocks: [] }];
+        }
+        return [section.id, { ...options, blocks: normalizeBlocks(options.blocks) }];
+      }),
+    );
     const customIds = customSections.map((section) => section.id);
     const availableIds = new Set([
       ...CLUB_BUILDER_SECTIONS.map((section) => section.id),
@@ -563,6 +674,7 @@ export function getClubBuilderLayout(value: string | undefined): ClubBuilderLayo
         ? layout.hiddenSectionIds.filter((id): id is string => typeof id === "string")
         : [],
       customSections,
+      sectionOptions,
     };
   } catch {
     return DEFAULT_CLUB_BUILDER_LAYOUT;

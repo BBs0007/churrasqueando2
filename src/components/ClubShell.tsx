@@ -68,41 +68,46 @@ export function ClubShell({
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <Link to="/" className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-4">
+          <Link to="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
             <img
               src={logo}
               alt="Churrasqueando"
-              className="h-10 w-10 rounded-lg object-cover ring-1 ring-primary/40"
+              className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-primary/40 sm:h-10 sm:w-10"
             />
-            <div className="leading-none">
-              <p className="font-display text-lg tracking-wide text-foreground">{CLUB.name}</p>
-              <p className="font-cond text-[10px] uppercase tracking-[0.3em] text-primary">
+            <div className="min-w-0 leading-none">
+              <p className="font-display truncate text-base tracking-wide text-foreground sm:text-lg">
+                {CLUB.name}
+              </p>
+              <p className="font-cond truncate text-[9px] uppercase tracking-[0.2em] text-primary sm:text-[10px] sm:tracking-[0.3em]">
                 {isMember ? "Socio activo" : "Cuenta gratuita"}
               </p>
             </div>
           </Link>
 
-          <nav className="flex flex-wrap items-center gap-2">
+          <nav
+            aria-label="Navegación del Club"
+            className="no-scrollbar flex w-full max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 sm:w-auto sm:flex-wrap sm:justify-end sm:gap-2 sm:overflow-visible sm:pb-0"
+          >
             {typeof points === "number" && (
               <span
                 aria-label={`${points} Puntos de Brasa`}
                 title="Puntos de Brasa"
-                className="font-cond inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-secondary-foreground"
+                className="font-cond inline-flex shrink-0 items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-secondary-foreground sm:px-3"
               >
                 <Star className="h-3.5 w-3.5 text-primary" /> {points} PB
               </span>
             )}
             <Link
               to="/cuenta"
-              className="font-cond rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="font-cond shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               Mi cuenta
             </Link>
             {isMember && (
               <Link
                 to="/cursos"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                className="font-cond inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 <GraduationCap className="h-3.5 w-3.5" /> Cursos
               </Link>
@@ -110,7 +115,7 @@ export function ClubShell({
             {isMember && (
               <Link
                 to="/promociones"
-                className="font-cond inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                className="font-cond inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 <Sparkles className="h-3.5 w-3.5" /> Promociones del Club
               </Link>
@@ -119,11 +124,15 @@ export function ClubShell({
             {isAdmin && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" size="sm" className="font-cond uppercase tracking-wide">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0 font-cond uppercase tracking-wide"
+                  >
                     <LayoutGrid className="h-3.5 w-3.5" /> Panel Admin
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuContent align="start" className="w-64 max-w-[calc(100vw-2rem)]">
                   <DropdownMenuLabel className="font-cond text-[11px] uppercase tracking-wide text-muted-foreground">
                     Catálogo
                   </DropdownMenuLabel>
@@ -196,7 +205,7 @@ export function ClubShell({
               </DropdownMenu>
             )}
 
-            <Link to="/tienda">
+            <Link to="/tienda" className="shrink-0">
               <Button variant="outline" size="sm" className="font-cond uppercase tracking-wide">
                 <ShoppingBag className="h-3.5 w-3.5" /> Tienda
               </Button>
@@ -205,7 +214,7 @@ export function ClubShell({
               variant="ghost"
               size="sm"
               onClick={handleSignOut}
-              className="font-cond uppercase tracking-wide"
+              className="shrink-0 font-cond uppercase tracking-wide"
             >
               <LogOut className="h-3.5 w-3.5" /> Salir
             </Button>
@@ -229,7 +238,7 @@ export function ClubShell({
           </div>
         </div>
       )}
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      <main className="mx-auto min-w-0 max-w-6xl px-3 py-6 sm:px-4 sm:py-8">{children}</main>
     </div>
   );
 }

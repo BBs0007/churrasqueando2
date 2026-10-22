@@ -6,6 +6,7 @@ import { getMyClub } from "@/lib/club.functions";
 import { getActivePromotions } from "@/lib/discounts.functions";
 import { getPromoStore } from "@/lib/promotions.functions";
 import { ClubShell } from "@/components/ClubShell";
+import { CLUB_WHATSAPP } from "@/lib/club";
 import { Button } from "@/components/ui/button";
 import { CURRENCY } from "@/data/products";
 import { CLUB } from "@/lib/club";
@@ -184,7 +185,7 @@ function Promociones() {
                           {displayPrice} {CURRENCY}
                         </p>
                         <a
-                          href={`https://wa.me/59175358008?text=${waMsg}`}
+                          href={`https://wa.me/${CLUB_WHATSAPP}?text=${waMsg}`}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -226,7 +227,7 @@ function Promociones() {
                           {p.price} {CURRENCY}
                         </p>
                         <a
-                          href={`https://wa.me/59175358008?text=${waMsg}`}
+                          href={`https://wa.me/${CLUB_WHATSAPP}?text=${waMsg}`}
                           target="_blank"
                           rel="noreferrer"
                         >

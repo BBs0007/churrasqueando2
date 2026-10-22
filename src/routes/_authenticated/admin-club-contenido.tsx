@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { getMyClub } from "@/lib/club.functions";
 import {
+  adminCreateClubVideoUploadUrl,
   adminSaveClubContent,
   adminUploadClubImage,
   getClubContent,
@@ -87,11 +88,38 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+async function uploadClubVideo(
+  file: File,
+  createUploadUrl: (options: { data: { contentType: string } }) => Promise<{
+    path: string;
+    token: string;
+    publicUrl: string;
+    contentType: string;
+  }>,
+) {
+  if (!["video/mp4", "video/webm", "video/ogg"].includes(file.type)) {
+    throw new Error("Usa un video MP4, WebM u OGG");
+  }
+  if (file.size > 100 * 1024 * 1024) throw new Error("El video no debe superar 100 MB");
+
+  const { path, token, publicUrl, contentType } = await createUploadUrl({
+    data: { contentType: file.type },
+  });
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { error } = await supabase.storage
+    .from("club-content")
+    .uploadToSignedUrl(path, token, file, { contentType });
+  if (error) throw error;
+
+  return publicUrl;
+}
+
 function AdminClubContenido() {
   const fetchClub = useServerFn(getMyClub);
   const fetchContent = useServerFn(getClubContent);
   const save = useServerFn(adminSaveClubContent);
   const uploadImage = useServerFn(adminUploadClubImage);
+  const createVideoUploadUrl = useServerFn(adminCreateClubVideoUploadUrl);
   const queryClient = useQueryClient();
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -160,6 +188,35 @@ function AdminClubContenido() {
       return result.url;
     } finally {
       setUploadingKey(null);
+    }
+  };
+
+  const uploadBuilderMedia = async (file: File, type: "image" | "video") => {
+    if (type === "video") {
+      setUploadingKey("builder");
+      try {
+        return await uploadClubVideo(file, createVideoUploadUrl);
+      } finally {
+        setUploadingKey(null);
+      }
+    }
+    return uploadBuilderImage(file);
+  };
+
+  const handleVideoChange = async (key: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    setUploadingKey(key);
+    try {
+      const url = await uploadClubVideo(file, createVideoUploadUrl);
+      setForm((current) => ({ ...current, [key]: url }));
+      toast.success("Video subido. Guarda los cambios para publicarlo.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo subir el video");
+    } finally {
+      setUploadingKey(null);
+      input.value = "";
     }
   };
 
@@ -252,7 +309,7 @@ function AdminClubContenido() {
           <div className="space-y-3">
             <ClubLandingBuilderEditor
               layout={builderLayout}
-              onImageUpload={uploadBuilderImage}
+              onMediaUpload={uploadBuilderMedia}
               onChange={(layout) =>
                 setForm((current) => ({ ...current, club_builder: JSON.stringify(layout) }))
               }
@@ -283,6 +340,7 @@ function AdminClubContenido() {
                       }}
                       uploading={uploadingKey === field.key}
                       onImageChange={(event) => void handleImageChange(field.key, event)}
+                      onVideoChange={(event) => void handleVideoChange(field.key, event)}
                       onRestore={() =>
                         setForm((current) => ({
                           ...current,
@@ -347,6 +405,7 @@ function LandingField({
   inputRef,
   uploading,
   onImageChange,
+  onVideoChange,
   onRestore,
 }: {
   field: ClubLandingField;
@@ -356,6 +415,7 @@ function LandingField({
   inputRef: (element: HTMLInputElement | null) => void;
   uploading: boolean;
   onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onVideoChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRestore: () => void;
 }) {
   const id = `club-content-${field.key}`;
@@ -409,6 +469,56 @@ function LandingField({
             La nueva imagen se publica al guardar todos los cambios.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (field.type === "video") {
+    return (
+      <div className="space-y-3">
+        <Label htmlFor={id}>{field.label}</Label>
+        <Input
+          id={id}
+          value={value}
+          placeholder="Pega una URL HTTPS o sube un archivo"
+          onChange={(event) => onChange(event.target.value)}
+        />
+        {value && (
+          <video
+            src={value}
+            controls
+            playsInline
+            preload="metadata"
+            className="aspect-video w-full max-w-2xl rounded-xl bg-black"
+          />
+        )}
+        {field.help && <p className="text-xs text-muted-foreground">{field.help}</p>}
+        <input
+          ref={inputRef}
+          id={`${id}-upload`}
+          type="file"
+          accept="video/mp4,video/webm,video/ogg"
+          onChange={onVideoChange}
+          className="sr-only"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={uploading}
+          onClick={() => document.getElementById(`${id}-upload`)?.click()}
+        >
+          {uploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Upload className="h-4 w-4" />
+          )}
+          Subir video (máx. 100 MB)
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          El video se sube al almacenamiento público de medios del Club y se muestra después de
+          guardar.
+        </p>
       </div>
     );
   }

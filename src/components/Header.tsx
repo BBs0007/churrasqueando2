@@ -22,18 +22,22 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-        <Link to="/" className="flex items-center gap-3">
+      <div className="mx-auto flex min-w-0 max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-4">
+        <Link to="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
           <img
             src={logo}
             alt="Churrasqueando"
             width={48}
             height={48}
-            className="h-11 w-11 rounded-lg object-cover ring-1 ring-primary/40"
+            className="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-primary/40 sm:h-11 sm:w-11"
           />
-          <div className="leading-none">
-            <p className="font-display text-xl tracking-wide text-foreground">CHURRASQUEANDO</p>
-            <p className="font-cond text-xs uppercase tracking-[0.3em] text-primary">MOMENTO QUE SE SABOREAN!</p>
+          <div className="min-w-0 leading-none">
+            <p className="font-display truncate text-base tracking-wide text-foreground sm:text-xl">
+              CHURRASQUEANDO
+            </p>
+            <p className="font-cond truncate text-[9px] uppercase tracking-[0.16em] text-primary sm:text-xs sm:tracking-[0.3em]">
+              MOMENTO QUE SE SABOREAN!
+            </p>
           </div>
         </Link>
 
@@ -59,11 +63,12 @@ export function Header() {
           )}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <Button
             variant="outline"
             onClick={() => setOpen(true)}
-            className="relative font-cond font-semibold uppercase tracking-wide"
+            aria-label={`Abrir pedido${totalItems > 0 ? `, ${totalItems} productos` : ""}`}
+            className="relative px-2 font-cond font-semibold uppercase tracking-wide sm:px-4"
           >
             <ShoppingBag className="h-4 w-4" />
             <span className="hidden sm:inline">Pedido</span>
@@ -73,7 +78,11 @@ export function Header() {
               </span>
             )}
           </Button>
-          <Button asChild className="font-cond font-semibold uppercase tracking-wide">
+          <Button
+            asChild
+            aria-label="Mi cuenta del Club"
+            className="px-2 font-cond font-semibold uppercase tracking-wide sm:px-4"
+          >
             <Link to="/cuenta">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Club</span>
@@ -82,7 +91,10 @@ export function Header() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 lg:hidden no-scrollbar">
+      <nav
+        aria-label="Navegación principal"
+        className="flex items-center gap-2 overflow-x-auto px-3 pb-2 sm:px-4 lg:hidden no-scrollbar"
+      >
         {visibleNav.map((item) => (
           <Link
             key={item.to}
@@ -100,7 +112,7 @@ export function Header() {
             Puntos de ventas
           </Link>
         )}
-      </div>
+      </nav>
     </header>
   );
 }

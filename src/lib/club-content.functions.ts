@@ -8,6 +8,7 @@ import {
   CLUB_LANDING_SECTIONS,
   validateClubBuilderLayout,
 } from "@/lib/club-landing-content";
+import { validateCoursePageSections } from "@/lib/course-page-content";
 
 // El contenido editado de /club se almacena por clave; los valores iniciales
 // y la organización de las secciones viven en club-landing-content.ts.
@@ -44,10 +45,12 @@ export const adminSaveClubContent = createServerFn({ method: "POST" })
       if (!Object.hasOwn(CLUB_LANDING_DEFAULTS, key)) {
         throw new Error(`Campo de contenido no permitido: ${key}`);
       }
-      if (typeof value !== "string" || value.length > 30_000) {
+      const maxLength = ["club_builder", "courses_page_builder"].includes(key) ? 500_000 : 30_000;
+      if (typeof value !== "string" || value.length > maxLength) {
         throw new Error(`El campo ${key} no es válido o es demasiado largo`);
       }
       if (key === "club_builder") validateClubBuilderLayout(value);
+      if (key === "courses_page_builder") validateCoursePageSections(value);
       if (Object.hasOwn(CLUB_LANDING_COLLECTION_DEFAULTS, key)) {
         let collection: unknown;
         try {
@@ -138,4 +141,34 @@ export const adminUploadClubImage = createServerFn({ method: "POST" })
 
     const { data: pub } = supabaseAdmin.storage.from("club-content").getPublicUrl(path);
     return { ok: true, url: pub.publicUrl };
+  });
+
+export const adminCreateClubVideoUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { contentType: string }) => {
+    const extensions: Record<string, string> = {
+      "video/mp4": "mp4",
+      "video/webm": "webm",
+      "video/ogg": "ogv",
+    };
+    const extension = extensions[input?.contentType];
+    if (!extension) throw new Error("Usa un video MP4, WebM u OGG");
+    return { contentType: input.contentType, extension };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const path = `${context.userId}/${crypto.randomUUID()}.${data.extension}`;
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("club-content")
+      .createSignedUploadUrl(path);
+    if (error) throw error;
+
+    const { data: publicData } = supabaseAdmin.storage.from("club-content").getPublicUrl(path);
+    return {
+      path,
+      token: signed.token,
+      publicUrl: publicData.publicUrl,
+      contentType: data.contentType,
+    };
   });

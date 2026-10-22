@@ -20,6 +20,7 @@ const CONTENT_BLOCK_TYPES: { value: ClubBuilderContentBlockType; label: string }
   { value: "subtitle", label: "Subtítulo" },
   { value: "paragraph", label: "Párrafo" },
   { value: "image", label: "Imagen" },
+  { value: "video", label: "Video" },
   { value: "price", label: "Precio o tarifa" },
   { value: "button", label: "Botón con enlace" },
 ];
@@ -31,6 +32,7 @@ function createBlock(type: ClubBuilderBlockType): ClubBuilderBlock {
     title: "",
     text: "",
     url: "",
+    layout: "vertical",
     children: [],
   };
 }
@@ -51,11 +53,11 @@ function updateSection(
 export function ClubLandingBuilderEditor({
   layout,
   onChange,
-  onImageUpload,
+  onMediaUpload,
 }: {
   layout: ClubBuilderLayout;
   onChange: (layout: ClubBuilderLayout) => void;
-  onImageUpload: (file: File) => Promise<string>;
+  onMediaUpload: (file: File, type: "image" | "video") => Promise<string>;
 }) {
   const moveSection = (id: string, offset: number) => {
     const index = layout.order.indexOf(id);
@@ -80,6 +82,7 @@ export function ClubLandingBuilderEditor({
           enabled: true,
           background: "card",
           width: "contained",
+          layout: "vertical",
           blocks: [],
         },
       ],
@@ -103,7 +106,7 @@ export function ClubLandingBuilderEditor({
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Ordena o desactiva las secciones existentes, o crea otras con títulos, textos, imágenes,
-            precios y subsecciones. La oferta y el pago conservan sus funciones.
+            videos, precios y subsecciones. La oferta y el pago conservan sus funciones.
           </p>
         </div>
         <Button
@@ -258,15 +261,42 @@ export function ClubLandingBuilderEditor({
                         <option value="full">Ancho de pantalla</option>
                       </select>
                     </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`section-layout-${id}`}>Distribución del contenido</Label>
+                      <select
+                        id={`section-layout-${id}`}
+                        value={custom.layout}
+                        onChange={(event) =>
+                          onChange(
+                            updateSection(layout, id, (section) => ({
+                              ...section,
+                              layout: event.target.value as ClubBuilderSection["layout"],
+                            })),
+                          )
+                        }
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="vertical">Vertical</option>
+                        <option value="horizontal">Horizontal</option>
+                      </select>
+                    </div>
                   </div>
                   <BuilderBlockList
                     blocks={custom.blocks}
-                    onImageUpload={onImageUpload}
+                    onMediaUpload={onMediaUpload}
                     onChange={(blocks) =>
                       onChange(updateSection(layout, id, (section) => ({ ...section, blocks })))
                     }
                   />
                 </div>
+              )}
+              {builtIn && (
+                <BuiltInSectionEditor
+                  sectionId={id}
+                  layout={layout}
+                  onChange={onChange}
+                  onMediaUpload={onMediaUpload}
+                />
               )}
             </article>
           );
@@ -276,15 +306,100 @@ export function ClubLandingBuilderEditor({
   );
 }
 
-function BuilderBlockList({
+function BuiltInSectionEditor({
+  sectionId,
+  layout,
+  onChange,
+  onMediaUpload,
+}: {
+  sectionId: string;
+  layout: ClubBuilderLayout;
+  onChange: (layout: ClubBuilderLayout) => void;
+  onMediaUpload: (file: File, type: "image" | "video") => Promise<string>;
+}) {
+  const options = layout.sectionOptions[sectionId];
+  const updateOptions = (updates: Partial<typeof options>) =>
+    onChange({
+      ...layout,
+      sectionOptions: {
+        ...layout.sectionOptions,
+        [sectionId]: { ...options, ...updates },
+      },
+    });
+
+  return (
+    <div className="mt-4 space-y-5 border-t border-border pt-4">
+      <p className="text-sm text-muted-foreground">
+        Conserva el contenido funcional de esta sección y añade elementos o subsecciones
+        personalizadas debajo. Los textos, imágenes y listas originales se editan en su formulario;
+        la distribución elegida controla los elementos y subsecciones añadidos.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1.5">
+          <Label htmlFor={`existing-background-${sectionId}`}>Fondo de la sección</Label>
+          <select
+            id={`existing-background-${sectionId}`}
+            value={options.background}
+            onChange={(event) =>
+              updateOptions({
+                background: event.target.value as ClubBuilderSection["background"],
+              })
+            }
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="none">Sin fondo</option>
+            <option value="card">Tarjeta</option>
+            <option value="dark">Oscuro</option>
+            <option value="fire">Degradado fuego</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`existing-width-${sectionId}`}>Ancho de la sección</Label>
+          <select
+            id={`existing-width-${sectionId}`}
+            value={options.width}
+            onChange={(event) =>
+              updateOptions({ width: event.target.value as ClubBuilderSection["width"] })
+            }
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="contained">Contenido centrado</option>
+            <option value="full">Ancho de pantalla</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`existing-layout-${sectionId}`}>Distribución de elementos añadidos</Label>
+          <select
+            id={`existing-layout-${sectionId}`}
+            value={options.layout}
+            onChange={(event) =>
+              updateOptions({ layout: event.target.value as ClubBuilderSection["layout"] })
+            }
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="vertical">Vertical</option>
+            <option value="horizontal">Horizontal</option>
+          </select>
+        </div>
+      </div>
+      <BuilderBlockList
+        blocks={options.blocks}
+        onMediaUpload={onMediaUpload}
+        onChange={(blocks) => updateOptions({ blocks })}
+      />
+    </div>
+  );
+}
+
+export function BuilderBlockList({
   blocks,
   onChange,
-  onImageUpload,
+  onMediaUpload,
   nested = false,
 }: {
   blocks: ClubBuilderBlock[];
   onChange: (blocks: ClubBuilderBlock[]) => void;
-  onImageUpload: (file: File) => Promise<string>;
+  onMediaUpload: (file: File, type: "image" | "video") => Promise<string>;
   nested?: boolean;
 }) {
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
@@ -440,7 +555,7 @@ function BuilderBlockList({
                     if (!file) return;
                     setUploadingImageId(block.id);
                     try {
-                      const url = await onImageUpload(file);
+                      const url = await onMediaUpload(file, "image");
                       updateBlock(index, (current) => ({ ...current, url }));
                       toast.success("Imagen subida. Guarda los cambios para publicarla.");
                     } catch (error) {
@@ -468,6 +583,78 @@ function BuilderBlockList({
                   Subir imagen
                 </Button>
               </div>
+            </div>
+          ) : block.type === "video" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor={`block-video-url-${block.id}`}>URL del video</Label>
+                <Input
+                  id={`block-video-url-${block.id}`}
+                  value={block.url}
+                  onChange={(event) =>
+                    updateBlock(index, (current) => ({ ...current, url: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`block-video-title-${block.id}`}>Título accesible (opcional)</Label>
+                <Input
+                  id={`block-video-title-${block.id}`}
+                  value={block.title}
+                  onChange={(event) =>
+                    updateBlock(index, (current) => ({ ...current, title: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <input
+                  id={`block-video-file-${block.id}`}
+                  type="file"
+                  accept="video/mp4,video/webm,video/ogg"
+                  className="sr-only"
+                  onChange={async (event) => {
+                    const input = event.currentTarget;
+                    const file = input.files?.[0];
+                    if (!file) return;
+                    setUploadingImageId(block.id);
+                    try {
+                      const url = await onMediaUpload(file, "video");
+                      updateBlock(index, (current) => ({ ...current, url }));
+                      toast.success("Video subido. Guarda los cambios para publicarlo.");
+                    } catch (error) {
+                      toast.error(
+                        error instanceof Error ? error.message : "No se pudo subir el video",
+                      );
+                    } finally {
+                      setUploadingImageId(null);
+                      input.value = "";
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingImageId === block.id}
+                  onClick={() => document.getElementById(`block-video-file-${block.id}`)?.click()}
+                >
+                  {uploadingImageId === block.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  Subir video (máx. 100 MB)
+                </Button>
+              </div>
+              {block.url && (
+                <video
+                  src={block.url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="aspect-video w-full rounded-xl bg-black sm:col-span-2"
+                />
+              )}
             </div>
           ) : block.type === "price" ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -519,6 +706,23 @@ function BuilderBlockList({
           ) : (
             <div className="space-y-3">
               <div className="space-y-1.5">
+                <Label htmlFor={`block-layout-${block.id}`}>Distribución de la subsección</Label>
+                <select
+                  id={`block-layout-${block.id}`}
+                  value={block.layout}
+                  onChange={(event) =>
+                    updateBlock(index, (current) => ({
+                      ...current,
+                      layout: event.target.value as ClubBuilderBlock["layout"],
+                    }))
+                  }
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="vertical">Vertical</option>
+                  <option value="horizontal">Horizontal</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor={`block-title-${block.id}`}>Título de subsección</Label>
                 <Input
                   id={`block-title-${block.id}`}
@@ -543,7 +747,7 @@ function BuilderBlockList({
                 <BuilderBlockList
                   nested
                   blocks={block.children}
-                  onImageUpload={onImageUpload}
+                  onMediaUpload={onMediaUpload}
                   onChange={(children) =>
                     updateBlock(index, (current) => ({ ...current, children }))
                   }
@@ -557,7 +761,7 @@ function BuilderBlockList({
   );
 }
 
-function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
+export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
   switch (block.type) {
     case "heading":
       return (
@@ -584,6 +788,17 @@ function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
           alt={block.title}
           loading="lazy"
           className="max-h-[560px] w-full rounded-2xl object-cover"
+        />
+      ) : null;
+    case "video":
+      return block.url ? (
+        <video
+          src={block.url}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={block.title || undefined}
+          className="max-h-[560px] w-full rounded-2xl bg-black"
         />
       ) : null;
     case "price":
@@ -618,7 +833,9 @@ function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
           {block.text && (
             <p className="whitespace-pre-line text-sm text-muted-foreground">{block.text}</p>
           )}
-          <div className="space-y-3">
+          <div
+            className={block.layout === "horizontal" ? "grid gap-3 sm:grid-cols-2" : "space-y-3"}
+          >
             {block.children.map((child) => (
               <RenderBuilderBlock key={child.id} block={child} />
             ))}
@@ -642,6 +859,8 @@ export function ClubLandingCustomSections({ layout }: { layout: ClubBuilderLayou
         }[section.background];
         const width =
           section.width === "full" ? "relative left-1/2 w-screen -translate-x-1/2" : "w-full";
+        const layoutClass =
+          section.layout === "horizontal" ? "grid gap-5 sm:grid-cols-2" : "space-y-5";
 
         return (
           <section
@@ -650,7 +869,7 @@ export function ClubLandingCustomSections({ layout }: { layout: ClubBuilderLayou
             className={`mt-14 rounded-3xl px-6 py-10 sm:px-10 ${background} ${width}`}
           >
             <div className={section.width === "contained" ? "mx-auto max-w-4xl" : "w-full"}>
-              <div className="space-y-5">
+              <div className={layoutClass}>
                 {section.blocks.map((block) => (
                   <RenderBuilderBlock key={block.id} block={block} />
                 ))}
@@ -660,5 +879,34 @@ export function ClubLandingCustomSections({ layout }: { layout: ClubBuilderLayou
         );
       })}
     </>
+  );
+}
+
+export function ClubLandingBuiltInExtras({
+  sectionId,
+  layout,
+}: {
+  sectionId: string;
+  layout: ClubBuilderLayout;
+}) {
+  const options = layout.sectionOptions[sectionId];
+  if (!options?.blocks.length) return null;
+  const background = {
+    none: "",
+    card: "border border-border bg-card",
+    dark: "border border-border bg-secondary/60",
+    fire: "border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card",
+  }[options.background];
+  const width = options.width === "full" ? "relative left-1/2 w-screen -translate-x-1/2" : "";
+  const layoutClass = options.layout === "horizontal" ? "grid gap-5 sm:grid-cols-2" : "space-y-5";
+
+  return (
+    <div className={`mt-8 rounded-2xl p-5 sm:p-7 ${background} ${width}`}>
+      <div className={layoutClass}>
+        {options.blocks.map((block) => (
+          <RenderBuilderBlock key={block.id} block={block} />
+        ))}
+      </div>
+    </div>
   );
 }
