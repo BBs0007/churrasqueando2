@@ -20,7 +20,6 @@ import {
   Heart,
 } from "lucide-react";
 import { getMyClub } from "@/lib/club.functions";
-import { getPublicCourses } from "@/lib/courses.functions";
 import { getClubContent } from "@/lib/club-content.functions";
 import { getActiveMembershipPlans } from "@/lib/membership-plans.functions";
 import {
@@ -96,7 +95,6 @@ const PERK_ICONS: Record<string, React.ReactNode> = {
 function ClubPage() {
   const [isPresentationPlaying, setIsPresentationPlaying] = useState(false);
   const fetchClub = useServerFn(getMyClub);
-  const fetchCourses = useServerFn(getPublicCourses);
   const fetchContent = useServerFn(getClubContent);
   const fetchPlans = useServerFn(getActiveMembershipPlans);
   const routeContent = Route.useLoaderData();
@@ -145,16 +143,11 @@ function ClubPage() {
     enabled: !!session,
   });
 
-  const courses = useQuery({
-    queryKey: ["club", "courses"],
-    queryFn: () => fetchCourses(),
-  });
   const plans = useQuery({
     queryKey: ["club", "membership-plans"],
     queryFn: () => fetchPlans(),
   });
   const annualPlan = plans.data?.find((plan) => plan.interval === "annual");
-  const clubCursos = courses.data ?? [];
 
   const profile = data?.profile;
   const isMember = !!data?.isMember;
@@ -183,6 +176,15 @@ function ClubPage() {
     "membership_perks",
   );
   const faqs = getClubLandingCollection<(typeof CLUB_FAQS)[number]>(c, "faqs");
+  const clubCourseCards = getClubLandingCollection<{
+    id: string;
+    title: string;
+    subtitle: string;
+    tag: string;
+    description: string;
+    bullets: string;
+    image: string;
+  }>(c, "club_course_cards");
   const annualPrice = annualPlan?.price ?? getClubLandingNumber(c, "membership_annual_price");
   const annualCurrency = annualPlan?.currency ?? CURRENCY;
   const regularPrice = getClubLandingNumber(c, "membership_regular_price");
@@ -357,10 +359,12 @@ function ClubPage() {
               src={t("video_url")}
               poster={img("video_image", clubVideo)}
               controls
+              controlsList="nodownload"
               autoPlay
               playsInline
               preload="metadata"
               aria-label={t("video_image_alt")}
+              onContextMenu={(event) => event.preventDefault()}
               className="aspect-video w-full"
             />
           ) : (
@@ -431,24 +435,24 @@ function ClubPage() {
         </p>
 
         <div className="mt-10 space-y-6">
-          {clubCursos.map((c) => (
+          {clubCourseCards.map((course, index) => (
             <article
-              key={c.id}
+              key={course.id || `${course.title}-${index}`}
               className="grid gap-6 rounded-3xl border border-border bg-card p-4 sm:grid-cols-[280px_1fr] sm:p-6"
             >
               <div className="relative aspect-square overflow-hidden rounded-2xl bg-background">
-                {c.image ? (
+                {course.image ? (
                   <>
                     <img
-                      src={c.image}
-                      alt={c.title}
+                      src={course.image}
+                      alt={course.title}
                       loading="lazy"
                       width={800}
                       height={800}
                       className="absolute inset-0 h-full w-full object-cover"
                     />
                     <span className="font-cond absolute left-3 top-3 rounded-full bg-background/85 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary backdrop-blur">
-                      {c.tag}
+                      {course.tag}
                     </span>
                   </>
                 ) : (
@@ -461,14 +465,14 @@ function ClubPage() {
                       }}
                     />
                     <span className="font-cond absolute left-3 top-3 rounded-full bg-background/85 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary backdrop-blur">
-                      {c.tag}
+                      {course.tag}
                     </span>
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
                       <span className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/50 text-primary">
                         <Sparkles className="h-4 w-4" />
                       </span>
                       <p className="font-display text-lg uppercase leading-tight tracking-wide text-foreground">
-                        {c.title}
+                        {course.title}
                       </p>
                     </div>
                   </>
@@ -477,22 +481,29 @@ function ClubPage() {
 
               <div>
                 <span className="font-cond inline-block rounded-full bg-secondary px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
-                  {c.tag}
+                  {course.tag}
                 </span>
                 <h3 className="font-display mt-3 flex flex-wrap items-baseline gap-x-2 text-2xl uppercase tracking-wide text-foreground sm:text-3xl">
-                  {c.title}
+                  {course.title}
                   <span className="font-sans text-sm font-normal italic tracking-normal text-primary">
-                    {c.subtitle}
+                    {course.subtitle}
                   </span>
                 </h3>
-                <p className="mt-3 text-sm text-muted-foreground">{c.description}</p>
+                <p className="mt-3 text-sm text-muted-foreground">{course.description}</p>
                 <ul className="mt-4 space-y-2">
-                  {c.bullets.map((b) => (
-                    <li key={b} className="flex gap-2.5 text-sm text-muted-foreground">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-[2px] bg-primary" />
-                      <span>{b}</span>
-                    </li>
-                  ))}
+                  {course.bullets
+                    .split("\n")
+                    .map((bullet) => bullet.trim())
+                    .filter(Boolean)
+                    .map((bullet, bulletIndex) => (
+                      <li
+                        key={`${course.id}-bullet-${bulletIndex}`}
+                        className="flex gap-2.5 text-sm text-muted-foreground"
+                      >
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-[2px] bg-primary" />
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
                 </ul>
                 <div className="mt-5">
                   {isMember ? (

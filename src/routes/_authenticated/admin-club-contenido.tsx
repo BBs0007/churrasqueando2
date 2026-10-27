@@ -100,7 +100,7 @@ async function uploadClubVideo(
   if (!["video/mp4", "video/webm", "video/ogg"].includes(file.type)) {
     throw new Error("Usa un video MP4, WebM u OGG");
   }
-  if (file.size > 100 * 1024 * 1024) throw new Error("El video no debe superar 100 MB");
+  if (file.size > 300 * 1024 * 1024) throw new Error("El video no debe superar 300 MB");
 
   const { path, token, publicUrl, contentType } = await createUploadUrl({
     data: { contentType: file.type },
@@ -361,6 +361,28 @@ function AdminClubContenido() {
                       onChange={(value) =>
                         setForm((current) => ({ ...current, [collection.key]: value }))
                       }
+                      onUploadImage={async (index, key, file) => {
+                        try {
+                          const url = await uploadBuilderImage(file);
+                          setForm((current) => {
+                            const items = parseCollection(
+                              current[collection.key] ??
+                                JSON.stringify(
+                                  CLUB_LANDING_COLLECTION_DEFAULTS[collection.key] ?? [],
+                                ),
+                            );
+                            const next = items.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, [key]: url } : item,
+                            );
+                            return { ...current, [collection.key]: JSON.stringify(next) };
+                          });
+                          toast.success("Imagen subida. Guarda los cambios para publicarla.");
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error ? error.message : "No se pudo subir la imagen",
+                          );
+                        }
+                      }}
                     />
                   ))}
                   <Button
@@ -487,8 +509,10 @@ function LandingField({
           <video
             src={value}
             controls
+            controlsList="nodownload"
             playsInline
             preload="metadata"
+            onContextMenu={(event) => event.preventDefault()}
             className="aspect-video w-full max-w-2xl rounded-xl bg-black"
           />
         )}
@@ -561,10 +585,12 @@ function LandingCollectionEditor({
   collection,
   value,
   onChange,
+  onUploadImage,
 }: {
   collection: ClubLandingCollection;
   value: string;
   onChange: (value: string) => void;
+  onUploadImage: (index: number, key: string, file: File) => Promise<void>;
 }) {
   const items = parseCollection(value);
 
@@ -641,7 +667,46 @@ function LandingCollectionEditor({
                     className={field.multiline ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"}
                   >
                     <Label htmlFor={id}>{field.label}</Label>
-                    {field.multiline ? (
+                    {field.image ? (
+                      <div className="space-y-2">
+                        <div className="aspect-video max-w-sm overflow-hidden rounded-lg border border-border bg-secondary">
+                          {typeof item[field.key] === "string" && item[field.key] ? (
+                            <img
+                              src={String(item[field.key])}
+                              alt={`Vista previa de ${String(item.title ?? collection.label)}`}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                              Sin imagen
+                            </div>
+                          )}
+                        </div>
+                        <Input
+                          id={id}
+                          value={typeof item[field.key] === "string" ? String(item[field.key]) : ""}
+                          onChange={(event) => updateItem(index, field.key, event.target.value)}
+                          placeholder="URL de la imagen"
+                        />
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-accent">
+                          <Upload className="h-4 w-4" />
+                          Subir imagen
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            className="sr-only"
+                            onChange={(event) => {
+                              const file = event.currentTarget.files?.[0];
+                              if (file) void onUploadImage(index, field.key, file);
+                              event.currentTarget.value = "";
+                            }}
+                          />
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          Sube PNG, JPG o WebP de hasta 6 MB, o pega una URL.
+                        </p>
+                      </div>
+                    ) : field.multiline ? (
                       <Textarea
                         id={id}
                         rows={3}

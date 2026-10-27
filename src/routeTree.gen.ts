@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminVentasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedCuentaRouteImport } from './routes/_authenticated/cuenta'
 import { Route as AuthenticatedCursosRouteImport } from './routes/_authenticated/cursos'
 import { Route as AuthenticatedPromocionesRouteImport } from './routes/_authenticated/promociones'
+import { Route as AuthenticatedExamenFinalSubcourseIdRouteImport } from './routes/_authenticated/examen-final.$subcourseId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -176,6 +177,12 @@ const AuthenticatedPromocionesRoute =
     path: '/promociones',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedExamenFinalSubcourseIdRoute =
+  AuthenticatedExamenFinalSubcourseIdRouteImport.update({
+    id: '/examen-final/$subcourseId',
+    path: '/examen-final/$subcourseId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/cuenta': typeof AuthenticatedCuentaRoute
   '/cursos': typeof AuthenticatedCursosRoute
   '/promociones': typeof AuthenticatedPromocionesRoute
+  '/examen-final/$subcourseId': typeof AuthenticatedExamenFinalSubcourseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -230,6 +238,7 @@ export interface FileRoutesByTo {
   '/cuenta': typeof AuthenticatedCuentaRoute
   '/cursos': typeof AuthenticatedCursosRoute
   '/promociones': typeof AuthenticatedPromocionesRoute
+  '/examen-final/$subcourseId': typeof AuthenticatedExamenFinalSubcourseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -259,6 +268,7 @@ export interface FileRoutesById {
   '/_authenticated/cuenta': typeof AuthenticatedCuentaRoute
   '/_authenticated/cursos': typeof AuthenticatedCursosRoute
   '/_authenticated/promociones': typeof AuthenticatedPromocionesRoute
+  '/_authenticated/examen-final/$subcourseId': typeof AuthenticatedExamenFinalSubcourseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/cuenta'
     | '/cursos'
     | '/promociones'
+    | '/examen-final/$subcourseId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/cuenta'
     | '/cursos'
     | '/promociones'
+    | '/examen-final/$subcourseId'
   id:
     | '__root__'
     | '/'
@@ -343,6 +355,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cuenta'
     | '/_authenticated/cursos'
     | '/_authenticated/promociones'
+    | '/_authenticated/examen-final/$subcourseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -544,6 +557,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPromocionesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/examen-final/$subcourseId': {
+      id: '/_authenticated/examen-final/$subcourseId'
+      path: '/examen-final/$subcourseId'
+      fullPath: '/examen-final/$subcourseId'
+      preLoaderRoute: typeof AuthenticatedExamenFinalSubcourseIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -562,6 +582,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCuentaRoute: typeof AuthenticatedCuentaRoute
   AuthenticatedCursosRoute: typeof AuthenticatedCursosRoute
   AuthenticatedPromocionesRoute: typeof AuthenticatedPromocionesRoute
+  AuthenticatedExamenFinalSubcourseIdRoute: typeof AuthenticatedExamenFinalSubcourseIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -579,6 +600,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCuentaRoute: AuthenticatedCuentaRoute,
   AuthenticatedCursosRoute: AuthenticatedCursosRoute,
   AuthenticatedPromocionesRoute: AuthenticatedPromocionesRoute,
+  AuthenticatedExamenFinalSubcourseIdRoute:
+    AuthenticatedExamenFinalSubcourseIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

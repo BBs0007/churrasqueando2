@@ -10,6 +10,11 @@ import {
   adminListDiscountCodes,
   adminUpsertDiscountCode,
   adminDeleteDiscountCode,
+  adminListClubDiscountCampaigns,
+  adminListClubDiscountRedemptions,
+  adminUpsertClubDiscountCampaign,
+  type ClubDiscountCampaign,
+  type ClubDiscountRedemption,
   type DiscountCode,
 } from "@/lib/discounts.functions";
 import { ClubShell } from "@/components/ClubShell";
@@ -77,6 +82,20 @@ type FormState = {
   active: boolean;
 };
 
+type ClubCampaignFormState = {
+  id?: string;
+  title: string;
+  description: string;
+  discountType: "percentage" | "fixed";
+  value: string;
+  scope: "all" | "products" | "categories";
+  productIds: string[];
+  categoryIds: string[];
+  startsAt: string;
+  endsAt: string;
+  active: boolean;
+};
+
 const EMPTY_FORM: FormState = {
   code: "",
   description: "",
@@ -90,7 +109,22 @@ const EMPTY_FORM: FormState = {
   active: true,
 };
 
-function statusOf(c: DiscountCode): "Activo" | "Programado" | "Vencido" | "Desactivado" {
+const EMPTY_CLUB_CAMPAIGN: ClubCampaignFormState = {
+  title: "",
+  description: "",
+  discountType: "percentage",
+  value: "",
+  scope: "all",
+  productIds: [],
+  categoryIds: [],
+  startsAt: "",
+  endsAt: "",
+  active: true,
+};
+
+function statusOf(
+  c: Pick<DiscountCode, "active" | "starts_at" | "ends_at">,
+): "Activo" | "Programado" | "Vencido" | "Desactivado" {
   if (!c.active) return "Desactivado";
   const now = new Date();
   if (c.starts_at && new Date(c.starts_at) > now) return "Programado";
@@ -101,8 +135,11 @@ function statusOf(c: DiscountCode): "Activo" | "Programado" | "Vencido" | "Desac
 function AdminCodigos() {
   const fetchClub = useServerFn(getMyClub);
   const fetchCodes = useServerFn(adminListDiscountCodes);
+  const fetchClubCampaigns = useServerFn(adminListClubDiscountCampaigns);
+  const fetchClubRedemptions = useServerFn(adminListClubDiscountRedemptions);
   const fetchProducts = useServerFn(adminListProducts);
   const upsert = useServerFn(adminUpsertDiscountCode);
+  const upsertClubCampaign = useServerFn(adminUpsertClubDiscountCampaign);
   const remove = useServerFn(adminDeleteDiscountCode);
   const queryClient = useQueryClient();
 
@@ -110,6 +147,16 @@ function AdminCodigos() {
   const codes = useQuery({
     queryKey: ["admin", "discount-codes"],
     queryFn: () => fetchCodes(),
+    enabled: !!me.data?.isAdmin,
+  });
+  const clubCampaigns = useQuery({
+    queryKey: ["admin", "club-discount-campaigns"],
+    queryFn: () => fetchClubCampaigns(),
+    enabled: !!me.data?.isAdmin,
+  });
+  const clubRedemptions = useQuery({
+    queryKey: ["admin", "club-discount-redemptions"],
+    queryFn: () => fetchClubRedemptions(),
     enabled: !!me.data?.isAdmin,
   });
   const catalog = useQuery({
@@ -121,13 +168,13 @@ function AdminCodigos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<DiscountCode | null>(null);
+  const [clubCampaignDialogOpen, setClubCampaignDialogOpen] = useState(false);
+  const [clubCampaignForm, setClubCampaignForm] =
+    useState<ClubCampaignFormState>(EMPTY_CLUB_CAMPAIGN);
 
-  const products = catalog.data?.products ?? [];
-  const categories = catalog.data?.categories ?? [];
-  const categoryName = useMemo(
-    () => new Map(categories.map((c) => [c.id, c.name])),
-    [categories],
-  );
+  const products = useMemo(() => catalog.data?.products ?? [], [catalog.data?.products]);
+  const categories = useMemo(() => catalog.data?.categories ?? [], [catalog.data?.categories]);
+  const categoryName = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories]);
   const productName = useMemo(() => new Map(products.map((p) => [p.id, p.name])), [products]);
 
   const saveMutation = useMutation({
@@ -143,7 +190,7 @@ function AdminCodigos() {
           productIds: vars.productIds,
           categoryIds: vars.categoryIds,
           startsAt: vars.startsAt ? new Date(vars.startsAt).toISOString() : null,
-          endsAt: vars.endsAt ? new Date(vars.endsAt).toISOString() : null,
+          endsAt: vars.endsAt ? new Date(`${vars.endsAt}T23:59:59`).toISOString() : null,
           active: vars.active,
         },
       }),
@@ -152,7 +199,8 @@ function AdminCodigos() {
       queryClient.invalidateQueries({ queryKey: ["admin", "discount-codes"] });
       setDialogOpen(false);
     },
-    onError: (err: any) => toast.error(err?.message ?? "No se pudo guardar el código"),
+    onError: (err: unknown) =>
+      toast.error(err instanceof Error ? err.message : "No se pudo guardar el código"),
   });
 
   const deleteMutation = useMutation({
@@ -162,12 +210,64 @@ function AdminCodigos() {
       queryClient.invalidateQueries({ queryKey: ["admin", "discount-codes"] });
       setDeleteTarget(null);
     },
-    onError: (err: any) => toast.error(err?.message ?? "No se pudo eliminar el código"),
+    onError: (err: unknown) =>
+      toast.error(err instanceof Error ? err.message : "No se pudo eliminar el código"),
+  });
+
+  const saveClubCampaignMutation = useMutation({
+    mutationFn: (vars: ClubCampaignFormState) =>
+      upsertClubCampaign({
+        data: {
+          id: vars.id,
+          title: vars.title,
+          description: vars.description,
+          discountType: vars.discountType,
+          value: Number(vars.value.replace(",", ".")) || 0,
+          scope: vars.scope,
+          productIds: vars.productIds,
+          categoryIds: vars.categoryIds,
+          startsAt: vars.startsAt ? new Date(vars.startsAt).toISOString() : null,
+          endsAt: vars.endsAt ? new Date(`${vars.endsAt}T23:59:59`).toISOString() : null,
+          active: vars.active,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(
+        clubCampaignForm.id ? "Promoción del Club actualizada" : "Promoción y códigos creados",
+      );
+      queryClient.invalidateQueries({ queryKey: ["admin", "club-discount-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "club-discount-redemptions"] });
+      setClubCampaignDialogOpen(false);
+    },
+    onError: (err: unknown) =>
+      toast.error(err instanceof Error ? err.message : "No se pudo guardar la promoción"),
   });
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
     setDialogOpen(true);
+  };
+
+  const openClubCampaignCreate = () => {
+    setClubCampaignForm(EMPTY_CLUB_CAMPAIGN);
+    setClubCampaignDialogOpen(true);
+  };
+
+  const openClubCampaignEdit = (campaign: ClubDiscountCampaign) => {
+    setClubCampaignForm({
+      id: campaign.id,
+      title: campaign.title,
+      description: campaign.description,
+      discountType: campaign.discount_type,
+      value: String(campaign.value),
+      scope: campaign.scope,
+      productIds: campaign.product_ids,
+      categoryIds: campaign.category_ids,
+      startsAt: campaign.starts_at ? campaign.starts_at.slice(0, 10) : "",
+      endsAt: campaign.ends_at ? campaign.ends_at.slice(0, 10) : "",
+      active: campaign.active,
+    });
+    setClubCampaignDialogOpen(true);
   };
 
   const openEdit = (c: DiscountCode) => {
@@ -196,6 +296,15 @@ function AdminCodigos() {
     saveMutation.mutate(form);
   };
 
+  const handleClubCampaignSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clubCampaignForm.title.trim()) {
+      toast.error("El título de la promoción es obligatorio");
+      return;
+    }
+    saveClubCampaignMutation.mutate(clubCampaignForm);
+  };
+
   const toggleProduct = (id: string) => {
     setForm((f) => ({
       ...f,
@@ -207,6 +316,24 @@ function AdminCodigos() {
 
   const toggleCategory = (id: string) => {
     setForm((f) => ({
+      ...f,
+      categoryIds: f.categoryIds.includes(id)
+        ? f.categoryIds.filter((x) => x !== id)
+        : [...f.categoryIds, id],
+    }));
+  };
+
+  const toggleClubProduct = (id: string) => {
+    setClubCampaignForm((f) => ({
+      ...f,
+      productIds: f.productIds.includes(id)
+        ? f.productIds.filter((x) => x !== id)
+        : [...f.productIds, id],
+    }));
+  };
+
+  const toggleClubCategory = (id: string) => {
+    setClubCampaignForm((f) => ({
       ...f,
       categoryIds: f.categoryIds.includes(id)
         ? f.categoryIds.filter((x) => x !== id)
@@ -233,6 +360,9 @@ function AdminCodigos() {
       </ClubShell>
     );
   }
+
+  const memberCampaignRows: ClubDiscountCampaign[] = clubCampaigns.data?.campaigns ?? [];
+  const memberRedemptions: ClubDiscountRedemption[] = clubRedemptions.data?.redemptions ?? [];
 
   return (
     <ClubShell points={me.data.profile.points} isMember={me.data.isMember} isAdmin>
@@ -324,7 +454,10 @@ function AdminCodigos() {
               })}
               {(codes.data?.codes ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
                     Todavía no has creado ningún código.
                   </TableCell>
                 </TableRow>
@@ -333,6 +466,188 @@ function AdminCodigos() {
           </Table>
         </div>
       )}
+
+      <section className="mt-12">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="font-display text-2xl uppercase tracking-wide text-foreground">
+              Promociones con código personal
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Cada socio activo recibe un código privado, distinto y de un solo uso.
+            </p>
+          </div>
+          <Button onClick={openClubCampaignCreate} className="font-cond uppercase tracking-wide">
+            <Plus className="h-4 w-4" /> Nueva promoción Club
+          </Button>
+        </div>
+
+        {clubCampaigns.isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : clubCampaigns.isError ? (
+          <p role="alert" className="mt-4 text-sm text-destructive">
+            No se pudieron cargar las promociones personales del Club.
+          </p>
+        ) : (
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Promoción</TableHead>
+                  <TableHead>Beneficio</TableHead>
+                  <TableHead>Alcance</TableHead>
+                  <TableHead>Vigencia</TableHead>
+                  <TableHead>Códigos</TableHead>
+                  <TableHead>Canjes</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Acción</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {memberCampaignRows.map((campaign) => {
+                  const status = statusOf(campaign);
+                  return (
+                    <TableRow key={campaign.id}>
+                      <TableCell>
+                        <p className="font-medium text-foreground">{campaign.title}</p>
+                        {campaign.description && (
+                          <p className="text-xs text-muted-foreground">{campaign.description}</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {campaign.discount_type === "percentage"
+                          ? `${campaign.value}%`
+                          : `${campaign.value} ${CURRENCY}`}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {campaign.scope === "all"
+                          ? "Todo el catálogo"
+                          : campaign.scope === "products"
+                            ? `${campaign.product_ids.length} producto(s)`
+                            : `${campaign.category_ids.length} categoría(s)`}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                        {campaign.starts_at
+                          ? new Date(campaign.starts_at).toLocaleDateString("es-BO")
+                          : "—"}
+                        {" – "}
+                        {campaign.ends_at
+                          ? new Date(campaign.ends_at).toLocaleDateString("es-BO")
+                          : "Sin fin"}
+                      </TableCell>
+                      <TableCell>{campaign.code_count}</TableCell>
+                      <TableCell>{campaign.redeemed_count}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`font-cond rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                            status === "Activo"
+                              ? "bg-primary/15 text-primary"
+                              : status === "Programado"
+                                ? "bg-blue-500/15 text-blue-400"
+                                : "bg-secondary text-muted-foreground"
+                          }`}
+                        >
+                          {status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label={`Editar ${campaign.title}`}
+                          onClick={() => openClubCampaignEdit(campaign)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {memberCampaignRows.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={8}
+                      className="py-10 text-center text-sm text-muted-foreground"
+                    >
+                      Todavía no hay promociones personales para socios.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-12">
+        <h2 className="font-display text-2xl uppercase tracking-wide text-foreground">
+          Historial de canjes del Club
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Cada fila identifica al socio, su código personal y el pedido asociado.
+        </p>
+        {clubRedemptions.isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : clubRedemptions.isError ? (
+          <p role="alert" className="mt-4 text-sm text-destructive">
+            No se pudo cargar el historial de canjes.
+          </p>
+        ) : (
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Socio</TableHead>
+                  <TableHead>Promoción</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Descuento aplicado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {memberRedemptions.map((redemption) => (
+                  <TableRow key={redemption.id}>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {new Date(redemption.redeemed_at).toLocaleString("es-BO")}
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-medium text-foreground">{redemption.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{redemption.customer_phone}</p>
+                    </TableCell>
+                    <TableCell>{redemption.campaign_title}</TableCell>
+                    <TableCell className="font-mono text-xs font-semibold">
+                      {redemption.code}
+                    </TableCell>
+                    <TableCell>
+                      {redemption.order_total === null
+                        ? "Pedido no disponible"
+                        : `${redemption.order_total.toFixed(2)} ${CURRENCY}`}
+                    </TableCell>
+                    <TableCell className="text-primary">
+                      -{redemption.discount_amount.toFixed(2)} {CURRENCY}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {memberRedemptions.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="py-10 text-center text-sm text-muted-foreground"
+                    >
+                      Aún no hay canjes registrados.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
@@ -491,6 +806,182 @@ function AdminCodigos() {
               >
                 {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Guardar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={clubCampaignDialogOpen} onOpenChange={setClubCampaignDialogOpen}>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {clubCampaignForm.id ? "Editar promoción del Club" : "Nueva promoción del Club"}
+            </DialogTitle>
+            <DialogDescription>
+              Se asignará un código aleatorio y privado a cada socio activo. Cada código se puede
+              canjear una sola vez por su titular.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleClubCampaignSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="club-campaign-title">Título de la promoción</Label>
+              <Input
+                id="club-campaign-title"
+                value={clubCampaignForm.title}
+                onChange={(e) => setClubCampaignForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Beneficio especial para socios"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Tipo</Label>
+                <Select
+                  value={clubCampaignForm.discountType}
+                  onValueChange={(v) =>
+                    setClubCampaignForm((f) => ({
+                      ...f,
+                      discountType: v as "percentage" | "fixed",
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Porcentaje (%)</SelectItem>
+                    <SelectItem value="fixed">Monto fijo ({CURRENCY})</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="club-campaign-value">
+                  Valor {clubCampaignForm.discountType === "percentage" ? "(%)" : `(${CURRENCY})`}
+                </Label>
+                <Input
+                  id="club-campaign-value"
+                  inputMode="decimal"
+                  value={clubCampaignForm.value}
+                  onChange={(e) => setClubCampaignForm((f) => ({ ...f, value: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="club-campaign-description">Descripción (opcional)</Label>
+              <Input
+                id="club-campaign-description"
+                value={clubCampaignForm.description}
+                onChange={(e) =>
+                  setClubCampaignForm((f) => ({ ...f, description: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Aplica a</Label>
+              <Select
+                value={clubCampaignForm.scope}
+                onValueChange={(v) =>
+                  setClubCampaignForm((f) => ({
+                    ...f,
+                    scope: v as "all" | "products" | "categories",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo el catálogo</SelectItem>
+                  <SelectItem value="products">Productos específicos</SelectItem>
+                  <SelectItem value="categories">Categorías específicas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {clubCampaignForm.scope === "products" && (
+              <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-xl border border-border p-3">
+                {products.map((product) => (
+                  <label key={product.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={clubCampaignForm.productIds.includes(product.id)}
+                      onCheckedChange={() => toggleClubProduct(product.id)}
+                    />
+                    {product.name}
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {clubCampaignForm.scope === "categories" && (
+              <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-xl border border-border p-3">
+                {categories.map((category) => (
+                  <label key={category.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={clubCampaignForm.categoryIds.includes(category.id)}
+                      onCheckedChange={() => toggleClubCategory(category.id)}
+                    />
+                    {category.name}
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="club-campaign-starts">Fecha de inicio</Label>
+                <Input
+                  id="club-campaign-starts"
+                  type="date"
+                  value={clubCampaignForm.startsAt}
+                  onChange={(e) => setClubCampaignForm((f) => ({ ...f, startsAt: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="club-campaign-ends">Fecha de fin</Label>
+                <Input
+                  id="club-campaign-ends"
+                  type="date"
+                  value={clubCampaignForm.endsAt}
+                  onChange={(e) => setClubCampaignForm((f) => ({ ...f, endsAt: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-border p-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Promoción activa</p>
+                <p className="text-xs text-muted-foreground">
+                  Puedes desactivarla sin eliminar los códigos ni su historial.
+                </p>
+              </div>
+              <Switch
+                checked={clubCampaignForm.active}
+                onCheckedChange={(active) => setClubCampaignForm((f) => ({ ...f, active }))}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setClubCampaignDialogOpen(false)}
+                className="font-cond uppercase tracking-wide"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={saveClubCampaignMutation.isPending}
+                className="font-cond uppercase tracking-wide"
+              >
+                {saveClubCampaignMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {clubCampaignForm.id ? "Guardar cambios" : "Crear promoción y códigos"}
               </Button>
             </DialogFooter>
           </form>

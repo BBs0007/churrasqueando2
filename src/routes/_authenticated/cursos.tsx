@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -9,10 +9,12 @@ import {
   Play,
   GraduationCap,
   ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   Circle,
   Clock,
   FileText,
+  Pause,
 } from "lucide-react";
 import { getMyClub } from "@/lib/club.functions";
 import { getClubContent } from "@/lib/club-content.functions";
@@ -23,6 +25,8 @@ import {
   getPublicCourseSubcourses,
   getPublicCourseLessons,
   completeCourseLesson,
+  startCourseLessonWatch,
+  recordCourseLessonWatch,
   type ClubCourse,
 } from "@/lib/courses.functions";
 import { ClubShell } from "@/components/ClubShell";
@@ -208,7 +212,6 @@ function CursosPage() {
               course={openCourse}
               unlocked={unlocked}
               userId={me.data.profile.id}
-              email={me.data.profile.email}
               isMember={me.data.isMember}
               onBack={() => setOpenCourseId(null)}
             />
@@ -236,19 +239,19 @@ function CourseDetail({
   course,
   unlocked,
   userId,
-  email,
   isMember,
   onBack,
 }: {
   course: ClubCourse;
   unlocked: boolean;
   userId: string;
-  email: string;
   isMember: boolean;
   onBack: () => void;
 }) {
   const fetchSubcourses = useServerFn(getPublicCourseSubcourses);
   const fetchLessons = useServerFn(getPublicCourseLessons);
+  const startLessonWatch = useServerFn(startCourseLessonWatch);
+  const recordLessonWatch = useServerFn(recordCourseLessonWatch);
   const saveLessonCompletion = useServerFn(completeCourseLesson);
   const queryClient = useQueryClient();
   const subcourses = useQuery({
@@ -265,10 +268,114 @@ function CourseDetail({
   });
   const list = lessons.data ?? [];
   const [activeId, setActiveId] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const watchSessionRef = useRef<string | null>(null);
+  const watchStartPendingRef = useRef(false);
+  const watchErrorShownRef = useRef(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [watchSessionId, setWatchSessionId] = useState<string | null>(null);
+  const [videoEnded, setVideoEnded] = useState(false);
 
   const active = list.find((l) => l.id === activeId) ?? list[0] ?? null;
+  const activeIndex = active ? list.findIndex((lesson) => lesson.id === active.id) : -1;
+  useEffect(() => {
+    setIsPlaying(false);
+    setVideoEnded(!!active?.completed);
+    watchSessionRef.current = null;
+    watchStartPendingRef.current = false;
+    watchErrorShownRef.current = false;
+    setWatchSessionId(null);
+  }, [active?.completed, active?.id]);
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackRate;
+  }, [playbackRate]);
+
+  const sendWatchHeartbeat = useCallback(
+    async (sessionId: string, ended = false) => {
+      const video = videoRef.current;
+      if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
+      await recordLessonWatch({
+        data: {
+          sessionId,
+          positionSeconds: video.currentTime,
+          durationSeconds: video.duration,
+          isPlaying: !video.paused || ended,
+          ended,
+        },
+      });
+    },
+    [recordLessonWatch],
+  );
+
+  const startWatchSession = async () => {
+    if (!active || active.completed || !isMember) {
+      return;
+    }
+    if (watchSessionRef.current) {
+      try {
+        await sendWatchHeartbeat(watchSessionRef.current);
+      } catch (error) {
+        if (!watchErrorShownRef.current) {
+          toast.error(
+            error instanceof Error ? error.message : "No se pudo guardar el avance del video",
+          );
+          watchErrorShownRef.current = true;
+        }
+      }
+      return;
+    }
+    if (watchStartPendingRef.current) return;
+    watchStartPendingRef.current = true;
+    try {
+      const { sessionId } = await startLessonWatch({ data: { lessonId: active.id } });
+      watchSessionRef.current = sessionId;
+      setWatchSessionId(sessionId);
+      await sendWatchHeartbeat(sessionId);
+    } catch (error) {
+      if (!watchErrorShownRef.current) {
+        toast.error(error instanceof Error ? error.message : "No se pudo iniciar el seguimiento");
+        watchErrorShownRef.current = true;
+      }
+    } finally {
+      watchStartPendingRef.current = false;
+    }
+  };
+
+  const handleVideoEnded = async () => {
+    setIsPlaying(false);
+    const sessionId = watchSessionRef.current;
+    if (!sessionId) {
+      toast.error("No se pudo validar la reproducción. Vuelve a reproducir el video.");
+      return;
+    }
+    try {
+      await sendWatchHeartbeat(sessionId, true);
+      setVideoEnded(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo validar el final del video");
+    }
+  };
+
+  useEffect(() => {
+    if (!isPlaying || !watchSessionId || active?.completed) return;
+    const intervalId = window.setInterval(() => {
+      void sendWatchHeartbeat(watchSessionId).catch((error: unknown) => {
+        if (!watchErrorShownRef.current) {
+          toast.error(
+            error instanceof Error ? error.message : "No se pudo guardar el avance del video",
+          );
+          watchErrorShownRef.current = true;
+        }
+      });
+    }, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [active?.completed, isPlaying, sendWatchHeartbeat, watchSessionId]);
+
   const completeMutation = useMutation({
-    mutationFn: (lessonId: string) => saveLessonCompletion({ data: { lessonId } }),
+    mutationFn: ({ lessonId, sessionId }: { lessonId: string; sessionId: string }) =>
+      saveLessonCompletion({ data: { lessonId, sessionId } }),
     onSuccess: async (result) => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -402,20 +509,38 @@ function CourseDetail({
               {active?.videoUrl ? (
                 <>
                   <video
+                    ref={videoRef}
                     key={active.id}
                     src={active.videoUrl}
                     controls
-                    controlsList="nodownload noplaybackrate"
+                    controlsList="nodownload"
                     disablePictureInPicture
+                    onLoadedMetadata={() => void startWatchSession()}
+                    onPlay={() => {
+                      setIsPlaying(true);
+                      void startWatchSession();
+                    }}
+                    onPause={() => {
+                      setIsPlaying(false);
+                      const sessionId = watchSessionRef.current;
+                      if (sessionId && !videoRef.current?.ended) {
+                        void sendWatchHeartbeat(sessionId).catch((error: unknown) => {
+                          if (!watchErrorShownRef.current) {
+                            toast.error(
+                              error instanceof Error
+                                ? error.message
+                                : "No se pudo guardar el avance del video",
+                            );
+                            watchErrorShownRef.current = true;
+                          }
+                        });
+                      }
+                    }}
+                    onEnded={() => void handleVideoEnded()}
                     onContextMenu={(event) => event.preventDefault()}
                     className="h-full w-full"
                     poster={course.image ?? undefined}
                   />
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <span className="rotate-[-18deg] select-none text-xs font-semibold tracking-[0.2em] text-white/25 sm:text-sm">
-                      {email || "CLUB CHURRASQUEANDO"}
-                    </span>
-                  </div>
                 </>
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-white/40">
@@ -424,11 +549,81 @@ function CourseDetail({
                 </div>
               )}
             </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!active?.videoUrl}
+                  onClick={() => {
+                    if (!videoRef.current) return;
+                    if (videoRef.current.paused) void videoRef.current.play();
+                    else videoRef.current.pause();
+                  }}
+                  aria-label={isPlaying ? "Pausar video" : "Reproducir video"}
+                >
+                  {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {isPlaying ? "Pausar" : "Reproducir"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={activeIndex <= 0}
+                  onClick={() => setActiveId(list[activeIndex - 1]?.id ?? null)}
+                  aria-label="Lección anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={activeIndex < 0 || activeIndex >= list.length - 1}
+                  onClick={() => setActiveId(list[activeIndex + 1]?.id ?? null)}
+                  aria-label="Lección siguiente"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-white/60">
+                Velocidad
+                <select
+                  value={playbackRate}
+                  onChange={(event) => {
+                    const rate = Number(event.target.value);
+                    setPlaybackRate(rate);
+                    if (videoRef.current) videoRef.current.playbackRate = rate;
+                  }}
+                  className="rounded-md border border-white/15 bg-black px-2 py-1 text-white"
+                  aria-label="Velocidad de reproducción"
+                >
+                  {[0.5, 1, 1.5, 2].map((rate) => (
+                    <option key={rate} value={rate}>
+                      {rate}x
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <button
               type="button"
-              onClick={() => active && completeMutation.mutate(active.id)}
+              onClick={() => {
+                if (active && watchSessionRef.current) {
+                  completeMutation.mutate({
+                    lessonId: active.id,
+                    sessionId: watchSessionRef.current,
+                  });
+                }
+              }}
               disabled={
-                !isMember || !active?.videoUrl || active.completed || completeMutation.isPending
+                !isMember ||
+                !active?.videoUrl ||
+                active.completed ||
+                !videoEnded ||
+                !watchSessionId ||
+                completeMutation.isPending
               }
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-primary/50 py-2.5 text-sm font-semibold uppercase tracking-wide text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-55"
             >
@@ -441,7 +636,9 @@ function CourseDetail({
               )}
               {active?.completed
                 ? `Lección completada · ${CLUB.pointsPerCompletedLesson} Puntos de Brasa`
-                : `Marcar lección como completada · +${CLUB.pointsPerCompletedLesson}`}
+                : videoEnded
+                  ? `Reclamar ${CLUB.pointsPerCompletedLesson} Puntos de Brasa`
+                  : `Termina el video para obtener ${CLUB.pointsPerCompletedLesson} Puntos de Brasa`}
             </button>
             <h2 className="font-display mt-5 text-xl uppercase tracking-wide text-white">
               {active?.title}
@@ -499,6 +696,33 @@ function CourseDetail({
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+      {isMember && activeSubcourse && list.length > 0 && (
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-cond text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                Final del subcurso
+              </p>
+              <p className="mt-1 text-sm text-white/65">
+                {list.every((lesson) => lesson.completed)
+                  ? "Completaste todas las lecciones. Ya puedes realizar las evaluaciones."
+                  : `Completa las ${list.length} lecciones para desbloquear el examen final.`}
+              </p>
+            </div>
+            {list.every((lesson) => lesson.completed) ? (
+              <Button asChild className="font-cond shrink-0 uppercase tracking-wide">
+                <Link to="/examen-final/$subcourseId" params={{ subcourseId: activeSubcourse.id }}>
+                  <GraduationCap className="h-4 w-4" /> Examen final
+                </Link>
+              </Button>
+            ) : (
+              <Button type="button" disabled className="font-cond shrink-0 uppercase tracking-wide">
+                <Lock className="h-4 w-4" /> Examen final bloqueado
+              </Button>
+            )}
           </div>
         </div>
       )}

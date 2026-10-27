@@ -45,12 +45,17 @@ export const adminSaveClubContent = createServerFn({ method: "POST" })
       if (!Object.hasOwn(CLUB_LANDING_DEFAULTS, key)) {
         throw new Error(`Campo de contenido no permitido: ${key}`);
       }
-      const maxLength = ["club_builder", "courses_page_builder"].includes(key) ? 500_000 : 30_000;
+      const maxLength = ["club_builder", "courses_page_builder", "catering_page_builder"].includes(
+        key,
+      )
+        ? 500_000
+        : 30_000;
       if (typeof value !== "string" || value.length > maxLength) {
         throw new Error(`El campo ${key} no es válido o es demasiado largo`);
       }
       if (key === "club_builder") validateClubBuilderLayout(value);
       if (key === "courses_page_builder") validateCoursePageSections(value);
+      if (key === "catering_page_builder") validateCoursePageSections(value);
       if (Object.hasOwn(CLUB_LANDING_COLLECTION_DEFAULTS, key)) {
         let collection: unknown;
         try {
@@ -116,7 +121,7 @@ export const adminUploadClubImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { fileName: string; dataUrl: string }) => {
     if (!input?.dataUrl?.startsWith("data:image/")) throw new Error("Selecciona una imagen válida");
-    if (input.dataUrl.length > 8_000_000) throw new Error("La imagen es demasiado grande");
+    if (input.dataUrl.length > 8_100_000) throw new Error("La imagen es demasiado grande");
     return input;
   })
   .handler(async ({ data, context }) => {

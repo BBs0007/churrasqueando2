@@ -24,7 +24,7 @@ export type ClubOrder = {
   status: string;
   delivery_type: string;
   created_at: string;
-  items: { name: string; quantity: number; price: number; unit?: string }[];
+  items: { id: string; name: string; quantity: number; price: number; unit?: string }[];
 };
 
 export type ClubTransaction = {
@@ -132,7 +132,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { data: updatedProfile, error } = await context.supabase
       .from("profiles")
       .update({
         full_name: data.fullName,
@@ -140,8 +140,11 @@ export const updateMyProfile = createServerFn({ method: "POST" })
         address: data.address,
         birth_date: data.birthDate,
       })
-      .eq("id", context.userId);
+      .eq("id", context.userId)
+      .select("id")
+      .maybeSingle();
     if (error) throw error;
+    if (!updatedProfile) throw new Error("No se encontró el perfil para actualizar");
     return { ok: true };
   });
 
@@ -375,6 +378,7 @@ export const recordOrder = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let memberDiscountCode: string | null = null;
     const brasaDiscount = (data.pointsToRedeem / CLUB.redeemStep) * CLUB.redeemValueBs;
     const itemsSubtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     if (
@@ -385,6 +389,22 @@ export const recordOrder = createServerFn({ method: "POST" })
       (brasaDiscount > 0 && (data.discountAmount ?? 0) < brasaDiscount)
     ) {
       throw new Error("El descuento de Puntos de Brasa no coincide con el pedido");
+    }
+
+    if (data.discountCode) {
+      const { data: memberCode, error: memberCodeError } = await supabaseAdmin
+        .from("club_discount_codes")
+        .select("code, user_id, redeemed_at")
+        .eq("code", data.discountCode.trim().toUpperCase())
+        .maybeSingle();
+      if (memberCodeError) throw memberCodeError;
+      if (memberCode) {
+        if (memberCode.user_id !== context.userId) {
+          throw new Error("Este código personal pertenece a otra cuenta del Club");
+        }
+        if (memberCode.redeemed_at) throw new Error("Este código ya fue utilizado");
+        memberDiscountCode = memberCode.code;
+      }
     }
 
     const { data: order, error } = await supabaseAdmin
@@ -413,12 +433,14 @@ export const recordOrder = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
 
-    if (data.pointsToRedeem > 0) {
-      const { error: redeemError } = await context.supabase.rpc("redeem_brasa_points", {
+    if (data.pointsToRedeem > 0 || memberDiscountCode) {
+      const { error: finalizeError } = await supabaseAdmin.rpc("finalize_club_discount_checkout", {
         p_order_id: order.id,
+        p_user_id: context.userId,
+        p_member_code: memberDiscountCode,
         p_points: data.pointsToRedeem,
       });
-      if (redeemError) {
+      if (finalizeError) {
         const { error: cleanupError } = await supabaseAdmin
           .from("orders")
           .delete()
@@ -429,12 +451,13 @@ export const recordOrder = createServerFn({ method: "POST" })
             cleanupError,
           );
         }
-        throw redeemError;
+        throw finalizeError;
       }
     }
 
     return {
       ok: true,
+      orderId: order.id,
       pointsRedeemed: data.pointsToRedeem,
       discountAmount: data.brasaDiscountAmount,
     };

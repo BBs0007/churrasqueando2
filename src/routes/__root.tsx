@@ -22,6 +22,7 @@ import { CartProvider } from "../contexts/CartContext";
 import { Toaster } from "../components/ui/sonner";
 import { supabase } from "../integrations/supabase/client";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import logo from "../assets/logo-churrasqueando.png";
 
 function NotFoundComponent() {
   return (
@@ -100,8 +101,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       {
         rel: "icon",
-        href: "/favicon.ico?v=5",
-        type: "image/x-icon",
+        href: logo,
+        type: "image/png",
+        sizes: "800x800",
       },
       {
         rel: "stylesheet",

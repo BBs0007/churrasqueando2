@@ -1,5 +1,5 @@
 UPDATE storage.buckets
-SET file_size_limit = 104857600,
+SET file_size_limit = 314572800,
     allowed_mime_types = ARRAY[
       'image/jpeg',
       'image/png',

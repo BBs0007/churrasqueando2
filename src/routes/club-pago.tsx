@@ -82,10 +82,23 @@ function ClubPaymentPage() {
     [club.data?.requests],
   );
   const isMember = !!club.data?.isMember || !!club.data?.isAdmin;
-  const selectedPlan = plans.data?.find((plan) => plan.id === selectedPlanId) ?? null;
+  const availablePlans = useMemo(
+    () =>
+      (plans.data ?? []).filter((plan) =>
+        countryCode === "BO" ? plan.currency === "Bs" : plan.currency === "USD",
+      ),
+    [countryCode, plans.data],
+  );
+  const selectedPlan = availablePlans.find((plan) => plan.id === selectedPlanId) ?? null;
   useEffect(() => {
-    if (selectedPlan?.currency === "USD") setCountryCode("INT");
-  }, [selectedPlan?.currency]);
+    if (!availablePlans.length) {
+      setSelectedPlanId("");
+      return;
+    }
+    if (availablePlans.some((plan) => plan.id === selectedPlanId)) return;
+    const annualPlan = availablePlans.find((plan) => plan.interval === "annual");
+    setSelectedPlanId(annualPlan?.id ?? availablePlans[0].id);
+  }, [availablePlans, selectedPlanId]);
   const currentPlan = plans.data?.find((plan) => plan.id === club.data?.profile.membership_plan_id);
   const paymentMethod = countryCode === "BO" ? "bolivia_qr" : "binance";
 
@@ -261,6 +274,41 @@ function ClubPaymentPage() {
           </section>
         ) : (
           <>
+            <section aria-label="Selecciona tu país de pago" className="mb-4 mt-2">
+              <h2 className="font-cond mb-3 text-center text-sm font-bold uppercase tracking-[0.2em] text-primary">
+                ¿Desde dónde vas a pagar?
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["BO", "🇧🇴", "Bolivia", "QR · transferencia"],
+                    ["INT", "🌎", "Internacional", "Instrucciones de pago"],
+                  ] as const
+                ).map(([code, icon, label, description]) => (
+                  <button
+                    key={code}
+                    type="button"
+                    role="tab"
+                    aria-selected={countryCode === code}
+                    onClick={() => setCountryCode(code)}
+                    className={`rounded-xl border p-3 text-center transition-colors sm:p-4 ${
+                      countryCode === code
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-card hover:border-primary/50"
+                    }`}
+                  >
+                    <span className="block text-2xl" aria-hidden="true">
+                      {icon}
+                    </span>
+                    <span className="mt-1 block font-semibold text-foreground">{label}</span>
+                    <span className="block text-[11px] text-muted-foreground sm:text-xs">
+                      {description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
             <section className="rounded-2xl border border-primary bg-gradient-to-br from-primary/15 to-card p-4 text-center sm:p-6">
               <p className="font-cond text-xs font-bold uppercase tracking-[0.22em] text-primary">
                 Planes disponibles
@@ -271,9 +319,9 @@ function ClubPaymentPage() {
                 <p role="alert" className="mt-3 text-sm text-destructive">
                   No se pudieron cargar los planes. Intenta nuevamente más tarde.
                 </p>
-              ) : plans.data?.length ? (
+              ) : availablePlans.length ? (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {plans.data.map((plan) => (
+                  {availablePlans.map((plan) => (
                     <button
                       key={plan.id}
                       type="button"
@@ -307,7 +355,8 @@ function ClubPaymentPage() {
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-muted-foreground">
-                  No hay planes disponibles en este momento.
+                  No hay planes disponibles en{" "}
+                  {countryCode === "BO" ? "bolivianos (Bs)" : "dólares (USD)"}.
                 </p>
               )}
             </section>
@@ -330,42 +379,8 @@ function ClubPaymentPage() {
               )}
             </section>
 
-            <section className="mt-7">
-              <h2 className="font-cond mb-3 text-center text-sm font-bold uppercase tracking-[0.2em] text-primary">
-                ¿Desde dónde vas a pagar?
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                {(
-                  [
-                    ["BO", "🇧🇴", "Bolivia", "QR · transferencia"],
-                    ["INT", "🌎", "Internacional", "Instrucciones de pago"],
-                  ] as const
-                ).map(([code, icon, label, description]) => (
-                  <button
-                    key={code}
-                    type="button"
-                    role="tab"
-                    aria-selected={countryCode === code}
-                    disabled={selectedPlan?.currency === "USD" && code === "BO"}
-                    onClick={() => setCountryCode(code)}
-                    className={`rounded-xl border p-3 text-center transition-colors sm:p-4 ${
-                      countryCode === code
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-card hover:border-primary/50"
-                    } disabled:cursor-not-allowed disabled:opacity-40`}
-                  >
-                    <span className="block text-2xl" aria-hidden="true">
-                      {icon}
-                    </span>
-                    <span className="mt-1 block font-semibold text-foreground">{label}</span>
-                    <span className="block text-[11px] text-muted-foreground sm:text-xs">
-                      {description}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-3 rounded-2xl border border-border bg-card p-4 sm:p-6">
+            <section className="mt-4">
+              <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
                 {selectedPlan ? (
                   <div className="mb-4 rounded-xl border border-primary/50 bg-primary/5 p-3 text-center">
                     <p className="font-display text-2xl text-foreground">

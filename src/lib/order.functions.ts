@@ -14,6 +14,7 @@ export type OrderInput = {
   // separately via recordOrder, so we skip the guest insert to avoid a
   // duplicate row in admin sales.
   hasAccount?: boolean;
+  orderId?: string;
   deliveryType: "delivery" | "pickup" | "province";
   address?: string;
   lat?: number;
@@ -28,6 +29,8 @@ export type OrderInput = {
   total: number;
   discountCode?: string;
   discountAmount?: number;
+  brasaDiscountAmount?: number;
+  brasaPointsRedeemed?: number;
 };
 
 export type OrderResult = {
@@ -75,9 +78,12 @@ function buildMessage(data: OrderInput): string {
     lines.push(`• ${it.quantity}x ${it.name} (${it.unit}) — ${it.price * it.quantity} Bs`);
   }
   lines.push("");
-  if (data.discountAmount && data.discountAmount > 0) {
+  if (data.discountCode && data.discountAmount && data.discountAmount > 0) {
+    lines.push(`*Código de descuento (${data.discountCode}):* -${data.discountAmount} Bs`);
+  }
+  if (data.brasaPointsRedeemed && data.brasaPointsRedeemed > 0) {
     lines.push(
-      `*Descuento${data.discountCode ? ` (${data.discountCode})` : ""}:* -${data.discountAmount} Bs`,
+      `*Puntos de Brasa (${data.brasaPointsRedeemed}):* -${data.brasaDiscountAmount ?? 0} Bs`,
     );
   }
   lines.push(`*TOTAL: ${data.total} Bs*`);
@@ -152,6 +158,48 @@ export const submitOrder = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }): Promise<OrderResult> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.discountCode) {
+      const { data: memberCode, error: memberCodeError } = await supabaseAdmin
+        .from("club_discount_codes")
+        .select("user_id, redeemed_at, redeemed_order_id")
+        .eq("code", data.discountCode.trim().toUpperCase())
+        .maybeSingle();
+      if (memberCodeError) throw memberCodeError;
+      if (memberCode) {
+        if (!data.hasAccount || !data.orderId || !memberCode.redeemed_at) {
+          throw new Error("Inicia sesión con la cuenta del socio para usar este código");
+        }
+        if (memberCode.redeemed_order_id !== data.orderId) {
+          throw new Error("Este código ya fue utilizado en otro pedido");
+        }
+        const { data: savedOrder, error: orderError } = await supabaseAdmin
+          .from("orders")
+          .select(
+            "user_id, customer_name, customer_phone, discount_code, discount_amount, brasa_discount_amount, brasa_points_redeemed, total",
+          )
+          .eq("id", data.orderId)
+          .maybeSingle();
+        if (orderError) throw orderError;
+        if (
+          !savedOrder ||
+          savedOrder.user_id !== memberCode.user_id ||
+          savedOrder.customer_name !== data.customerName ||
+          savedOrder.customer_phone !== data.customerPhone ||
+          savedOrder.discount_code !== data.discountCode ||
+          Math.abs(
+            Number(savedOrder.discount_amount) -
+              Number(savedOrder.brasa_discount_amount) -
+              (data.discountAmount ?? 0),
+          ) > 0.01 ||
+          Math.abs(Number(savedOrder.total) - data.total) > 0.01 ||
+          savedOrder.brasa_points_redeemed !== (data.brasaPointsRedeemed ?? 0)
+        ) {
+          throw new Error("No se pudo verificar el pedido asociado al código personal");
+        }
+      }
+    }
+
     const message = buildMessage(data);
     const businessNumber = process.env.BUSINESS_WHATSAPP || "59175358008";
     const { toBusiness } = await trySendWhatsApp(data, message);
@@ -163,7 +211,6 @@ export const submitOrder = createServerFn({ method: "POST" })
     // so we skip this insert for them to avoid a duplicate row.
     if (!data.hasAccount) {
       try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         await supabaseAdmin.from("orders").insert({
           user_id: null,
           customer_name: data.customerName,

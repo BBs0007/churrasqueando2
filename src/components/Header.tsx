@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ShoppingBag, User } from "lucide-react";
 import logo from "@/assets/logo-churrasqueando.png";
 import { useCart } from "@/contexts/CartContext";
@@ -12,13 +12,6 @@ const NAV = [
 
 export function Header() {
   const { totalItems, setOpen } = useCart();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-
-  // Mientras el cliente está en la Tienda, el navbar se muestra reducido
-  // (sin Catering, Club Churrasqueando ni Puntos de ventas).
-  const isTienda = pathname === "/tienda";
-  const visibleNav = isTienda ? NAV.filter((item) => item.to === "/tienda") : NAV;
-  const showBranchesLink = !isTienda;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
@@ -42,7 +35,7 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {visibleNav.map((item) => (
+          {NAV.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -52,15 +45,13 @@ export function Header() {
               {item.label}
             </Link>
           ))}
-          {showBranchesLink && (
-            <Link
-              to="/puntos-de-venta"
-              className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              activeProps={{ className: "text-primary" }}
-            >
-              Puntos de ventas
-            </Link>
-          )}
+          <Link
+            to="/puntos-de-venta"
+            className="font-cond rounded-full px-3 py-1.5 text-sm font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            activeProps={{ className: "text-primary" }}
+          >
+            Puntos de ventas
+          </Link>
         </nav>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -95,7 +86,7 @@ export function Header() {
         aria-label="Navegación principal"
         className="flex items-center gap-2 overflow-x-auto px-3 pb-2 sm:px-4 lg:hidden no-scrollbar"
       >
-        {visibleNav.map((item) => (
+        {NAV.map((item) => (
           <Link
             key={item.to}
             to={item.to}
@@ -104,14 +95,12 @@ export function Header() {
             {item.label}
           </Link>
         ))}
-        {showBranchesLink && (
-          <Link
-            to="/puntos-de-venta"
-            className="font-cond shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
-          >
-            Puntos de ventas
-          </Link>
-        )}
+        <Link
+          to="/puntos-de-venta"
+          className="font-cond shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
+        >
+          Puntos de ventas
+        </Link>
       </nav>
     </header>
   );

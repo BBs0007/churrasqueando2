@@ -114,7 +114,9 @@ function AdminVentas() {
               <p className="font-cond flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
                 <Receipt className="h-3.5 w-3.5 text-primary" /> Pedidos
               </p>
-              <p className="font-display mt-2 text-2xl text-foreground">{stats?.totalOrders ?? 0}</p>
+              <p className="font-display mt-2 text-2xl text-foreground">
+                {stats?.totalOrders ?? 0}
+              </p>
             </div>
             <div className="rounded-2xl border border-border bg-card p-4">
               <p className="font-cond flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
@@ -128,7 +130,9 @@ function AdminVentas() {
               <p className="font-cond flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
                 <UserX className="h-3.5 w-3.5 text-primary" /> Invitados
               </p>
-              <p className="font-display mt-2 text-2xl text-foreground">{stats?.guestOrders ?? 0}</p>
+              <p className="font-display mt-2 text-2xl text-foreground">
+                {stats?.guestOrders ?? 0}
+              </p>
             </div>
           </div>
 
@@ -182,8 +186,16 @@ function AdminVentas() {
                     <TableCell className="text-sm text-muted-foreground">
                       {DELIVERY_LABELS[s.deliveryType] ?? s.deliveryType}
                     </TableCell>
-                    <TableCell className="max-w-[260px] truncate text-sm text-muted-foreground">
-                      {s.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}
+                    <TableCell className="max-w-[260px] text-sm text-muted-foreground">
+                      <p className="truncate">
+                        {s.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}
+                      </p>
+                      {s.discountCode && (
+                        <p className="mt-1 text-xs text-primary">
+                          Código {s.discountCode} · descuento total {s.discountAmount.toFixed(2)}{" "}
+                          {CURRENCY}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell className="font-display text-foreground">
                       {s.total.toFixed(2)} {CURRENCY}
@@ -192,7 +204,10 @@ function AdminVentas() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell
+                      colSpan={6}
+                      className="py-10 text-center text-sm text-muted-foreground"
+                    >
                       No se encontraron ventas.
                     </TableCell>
                   </TableRow>

@@ -643,15 +643,17 @@ export function BuilderBlockList({
                   ) : (
                     <Upload className="h-4 w-4" />
                   )}
-                  Subir video (máx. 100 MB)
+                  Subir video (máx. 300 MB)
                 </Button>
               </div>
               {block.url && (
                 <video
                   src={block.url}
                   controls
+                  controlsList="nodownload"
                   playsInline
                   preload="metadata"
+                  onContextMenu={(event) => event.preventDefault()}
                   className="aspect-video w-full rounded-xl bg-black sm:col-span-2"
                 />
               )}
@@ -783,21 +785,25 @@ export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
       );
     case "image":
       return block.url ? (
-        <img
-          src={block.url}
-          alt={block.title}
-          loading="lazy"
-          className="max-h-[560px] w-full rounded-2xl object-cover"
-        />
+        <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-secondary/40">
+          <img
+            src={block.url}
+            alt={block.title}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        </div>
       ) : null;
     case "video":
       return block.url ? (
         <video
           src={block.url}
           controls
+          controlsList="nodownload"
           playsInline
           preload="metadata"
           aria-label={block.title || undefined}
+          onContextMenu={(event) => event.preventDefault()}
           className="max-h-[560px] w-full rounded-2xl bg-black"
         />
       ) : null;

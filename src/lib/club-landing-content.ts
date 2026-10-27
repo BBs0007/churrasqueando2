@@ -7,6 +7,7 @@ import {
   FOUNDER_PERKS,
   PUNTOS_BRASA_STEPS,
 } from "@/lib/club";
+import { CATERING_PAGE_DEFAULTS } from "@/lib/catering-page-content";
 
 export type ClubLandingField = {
   key: string;
@@ -19,7 +20,13 @@ export type ClubLandingCollection = {
   key: string;
   label: string;
   help: string;
-  fields: { key: string; label: string; multiline?: boolean; optional?: boolean }[];
+  fields: {
+    key: string;
+    label: string;
+    multiline?: boolean;
+    optional?: boolean;
+    image?: boolean;
+  }[];
 };
 
 export type ClubLandingSection = {
@@ -258,6 +265,74 @@ export const DEFAULT_CLUB_BUILDER_LAYOUT: ClubBuilderLayout = {
 };
 
 const collectionDefaults = {
+  club_course_cards: [
+    {
+      id: "club-course-maestro-churrasquero",
+      title: "Maestro Churrasquero",
+      subtitle: "De cero al fuego perfecto",
+      tag: "Curso insignia",
+      description:
+        "Si cada asado te sale distinto y estás cansado de depender de la suerte, este curso es para vos. De los fundamentos del fuego al punto perfecto de cada corte.",
+      bullets:
+        "Fundamentos del calor, brasas y manejo por zonas\nEl punto exacto de cada corte\nSellado, reposo y timing\nDe los cortes finos a las piezas grandes",
+      image: "/courses/curso-fuego.jpg",
+    },
+    {
+      id: "club-course-amos-del-humo",
+      title: "Amos del Humo",
+      subtitle: "Ahumados y BBQ estilo USA",
+      tag: "BBQ & ahumados",
+      description:
+        "¿Viste esos ahumados que se deshacen solos y pensaste que eran imposibles en casa? No lo son. Dominá el BBQ norteamericano con control real de humo.",
+      bullets:
+        "Tipos de ahumadores y maderas\nControl de tiempo y temperatura: bajo y lento\nBrisket, costillas, short ribs y pulled pork\nRubs, salsas y el anillo de humo",
+      image: "/courses/curso-bbq.jpg",
+    },
+    {
+      id: "club-course-fuego-ancestral",
+      title: "Fuego Ancestral",
+      subtitle: "Asado a la leña, a la cruz y al baral",
+      tag: "Curso en línea",
+      description:
+        "Cocinar con fuego vivo es la técnica más ancestral y la más emocionante. Asá piezas completas a la cruz y al baral, como en las grandes celebraciones del sur.",
+      bullets:
+        "Elección y manejo de la leña\nEncendido y administración del fuego\nCostillares y piezas enteras a la cruz\nCómo adaptarte al clima y al viento",
+      image: "/courses/curso-lena.jpg",
+    },
+    {
+      id: "club-course-caja-china",
+      title: "Maestría en Caja China",
+      subtitle: "El secreto del cerdo crocante",
+      tag: "Curso en línea",
+      description:
+        "La forma más segura de sacar un cerdo entero crocante por fuera y jugoso por dentro. Aprendé los cortes, tiempos y temperaturas para nunca más arruinar una pieza grande.",
+      bullets:
+        "Armado y manejo de la caja china\nCortes recomendados y su preparación\nTiempos y temperaturas según el peso\nEl punto crocante de la piel",
+      image: "",
+    },
+    {
+      id: "club-course-dry-age",
+      title: "Dry Age en Casa",
+      subtitle: "Maduración en seco, hecha por vos",
+      tag: "Técnica premium",
+      description:
+        "La maduración en seco transforma tus cortes en otro nivel de suavidad y sabor. Aprendé a hacerlo de forma segura y precisa en casa. Sabor de restaurante, sin el precio.",
+      bullets:
+        "La ciencia de la maduración, simple\nCómo hacerlo seguro en casa\nTiempos y qué cortes sirven\nCómo evaluar el punto y cortar",
+      image: "",
+    },
+    {
+      id: "club-course-conoce-la-res",
+      title: "Conocé la Res",
+      subtitle: "Cortes y desposte completo",
+      tag: "Clase maestra",
+      description:
+        "Dejá de comprar a ciegas. Conocé la res entera, corte por corte, con clases de desposte: qué es cada pieza, para qué sirve y cómo elegir la mejor calidad.",
+      bullets:
+        "Anatomía completa de la res con desposte\nNombre y ubicación de cada corte\nQué técnica le va mejor a cada uno\nCómo reconocer y elegir calidad",
+      image: "/courses/curso-cortes.jpg",
+    },
+  ],
   benefits: CLUB_BENEFITS,
   points_steps: PUNTOS_BRASA_STEPS,
   founder_perks: FOUNDER_PERKS,
@@ -349,6 +424,7 @@ export const CLUB_LANDING_DEFAULTS: Record<string, string> = {
     "Cursos, comunidad, Puntos Brasa y beneficios exclusivos para socios del Club Churrasqueando.",
   club_builder: JSON.stringify(DEFAULT_CLUB_BUILDER_LAYOUT),
   courses_page_builder: "[]",
+  ...CATERING_PAGE_DEFAULTS,
 };
 
 export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
@@ -410,12 +486,27 @@ export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
     id: "courses",
     title: "Cursos",
     description:
-      "Edita el encabezado de esta sección. Las fichas de cursos se gestionan en Administración > Cursos.",
+      "Estas tarjetas son una copia independiente para la página del Club. Editarlas aquí no modifica el catálogo de /cursos.",
     fields: [
       { key: "courses_eyebrow", label: "Texto pequeño", type: "text" },
       { key: "courses_title", label: "Título de la sección", type: "text" },
       { key: "courses_description", label: "Descripción", type: "textarea" },
       { key: "courses_cta", label: "Texto del botón de suscripción en cada curso", type: "text" },
+    ],
+    collections: [
+      {
+        key: "club_course_cards",
+        label: "Cursos que se muestran en el Club",
+        help: "Administra por separado las tarjetas que aparecen en esta página: textos, imagen, etiqueta y lista de temas.",
+        fields: [
+          { key: "title", label: "Título" },
+          { key: "subtitle", label: "Subtítulo" },
+          { key: "tag", label: "Etiqueta" },
+          { key: "description", label: "Descripción", multiline: true },
+          { key: "bullets", label: "Temas (uno por línea)", multiline: true },
+          { key: "image", label: "Imagen", image: true },
+        ],
+      },
     ],
   },
   {

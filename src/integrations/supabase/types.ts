@@ -8,6 +8,195 @@ export type Database = {
   };
   public: {
     Tables: {
+      club_discount_campaigns: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          discount_type: "fixed" | "percentage";
+          ends_at: string | null;
+          id: string;
+          scope: "all" | "categories" | "products";
+          starts_at: string | null;
+          title: string;
+          updated_at: string;
+          value: number;
+        };
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          discount_type: "fixed" | "percentage";
+          ends_at?: string | null;
+          id?: string;
+          scope: "all" | "categories" | "products";
+          starts_at?: string | null;
+          title: string;
+          updated_at?: string;
+          value: number;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          discount_type?: "fixed" | "percentage";
+          ends_at?: string | null;
+          id?: string;
+          scope?: "all" | "categories" | "products";
+          starts_at?: string | null;
+          title?: string;
+          updated_at?: string;
+          value?: number;
+        };
+        Relationships: [];
+      };
+      club_discount_campaign_categories: {
+        Row: { campaign_id: string; category_id: string };
+        Insert: { campaign_id: string; category_id: string };
+        Update: { campaign_id?: string; category_id?: string };
+        Relationships: [];
+      };
+      club_discount_campaign_products: {
+        Row: { campaign_id: string; product_id: string };
+        Insert: { campaign_id: string; product_id: string };
+        Update: { campaign_id?: string; product_id?: string };
+        Relationships: [];
+      };
+      club_discount_codes: {
+        Row: {
+          campaign_id: string;
+          code: string;
+          created_at: string;
+          id: string;
+          redeemed_at: string | null;
+          redeemed_discount_amount: number | null;
+          redeemed_order_id: string | null;
+          user_id: string;
+        };
+        Insert: {
+          campaign_id: string;
+          code: string;
+          created_at?: string;
+          id?: string;
+          redeemed_at?: string | null;
+          redeemed_discount_amount?: number | null;
+          redeemed_order_id?: string | null;
+          user_id: string;
+        };
+        Update: {
+          campaign_id?: string;
+          code?: string;
+          created_at?: string;
+          id?: string;
+          redeemed_at?: string | null;
+          redeemed_discount_amount?: number | null;
+          redeemed_order_id?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      combos: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          description: string;
+          id: string;
+          image_url: string | null;
+          items: string[];
+          name: string;
+          price: number;
+          sort_order: number;
+          unit: string;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          description?: string;
+          id: string;
+          image_url?: string | null;
+          items?: string[];
+          name: string;
+          price?: number;
+          sort_order?: number;
+          unit?: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          description?: string;
+          id?: string;
+          image_url?: string | null;
+          items?: string[];
+          name?: string;
+          price?: number;
+          sort_order?: number;
+          unit?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      discount_code_categories: {
+        Row: { category_id: string; code_id: string };
+        Insert: { category_id: string; code_id: string };
+        Update: { category_id?: string; code_id?: string };
+        Relationships: [];
+      };
+      discount_code_products: {
+        Row: { code_id: string; product_id: string };
+        Insert: { code_id: string; product_id: string };
+        Update: { code_id?: string; product_id?: string };
+        Relationships: [];
+      };
+      discount_codes: {
+        Row: {
+          active: boolean;
+          code: string;
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          discount_type: "fixed" | "percentage";
+          ends_at: string | null;
+          id: string;
+          scope: "all" | "categories" | "products";
+          starts_at: string | null;
+          updated_at: string;
+          value: number;
+        };
+        Insert: {
+          active?: boolean;
+          code: string;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          discount_type?: "fixed" | "percentage";
+          ends_at?: string | null;
+          id?: string;
+          scope?: "all" | "categories" | "products";
+          starts_at?: string | null;
+          updated_at?: string;
+          value?: number;
+        };
+        Update: {
+          active?: boolean;
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          discount_type?: "fixed" | "percentage";
+          ends_at?: string | null;
+          id?: string;
+          scope?: "all" | "categories" | "products";
+          starts_at?: string | null;
+          updated_at?: string;
+          value?: number;
+        };
+        Relationships: [];
+      };
       club_membership_plans: {
         Row: {
           active: boolean;
@@ -89,13 +278,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      catering_packages: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          cortes: Json;
+          guarniciones: Json;
+          highlight: string;
+          id: string;
+          image_url: string | null;
+          includes_note: string;
+          name: string;
+          picada: string;
+          portion: string;
+          price: number;
+          sort_order: number;
+          updated_at: string;
+          utencilios: Json;
+        };
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          cortes?: Json;
+          guarniciones?: Json;
+          highlight?: string;
+          id?: string;
+          image_url?: string | null;
+          includes_note?: string;
+          name: string;
+          picada?: string;
+          portion?: string;
+          price?: number;
+          sort_order?: number;
+          updated_at?: string;
+          utencilios?: Json;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          cortes?: Json;
+          guarniciones?: Json;
+          highlight?: string;
+          id?: string;
+          image_url?: string | null;
+          includes_note?: string;
+          name?: string;
+          picada?: string;
+          portion?: string;
+          price?: number;
+          sort_order?: number;
+          updated_at?: string;
+          utencilios?: Json;
+        };
+        Relationships: [];
+      };
       club_subcourses: {
         Row: {
           active: boolean;
           course_id: string;
           created_at: string;
           description: string;
+          exam_questions: Json;
           id: string;
+          practical_task: string;
           sort_order: number;
           title: string;
           updated_at: string;
@@ -105,7 +350,9 @@ export type Database = {
           course_id: string;
           created_at?: string;
           description?: string;
+          exam_questions?: Json;
           id?: string;
+          practical_task?: string;
           sort_order?: number;
           title: string;
           updated_at?: string;
@@ -115,7 +362,9 @@ export type Database = {
           course_id?: string;
           created_at?: string;
           description?: string;
+          exam_questions?: Json;
           id?: string;
+          practical_task?: string;
           sort_order?: number;
           title?: string;
           updated_at?: string;
@@ -167,6 +416,7 @@ export type Database = {
           created_at: string;
           id: string;
           lesson_id: string;
+          parent_comment_id: string | null;
           user_id: string;
         };
         Insert: {
@@ -174,6 +424,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           lesson_id: string;
+          parent_comment_id?: string | null;
           user_id: string;
         };
         Update: {
@@ -181,6 +432,118 @@ export type Database = {
           created_at?: string;
           id?: string;
           lesson_id?: string;
+          parent_comment_id?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      course_lesson_comment_likes: {
+        Row: { comment_id: string; created_at: string; user_id: string };
+        Insert: { comment_id: string; created_at?: string; user_id: string };
+        Update: { comment_id?: string; created_at?: string; user_id?: string };
+        Relationships: [];
+      };
+      course_subcourse_exam_keys: {
+        Row: { answer_key: Json; subcourse_id: string; updated_at: string };
+        Insert: { answer_key?: Json; subcourse_id: string; updated_at?: string };
+        Update: { answer_key?: Json; subcourse_id?: string; updated_at?: string };
+        Relationships: [];
+      };
+      course_assessment_attempts: {
+        Row: {
+          answers: Json;
+          created_at: string;
+          id: string;
+          question_count: number;
+          score: number;
+          subcourse_id: string;
+          user_id: string;
+        };
+        Insert: {
+          answers: Json;
+          created_at?: string;
+          id?: string;
+          question_count: number;
+          score: number;
+          subcourse_id: string;
+          user_id: string;
+        };
+        Update: {
+          answers?: Json;
+          created_at?: string;
+          id?: string;
+          question_count?: number;
+          score?: number;
+          subcourse_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      course_practical_upload_tickets: {
+        Row: {
+          consumed_at: string | null;
+          content_type: string;
+          created_at: string;
+          max_size: number;
+          path: string;
+          subcourse_id: string;
+          user_id: string;
+        };
+        Insert: {
+          consumed_at?: string | null;
+          content_type: string;
+          created_at?: string;
+          max_size: number;
+          path: string;
+          subcourse_id: string;
+          user_id: string;
+        };
+        Update: {
+          consumed_at?: string | null;
+          content_type?: string;
+          created_at?: string;
+          max_size?: number;
+          path?: string;
+          subcourse_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      course_practical_submissions: {
+        Row: {
+          admin_feedback: string;
+          created_at: string;
+          evidence_path: string;
+          id: string;
+          note: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+          subcourse_id: string;
+          user_id: string;
+        };
+        Insert: {
+          admin_feedback?: string;
+          created_at?: string;
+          evidence_path: string;
+          id?: string;
+          note?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          subcourse_id: string;
+          user_id: string;
+        };
+        Update: {
+          admin_feedback?: string;
+          created_at?: string;
+          evidence_path?: string;
+          id?: string;
+          note?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          subcourse_id?: string;
           user_id?: string;
         };
         Relationships: [];
@@ -303,6 +666,7 @@ export type Database = {
           points_earned: number;
           province: string | null;
           status: string;
+          source: string;
           total: number;
           town: string | null;
           user_id: string | null;
@@ -326,6 +690,7 @@ export type Database = {
           points_earned?: number;
           province?: string | null;
           status?: string;
+          source?: string;
           total?: number;
           town?: string | null;
           user_id?: string | null;
@@ -349,6 +714,7 @@ export type Database = {
           points_earned?: number;
           province?: string | null;
           status?: string;
+          source?: string;
           total?: number;
           town?: string | null;
           user_id?: string | null;
@@ -356,6 +722,81 @@ export type Database = {
           brasa_points_redeemed?: number;
           discount_code?: string | null;
           discount_amount?: number;
+        };
+        Relationships: [];
+      };
+      product_categories: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          section_id: string | null;
+          sort_order: number;
+          tagline: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id: string;
+          name: string;
+          section_id?: string | null;
+          sort_order?: number;
+          tagline?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          section_id?: string | null;
+          sort_order?: number;
+          tagline?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      products: {
+        Row: {
+          active: boolean;
+          category_id: string | null;
+          created_at: string;
+          description: string;
+          id: string;
+          image_url: string | null;
+          is_best_seller: boolean;
+          name: string;
+          price: number;
+          sort_order: number;
+          unit: string;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          category_id?: string | null;
+          created_at?: string;
+          description?: string;
+          id?: string;
+          image_url?: string | null;
+          is_best_seller?: boolean;
+          name: string;
+          price?: number;
+          sort_order?: number;
+          unit?: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          category_id?: string | null;
+          created_at?: string;
+          description?: string;
+          id?: string;
+          image_url?: string | null;
+          is_best_seller?: boolean;
+          name?: string;
+          price?: number;
+          sort_order?: number;
+          unit?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -475,8 +916,56 @@ export type Database = {
         };
         Returns: boolean;
       };
+      finalize_club_discount_checkout: {
+        Args: {
+          p_member_code: string | null;
+          p_order_id: string;
+          p_points: number;
+          p_user_id: string;
+        };
+        Returns: number;
+      };
+      admin_upsert_club_discount_campaign: {
+        Args: {
+          p_active: boolean;
+          p_admin_user_id: string;
+          p_campaign_id: string | null;
+          p_category_ids: string[];
+          p_description: string;
+          p_discount_type: string;
+          p_ends_at: string | null;
+          p_product_ids: string[];
+          p_scope: string;
+          p_starts_at: string | null;
+          p_title: string;
+          p_value: number;
+        };
+        Returns: string;
+      };
       complete_course_lesson: {
         Args: { p_lesson_id: string };
+        Returns: {
+          course_bonus: number;
+          course_completed: boolean;
+          lesson_points: number;
+        }[];
+      };
+      start_course_lesson_watch: {
+        Args: { p_lesson_id: string };
+        Returns: string;
+      };
+      record_course_lesson_watch: {
+        Args: {
+          p_duration_seconds: number;
+          p_ended?: boolean;
+          p_is_playing: boolean;
+          p_position_seconds: number;
+          p_session_id: string;
+        };
+        Returns: boolean;
+      };
+      complete_course_lesson_after_watch: {
+        Args: { p_lesson_id: string; p_session_id: string };
         Returns: {
           course_bonus: number;
           course_completed: boolean;

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Tag, Sparkles, Gift, ImageOff, MessageCircle } from "lucide-react";
 import { getMyClub } from "@/lib/club.functions";
-import { getActivePromotions } from "@/lib/discounts.functions";
+import { getActivePromotions, getMyClubDiscountCodes } from "@/lib/discounts.functions";
 import { getPromoStore } from "@/lib/promotions.functions";
 import { ClubShell } from "@/components/ClubShell";
 import { CLUB_WHATSAPP } from "@/lib/club";
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/promociones")({
 function Promociones() {
   const fetchClub = useServerFn(getMyClub);
   const fetchPromos = useServerFn(getActivePromotions);
+  const fetchMemberCodes = useServerFn(getMyClubDiscountCodes);
   const fetchStore = useServerFn(getPromoStore);
 
   const me = useQuery({ queryKey: ["club", "me"], queryFn: () => fetchClub() });
@@ -34,6 +35,11 @@ function Promociones() {
     queryKey: ["promotions"],
     queryFn: () => fetchPromos(),
     enabled: !!me.data,
+  });
+  const memberCodes = useQuery({
+    queryKey: ["club", "discount-codes", me.data?.profile.id],
+    queryFn: () => fetchMemberCodes(),
+    enabled: !!me.data?.isMember,
   });
   const store = useQuery({
     queryKey: ["promo-store"],
@@ -119,6 +125,53 @@ function Promociones() {
           ))}
         </div>
       )}
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl uppercase tracking-wide text-foreground">
+          Tus códigos personales
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Cada código está asignado a tu cuenta y puede usarse una sola vez en el checkout.
+        </p>
+        {memberCodes.isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : memberCodes.isError ? (
+          <p role="alert" className="mt-4 text-sm text-destructive">
+            No se pudieron cargar tus códigos personales. Intenta nuevamente más tarde.
+          </p>
+        ) : (memberCodes.data?.promotions.length ?? 0) === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            No tienes códigos personales disponibles por ahora.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {memberCodes.data!.promotions.map((promotion) => (
+              <div key={promotion.id} className="rounded-2xl border border-primary/40 bg-card p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-display text-xl text-foreground">{promotion.title}</h3>
+                  <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+                    {promotion.redeemed_at ? "Canjeado" : "Disponible"}
+                  </span>
+                </div>
+                <p className="mt-2 font-display text-2xl text-primary">
+                  {promotion.discount_type === "percentage"
+                    ? `${promotion.value}%`
+                    : `${promotion.value} ${CURRENCY}`}{" "}
+                  de descuento
+                </p>
+                {promotion.description && (
+                  <p className="mt-1 text-sm text-muted-foreground">{promotion.description}</p>
+                )}
+                <p className="mt-4 break-all rounded-lg bg-secondary px-3 py-2 font-mono text-lg font-bold tracking-widest text-foreground">
+                  {promotion.code}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* TIENDA DE PROMOCIONES */}
       <div className="mt-12">

@@ -26,7 +26,11 @@ import { submitOrder, type OrderResult } from "@/lib/order.functions";
 import { getMyClub, recordOrder } from "@/lib/club.functions";
 import { CLUB } from "@/lib/club";
 import { useSession } from "@/hooks/useSession";
-import { validateDiscountCode, type ValidateDiscountResult } from "@/lib/discounts.functions";
+import {
+  validateClubDiscountCode,
+  validateDiscountCode,
+  type ValidateDiscountResult,
+} from "@/lib/discounts.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPicker, type LatLng } from "@/components/MapPicker";
 import { Button } from "@/components/ui/button";
@@ -64,7 +68,10 @@ export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Finalizar pedido · Churrasqueando" },
-      { name: "description", content: "Completa tus datos y confirma tu pedido en Churrasqueando." },
+      {
+        name: "description",
+        content: "Completa tus datos y confirma tu pedido en Churrasqueando.",
+      },
     ],
   }),
   component: Checkout,
@@ -90,6 +97,7 @@ function Checkout() {
   const submit = useServerFn(submitOrder);
   const saveOrder = useServerFn(recordOrder);
   const validateCode = useServerFn(validateDiscountCode);
+  const validateMemberCode = useServerFn(validateClubDiscountCode);
   const fetchClub = useServerFn(getMyClub);
   const club = useQuery({
     queryKey: ["club", "me"],
@@ -124,11 +132,11 @@ function Checkout() {
     [department],
   );
   const townsList = useMemo(
-    () => (department && province ? BOLIVIA[department]?.[province] ?? [] : []),
+    () => (department && province ? (BOLIVIA[department]?.[province] ?? []) : []),
     [department, province],
   );
 
-  const discountAmount = appliedDiscount?.valid ? appliedDiscount.discountAmount ?? 0 : 0;
+  const discountAmount = appliedDiscount?.valid ? (appliedDiscount.discountAmount ?? 0) : 0;
   const availablePoints = session ? (club.data?.profile.points ?? 0) : 0;
   const brasaPointsToRedeem =
     useBrasaPoints && availablePoints >= CLUB.redeemStep
@@ -161,7 +169,7 @@ function Checkout() {
   // (bimodal, avión, trufi) es referencial y se coordina aparte.
   const coolerPrice =
     deliveryType === "province" && coolerSize
-      ? COOLER_OPTIONS.find((c) => c.id === coolerSize)?.price ?? 0
+      ? (COOLER_OPTIONS.find((c) => c.id === coolerSize)?.price ?? 0)
       : 0;
   const finalTotal = Math.max(
     0,
@@ -173,14 +181,30 @@ function Checkout() {
     setDiscountLoading(true);
     setDiscountError(null);
     try {
-      const res = await validateCode({
-        data: {
-          code: discountInput.trim(),
-          items: items.map((i) => ({ id: i.product.id, price: i.product.price, quantity: i.quantity })),
-        },
-      });
+      const input = {
+        code: discountInput.trim(),
+        items: items.map((i) => ({
+          id: i.product.id,
+          price: i.product.price,
+          quantity: i.quantity,
+        })),
+      };
+      let memberCodeMessage: string | undefined;
+      if (session) {
+        const memberResult = await validateMemberCode({ data: input });
+        if (memberResult.valid) {
+          setAppliedDiscount(memberResult);
+          setDiscountError(null);
+          return;
+        }
+        if (!memberResult.message?.startsWith("Ese código no pertenece")) {
+          memberCodeMessage = memberResult.message;
+        }
+      }
+
+      const res = await validateCode({ data: input });
       if (!res.valid) {
-        setDiscountError(res.message ?? "Código inválido");
+        setDiscountError(memberCodeMessage ?? res.message ?? "Código inválido");
         setAppliedDiscount(null);
       } else {
         setAppliedDiscount(res);
@@ -206,7 +230,7 @@ function Checkout() {
     items.length > 0 &&
     (deliveryType === "pickup" ||
       (deliveryType === "delivery" && (location || address.trim())) ||
-    (deliveryType === "province" && department && province && town && coolerSize));
+      (deliveryType === "province" && department && province && town && coolerSize));
 
   const handleSubmit = async () => {
     setError(null);
@@ -214,6 +238,7 @@ function Checkout() {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const hasAccount = !!sessionData.session;
+      let savedOrderId: string | undefined;
 
       if (hasAccount) {
         const saved = await saveOrder({
@@ -237,6 +262,7 @@ function Checkout() {
                 .filter(Boolean)
                 .join("\n") || null,
             items: items.map((i) => ({
+              id: i.product.id,
               name: i.product.name,
               quantity: i.quantity,
               price: i.product.price,
@@ -249,6 +275,7 @@ function Checkout() {
             brasaDiscountAmount: hasAccount ? brasaDiscountAmount : 0,
           },
         });
+        savedOrderId = saved.orderId;
         setRedeemedPoints(saved.pointsRedeemed);
         if (saved.pointsRedeemed > 0) {
           await queryClient.invalidateQueries({ queryKey: ["club", "me"] });
@@ -262,6 +289,7 @@ function Checkout() {
           customerName: name.trim(),
           customerPhone: phone.trim(),
           hasAccount,
+          orderId: savedOrderId,
           deliveryType,
           address:
             deliveryType === "delivery"
@@ -285,7 +313,9 @@ function Checkout() {
           })),
           total: finalTotal,
           discountCode: appliedDiscount?.valid ? appliedDiscount.code : undefined,
-          discountAmount: totalDiscountAmount > 0 ? totalDiscountAmount : undefined,
+          discountAmount: discountAmount > 0 ? discountAmount : undefined,
+          brasaDiscountAmount: brasaDiscountAmount > 0 ? brasaDiscountAmount : undefined,
+          brasaPointsRedeemed: brasaPointsToRedeem || undefined,
         },
       });
       setResult(res);
@@ -328,7 +358,10 @@ function Checkout() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <img src={logo} alt="Churrasqueando" className="h-9 w-9 rounded-md object-cover" />
@@ -343,7 +376,13 @@ function Checkout() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="name">Nombre completo</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" maxLength={80} />
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Tu nombre"
+                  maxLength={80}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">WhatsApp / Teléfono</Label>
@@ -447,7 +486,11 @@ function Checkout() {
                       disabled={!department}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={department ? "Elige provincia" : "Elige departamento primero"} />
+                        <SelectValue
+                          placeholder={
+                            department ? "Elige provincia" : "Elige departamento primero"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {provincesList.map((p) => (
@@ -497,7 +540,8 @@ function Checkout() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Coordinaremos por WhatsApp el costo exacto y la empresa de encomienda para tu envío.
+                  Coordinaremos por WhatsApp el costo exacto y la empresa de encomienda para tu
+                  envío.
                 </p>
 
                 <div className="rounded-2xl border border-primary/40 bg-primary/10 p-4">
@@ -508,8 +552,8 @@ function Checkout() {
                         Envío con costo adicional
                       </p>
                       <p className="text-muted-foreground">
-                        El transporte (Bimodal, avión o trufi) tiene un precio mínimo referencial
-                        y se coordina y cobra aparte por WhatsApp. Al total de este pedido solo se
+                        El transporte (Bimodal, avión o trufi) tiene un precio mínimo referencial y
+                        se coordina y cobra aparte por WhatsApp. Al total de este pedido solo se
                         suma el costo de la conservadora obligatoria.
                       </p>
                     </div>
@@ -523,7 +567,9 @@ function Checkout() {
                       <h3 className="font-cond font-semibold uppercase tracking-wide text-foreground">
                         Medio de transporte
                       </h3>
-                      <p className="text-xs text-muted-foreground">Elige una opción para cotizar tu envío.</p>
+                      <p className="text-xs text-muted-foreground">
+                        Elige una opción para cotizar tu envío.
+                      </p>
                     </div>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-3">
@@ -576,8 +622,8 @@ function Checkout() {
                         Conservadora obligatoria
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Tu pedido pesa aprox. {orderWeightKg.toFixed(1)} kg. Elegimos automáticamente
-                        qué tamaños alcanzan.
+                        Tu pedido pesa aprox. {orderWeightKg.toFixed(1)} kg. Elegimos
+                        automáticamente qué tamaños alcanzan.
                       </p>
                     </div>
                   </div>
@@ -601,10 +647,14 @@ function Checkout() {
                             {cooler.label}
                           </span>
                           <span className="block text-xs text-muted-foreground">
-                            {cooler.fits ? `Máximo ${cooler.maxWeight}` : `No alcanza (máx. ${cooler.maxWeight})`}
+                            {cooler.fits
+                              ? `Máximo ${cooler.maxWeight}`
+                              : `No alcanza (máx. ${cooler.maxWeight})`}
                           </span>
                         </span>
-                        <span className="font-cond shrink-0 font-semibold text-primary">{cooler.price} Bs</span>
+                        <span className="font-cond shrink-0 font-semibold text-primary">
+                          {cooler.price} Bs
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -690,9 +740,7 @@ function Checkout() {
                   </Button>
                 </div>
               )}
-              {discountError && (
-                <p className="mt-1.5 text-xs text-destructive">{discountError}</p>
-              )}
+              {discountError && <p className="mt-1.5 text-xs text-destructive">{discountError}</p>}
             </div>
 
             {session && (
@@ -706,8 +754,9 @@ function Checkout() {
                       club.isError ||
                       (!useBrasaPoints &&
                         (availablePoints < CLUB.redeemStep ||
-                        Math.floor(Math.max(0, totalPrice - discountAmount) / CLUB.redeemValueBs) <
-                          1))
+                          Math.floor(
+                            Math.max(0, totalPrice - discountAmount) / CLUB.redeemValueBs,
+                          ) < 1))
                     }
                     className="mt-0.5"
                   />
@@ -730,7 +779,8 @@ function Checkout() {
                         {CLUB.redeemValueBs} {CURRENCY}.
                         {brasaPointsToRedeem > 0 &&
                           ` Se usarán ${brasaPointsToRedeem} puntos para descontar ${brasaDiscountAmount} ${CURRENCY}.`}
-                        {useBrasaPoints && brasaPointsToRedeem === 0 &&
+                        {useBrasaPoints &&
+                          brasaPointsToRedeem === 0 &&
                           " El saldo o el subtotal restante no alcanza para otro descuento."}
                         {availablePoints < CLUB.redeemStep &&
                           ` Te faltan ${CLUB.redeemStep - availablePoints} puntos para el primer descuento.`}
@@ -856,9 +906,6 @@ function SuccessView({
         </Link>
       ) : null}
 
-
-
-
       {!result.autoSent && (
         <Button asChild variant="outline" className="font-cond uppercase tracking-wide">
           <a href={buildWhatsappUrl(result)} target="_blank" rel="noreferrer">
@@ -901,9 +948,7 @@ function OptionCard({
       type="button"
       onClick={onClick}
       className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${
-        active
-          ? "border-primary bg-primary/10"
-          : "border-border bg-card hover:border-primary/50"
+        active ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/50"
       }`}
     >
       <div

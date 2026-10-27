@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useRef, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { Loader2, Mail, Lock, User, ArrowLeft, Flame, MapPin, Cake, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,15 +16,19 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { CLUB } from "@/lib/club";
+import { getMyClub, updateMyProfile } from "@/lib/club.functions";
 import { COUNTRY_CODES, DEFAULT_COUNTRY_CODE } from "@/data/country-codes";
 import logo from "@/assets/logo-churrasqueando.png";
 
 type Mode = "login" | "signup" | "forgot";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>): { redirect?: string; mode?: "signup" } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { redirect?: string; mode?: "signup"; oauth?: "google" } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     mode: search.mode === "signup" ? "signup" : undefined,
+    oauth: search.oauth === "google" ? "google" : undefined,
   }),
   head: () => ({
     meta: [
@@ -55,8 +60,12 @@ function AuthPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/auth" });
   const dest = safePath(search.redirect);
+  const fetchClub = useServerFn(getMyClub);
+  const saveProfile = useServerFn(updateMyProfile);
 
   const [mode, setMode] = useState<Mode>(search.mode === "signup" ? "signup" : "login");
+  const [checkingGoogleSession, setCheckingGoogleSession] = useState(search.oauth === "google");
+  const [googleProfileRequired, setGoogleProfileRequired] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,25 +75,115 @@ function AuthPage() {
   const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [loading, setLoading] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
+  const authHandlingRef = useRef(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: dest, replace: true });
+    let active = true;
+    const handleSession = async (session: Session | null) => {
+      if (!session) {
+        if (active) setCheckingGoogleSession(false);
+        return;
+      }
+      if (authHandlingRef.current) return;
+      authHandlingRef.current = true;
+      const provider = session.user.app_metadata.provider;
+      if (provider === "google") {
+        setEmail(session.user.email ?? "");
+        const metadataName = session.user.user_metadata.full_name;
+        if (typeof metadataName === "string") setFullName(metadataName);
+        if (session.user.user_metadata.club_profile_completed === true) {
+          navigate({ to: dest, replace: true });
+          return;
+        }
+        setLoading(true);
+        try {
+          const club = await fetchClub();
+          const profile = club.profile;
+          if (
+            profile.full_name.trim() &&
+            profile.phone.trim() &&
+            profile.address.trim() &&
+            profile.birth_date
+          ) {
+            if (active) navigate({ to: dest, replace: true });
+            return;
+          }
+          if (!active) return;
+          setFullName(profile.full_name || (typeof metadataName === "string" ? metadataName : ""));
+          setPhone(profile.phone.replace(/^\+\d+\s*/, "").replace(/[^0-9]/g, ""));
+          setAddress(profile.address);
+          setBirthDate(profile.birth_date ?? "");
+          const matchingCountry = COUNTRY_CODES.find((country) =>
+            profile.phone.startsWith(country.dial),
+          );
+          if (matchingCountry) setCountryCode(matchingCountry.code);
+          setMode("signup");
+          setGoogleProfileRequired(true);
+          setInfo(
+            "Tu cuenta de Google ya está verificada. Completa tus datos de contacto para continuar.",
+          );
+        } catch (error) {
+          if (active) {
+            toast.error(error instanceof Error ? error.message : "No se pudo cargar tu perfil");
+            authHandlingRef.current = false;
+          }
+        } finally {
+          if (active) {
+            setLoading(false);
+            setCheckingGoogleSession(false);
+          }
+        }
+        return;
+      }
+      if (session) {
+        setCheckingGoogleSession(false);
+        navigate({ to: dest, replace: true });
+      }
+    };
+
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        toast.error(error.message);
+        setCheckingGoogleSession(false);
+        return;
+      }
+      void handleSession(data.session);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
-        navigate({ to: dest, replace: true });
+        void handleSession(session);
       }
     });
-    return () => sub.subscription.unsubscribe();
-  }, [dest, navigate]);
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [dest, fetchClub, navigate]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setInfo(null);
     try {
-      if (mode === "forgot") {
+      if (googleProfileRequired) {
+        const dial = COUNTRY_CODES.find((c) => c.code === countryCode)?.dial ?? "+591";
+        await saveProfile({
+          data: {
+            fullName: fullName.trim(),
+            phone: `${dial} ${phone.trim()}`,
+            address: address.trim(),
+            birthDate,
+          },
+        });
+        const { error } = await supabase.auth.updateUser({
+          data: { club_profile_completed: true },
+        });
+        if (error) {
+          console.error("No se pudo guardar la confirmación del perfil de Google", error);
+        }
+        setGoogleProfileRequired(false);
+        navigate({ to: dest, replace: true });
+      } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
           redirectTo: `${window.location.origin}/reset-password`,
         });
@@ -127,21 +226,32 @@ function AuthPage() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const redirectTo = new URL("/auth", window.location.origin);
+      redirectTo.searchParams.set("mode", "signup");
+      redirectTo.searchParams.set("oauth", "google");
+      redirectTo.searchParams.set("redirect", dest);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: redirectTo.toString() },
       });
-      if (result.error) {
-        toast.error("No se pudo iniciar sesión con Google");
-        setLoading(false);
-        return;
-      }
-      if (result.redirected) return;
-      navigate({ to: dest, replace: true });
-    } catch {
-      toast.error("No se pudo iniciar sesión con Google");
+      if (error) throw error;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo iniciar sesión con Google");
       setLoading(false);
     }
   };
+
+  if (checkingGoogleSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <span>Verificando tu cuenta de Google...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-12">
@@ -203,24 +313,35 @@ function AuthPage() {
                 </div>
               </div>
             )}
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Correo electrónico</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tucorreo@mail.com"
-                  className="pl-9"
-                  required
-                  maxLength={255}
-                />
+            {googleProfileRequired ? (
+              <div className="space-y-1.5">
+                <Label>Correo de Google</Label>
+                <div className="flex items-center gap-2 rounded-md border border-border bg-background/50 px-3 py-2 text-sm text-muted-foreground">
+                  <Mail className="h-4 w-4" />
+                  <span>{email}</span>
+                  <span className="ml-auto text-xs text-primary">Verificado</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tucorreo@mail.com"
+                    className="pl-9"
+                    required
+                    maxLength={255}
+                  />
+                </div>
+              </div>
+            )}
 
-            {mode !== "forgot" && (
+            {mode !== "forgot" && !googleProfileRequired && (
               <div className="space-y-1.5">
                 <Label htmlFor="password">Contraseña</Label>
                 <div className="relative">
@@ -318,14 +439,16 @@ function AuthPage() {
                 <Flame className="h-4 w-4" />
               )}
               {mode === "signup"
-                ? "Crear mi cuenta"
+                ? googleProfileRequired
+                  ? "Guardar mis datos y continuar"
+                  : "Crear mi cuenta"
                 : mode === "forgot"
                   ? "Enviar enlace"
                   : "Ingresar"}
             </Button>
           </form>
 
-          {mode !== "forgot" && (
+          {mode !== "forgot" && !googleProfileRequired && (
             <>
               <div className="my-5 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
@@ -366,7 +489,28 @@ function AuthPage() {
                 </button>
               </>
             )}
-            {mode !== "login" && (
+            {googleProfileRequired ? (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  const { error } = await supabase.auth.signOut();
+                  setLoading(false);
+                  if (error) {
+                    toast.error(error.message);
+                    return;
+                  }
+                  authHandlingRef.current = false;
+                  setGoogleProfileRequired(false);
+                  setMode("login");
+                  setInfo(null);
+                }}
+                className="text-muted-foreground underline-offset-4 hover:underline"
+              >
+                Cerrar sesión
+              </button>
+            ) : mode !== "login" ? (
               <button
                 type="button"
                 onClick={() => setMode("login")}
@@ -374,7 +518,7 @@ function AuthPage() {
               >
                 Ya tengo cuenta, ingresar
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

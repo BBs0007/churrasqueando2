@@ -1,0 +1,2 @@
+ALTER TABLE public.catering_packages
+  ADD COLUMN IF NOT EXISTS image_url text;
