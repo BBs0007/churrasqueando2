@@ -117,6 +117,47 @@ export const getMyClub = createServerFn({ method: "GET" })
     };
   });
 
+export const checkGoogleAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { intent: "login" | "signup" }) => {
+    if (input.intent !== "login" && input.intent !== "signup") {
+      throw new Error("Intención de autenticación inválida");
+    }
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const claims = context.claims as {
+      app_metadata?: { provider?: string };
+    };
+    if (claims.app_metadata?.provider !== "google") {
+      throw new Error("Esta verificación solo admite cuentas de Google");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, phone, address, birth_date")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (error) throw error;
+
+    if (!profile && data.intent === "login") {
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(context.userId);
+      if (deleteError) throw deleteError;
+      return { registered: false, complete: false };
+    }
+
+    return {
+      registered: profile !== null,
+      complete: Boolean(
+        profile?.full_name.trim() &&
+        profile.phone.trim() &&
+        profile.address.trim() &&
+        profile.birth_date,
+      ),
+    };
+  });
+
 export const updateMyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(

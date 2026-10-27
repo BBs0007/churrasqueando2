@@ -16,7 +16,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { CLUB } from "@/lib/club";
-import { getMyClub, updateMyProfile } from "@/lib/club.functions";
+import { checkGoogleAccount, getMyClub, updateMyProfile } from "@/lib/club.functions";
 import { COUNTRY_CODES, DEFAULT_COUNTRY_CODE } from "@/data/country-codes";
 import logo from "@/assets/logo-churrasqueando.png";
 
@@ -25,9 +25,9 @@ type Mode = "login" | "signup" | "forgot";
 export const Route = createFileRoute("/auth")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { redirect?: string; mode?: "signup"; oauth?: "google" } => ({
+  ): { redirect?: string; mode?: "login" | "signup"; oauth?: "google" } => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
-    mode: search.mode === "signup" ? "signup" : undefined,
+    mode: search.mode === "signup" || search.mode === "login" ? search.mode : undefined,
     oauth: search.oauth === "google" ? "google" : undefined,
   }),
   head: () => ({
@@ -61,9 +61,10 @@ function AuthPage() {
   const search = useSearch({ from: "/auth" });
   const dest = safePath(search.redirect);
   const fetchClub = useServerFn(getMyClub);
+  const checkGoogle = useServerFn(checkGoogleAccount);
   const saveProfile = useServerFn(updateMyProfile);
 
-  const [mode, setMode] = useState<Mode>(search.mode === "signup" ? "signup" : "login");
+  const [mode, setMode] = useState<Mode>(search.mode ?? "login");
   const [checkingGoogleSession, setCheckingGoogleSession] = useState(search.oauth === "google");
   const [googleProfileRequired, setGoogleProfileRequired] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -91,23 +92,25 @@ function AuthPage() {
         setEmail(session.user.email ?? "");
         const metadataName = session.user.user_metadata.full_name;
         if (typeof metadataName === "string") setFullName(metadataName);
-        if (session.user.user_metadata.club_profile_completed === true) {
-          navigate({ to: dest, replace: true });
-          return;
-        }
         setLoading(true);
         try {
-          const club = await fetchClub();
-          const profile = club.profile;
-          if (
-            profile.full_name.trim() &&
-            profile.phone.trim() &&
-            profile.address.trim() &&
-            profile.birth_date
-          ) {
+          const intent = search.mode === "signup" ? "signup" : "login";
+          const account = await checkGoogle({ data: { intent } });
+          if (intent === "login" && !account.registered) {
+            await supabase.auth.signOut({ scope: "local" });
+            if (active) {
+              setMode("signup");
+              setInfo("Todavía no tienes una cuenta. Regístrate con Google o con tu correo.");
+              navigate({ to: "/auth", search: { mode: "signup", redirect: dest }, replace: true });
+            }
+            return;
+          }
+          if (account.registered && account.complete) {
             if (active) navigate({ to: dest, replace: true });
             return;
           }
+          const club = await fetchClub();
+          const profile = club.profile;
           if (!active) return;
           setFullName(profile.full_name || (typeof metadataName === "string" ? metadataName : ""));
           setPhone(profile.phone.replace(/^\+\d+\s*/, "").replace(/[^0-9]/g, ""));
@@ -158,7 +161,7 @@ function AuthPage() {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [dest, fetchClub, navigate]);
+  }, [checkGoogle, dest, fetchClub, navigate, search.mode]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,12 +178,6 @@ function AuthPage() {
             birthDate,
           },
         });
-        const { error } = await supabase.auth.updateUser({
-          data: { club_profile_completed: true },
-        });
-        if (error) {
-          console.error("No se pudo guardar la confirmación del perfil de Google", error);
-        }
         setGoogleProfileRequired(false);
         navigate({ to: dest, replace: true });
       } else if (mode === "forgot") {
@@ -227,7 +224,7 @@ function AuthPage() {
     setLoading(true);
     try {
       const redirectTo = new URL("/auth", window.location.origin);
-      redirectTo.searchParams.set("mode", "signup");
+      redirectTo.searchParams.set("mode", mode === "signup" ? "signup" : "login");
       redirectTo.searchParams.set("oauth", "google");
       redirectTo.searchParams.set("redirect", dest);
 
@@ -295,6 +292,30 @@ function AuthPage() {
             </div>
           )}
 
+          {mode === "signup" && !googleProfileRequired && (
+            <div className="mt-5 space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGoogle}
+                disabled={loading}
+                className="w-full font-cond uppercase tracking-wide"
+              >
+                Crear mi cuenta con Google
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Es más rápido. Después completarás tus datos de contacto.
+              </p>
+              <div className="flex items-center gap-3 pt-2">
+                <div className="h-px flex-1 bg-border" />
+                <span className="font-cond text-xs uppercase tracking-widest text-muted-foreground">
+                  o regístrate con tu correo
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleEmailSubmit} className="mt-5 space-y-4">
             {mode === "signup" && (
               <div className="space-y-1.5">
@@ -341,7 +362,7 @@ function AuthPage() {
               </div>
             )}
 
-            {mode !== "forgot" && !googleProfileRequired && (
+            {mode === "login" && !googleProfileRequired && (
               <div className="space-y-1.5">
                 <Label htmlFor="password">Contraseña</Label>
                 <div className="relative">
