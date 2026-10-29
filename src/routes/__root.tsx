@@ -89,14 +89,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Churrasqueando.shop" },
+      {
+        name: "description",
+        content: "Carnes, productos y experiencias para disfrutar el mejor asado.",
+      },
+      { name: "author", content: "Churrasqueando.shop" },
+      { property: "og:title", content: "Churrasqueando.shop" },
+      {
+        property: "og:description",
+        content: "Carnes, productos y experiencias para disfrutar el mejor asado.",
+      },
+      { property: "og:site_name", content: "Churrasqueando.shop" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Churrasqueando.shop" },
+      {
+        name: "twitter:description",
+        content: "Carnes, productos y experiencias para disfrutar el mejor asado.",
+      },
     ],
     links: [
       {
