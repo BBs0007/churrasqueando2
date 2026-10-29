@@ -11,6 +11,7 @@ import { useSession } from "@/hooks/useSession";
 import { getActiveMembershipPlans, type MembershipPlan } from "@/lib/membership-plans.functions";
 import { CLUB_WHATSAPP } from "@/lib/club";
 import qrDefault from "@/assets/club/membership-qr.jpeg";
+import internationalQrDefault from "@/assets/club/international-payment-qr.jpeg";
 
 export const Route = createFileRoute("/club-pago")({
   head: () => ({
@@ -417,6 +418,11 @@ function ClubPaymentPage() {
                     <h3 className="font-cond text-sm font-semibold uppercase tracking-wide text-foreground">
                       Métodos internacionales
                     </h3>
+                    <img
+                      src={settings.data?.internationalQrUrl ?? internationalQrDefault}
+                      alt="Código QR para pagos internacionales de la membresía del Club Churrasqueando"
+                      className="mx-auto mt-4 max-h-[360px] w-full max-w-xs rounded-xl bg-white object-contain p-2"
+                    />
                     {settings.isLoading ? (
                       <Loader2 className="mt-3 h-5 w-5 animate-spin text-primary" />
                     ) : settings.isError ? (

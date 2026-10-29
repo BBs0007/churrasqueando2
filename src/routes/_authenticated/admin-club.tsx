@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import internationalQrDefault from "@/assets/club/international-payment-qr.jpeg";
 
 export const Route = createFileRoute("/_authenticated/admin-club")({
   head: () => ({
@@ -61,7 +62,9 @@ function AdminClub() {
   const deletePlan = useServerFn(adminDeleteMembershipPlan);
   const queryClient = useQueryClient();
   const qrInputRef = useRef<HTMLInputElement>(null);
+  const internationalQrInputRef = useRef<HTMLInputElement>(null);
   const [qrUrl, setQrUrl] = useState("");
+  const [internationalQrUrl, setInternationalQrUrl] = useState("");
   const [internationalInstructions, setInternationalInstructions] = useState("");
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null);
@@ -129,6 +132,7 @@ function AdminClub() {
   useEffect(() => {
     if (paymentSettings.data) {
       setQrUrl(paymentSettings.data.boliviaQrUrl ?? "");
+      setInternationalQrUrl(paymentSettings.data.internationalQrUrl ?? "");
       setInternationalInstructions(paymentSettings.data.internationalInstructions);
     }
   }, [paymentSettings.data]);
@@ -143,7 +147,8 @@ function AdminClub() {
   });
 
   const uploadQrMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (input: { file: File; country: "bolivia" | "international" }) => {
+      const { file } = input;
       const { path, token, publicUrl } = await createQrUploadUrl({
         data: { fileName: file.name, contentType: file.type },
       });
@@ -152,10 +157,11 @@ function AdminClub() {
         .from("membership-payments")
         .uploadToSignedUrl(path, token, file, { contentType: file.type });
       if (error) throw error;
-      return publicUrl;
+      return { publicUrl, country: input.country };
     },
-    onSuccess: (url) => {
-      setQrUrl(url);
+    onSuccess: ({ publicUrl, country }) => {
+      if (country === "bolivia") setQrUrl(publicUrl);
+      else setInternationalQrUrl(publicUrl);
       toast.success("QR subido. Guarda la configuración para publicarlo.");
     },
     onError: (error: unknown) =>
@@ -167,6 +173,7 @@ function AdminClub() {
       savePaymentSettings({
         data: {
           boliviaQrUrl: qrUrl.trim() || null,
+          internationalQrUrl: internationalQrUrl.trim() || null,
           internationalInstructions,
         },
       }),
@@ -178,9 +185,12 @@ function AdminClub() {
       toast.error(error instanceof Error ? error.message : "No se pudo guardar la configuración"),
   });
 
-  const handleQrChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQrChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    country: "bolivia" | "international",
+  ) => {
     const file = event.target.files?.[0];
-    if (file) uploadQrMutation.mutate(file);
+    if (file) uploadQrMutation.mutate({ file, country });
     event.target.value = "";
   };
 
@@ -479,7 +489,7 @@ function AdminClub() {
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 className="hidden"
-                onChange={handleQrChange}
+                onChange={(event) => handleQrChange(event, "bolivia")}
               />
               <Button
                 type="button"
@@ -497,9 +507,41 @@ function AdminClub() {
               </Button>
             </div>
             <div>
+              <p className="text-sm font-semibold text-foreground">QR internacional</p>
+              <img
+                src={internationalQrUrl || internationalQrDefault}
+                alt="QR actual para pagos internacionales"
+                className="mt-3 max-h-64 w-full rounded-xl bg-white object-contain p-2"
+              />
+              <p className="mt-2 break-all text-xs text-muted-foreground">
+                {internationalQrUrl
+                  ? "QR configurado"
+                  : "Se muestra el QR incluido en la aplicación."}
+              </p>
+              <input
+                ref={internationalQrInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(event) => handleQrChange(event, "international")}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 font-cond uppercase tracking-wide"
+                disabled={uploadQrMutation.isPending}
+                onClick={() => internationalQrInputRef.current?.click()}
+              >
+                {uploadQrMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                Reemplazar QR internacional
+              </Button>
               <label
                 htmlFor="international-payment-instructions"
-                className="text-sm font-semibold text-foreground"
+                className="mt-5 block text-sm font-semibold text-foreground"
               >
                 Instrucciones internacionales
               </label>

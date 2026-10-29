@@ -637,16 +637,19 @@ export type Database = {
           bolivia_qr_url: string | null;
           id: boolean;
           international_instructions: string;
+          international_qr_url: string | null;
         };
         Insert: {
           bolivia_qr_url?: string | null;
           id?: boolean;
           international_instructions?: string;
+          international_qr_url?: string | null;
         };
         Update: {
           bolivia_qr_url?: string | null;
           id?: boolean;
           international_instructions?: string;
+          international_qr_url?: string | null;
         };
         Relationships: [];
       };

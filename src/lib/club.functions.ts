@@ -304,29 +304,43 @@ export const getMembershipPaymentSettings = createServerFn({ method: "GET" }).ha
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("membership_payment_settings")
-    .select("bolivia_qr_url, international_instructions")
+    .select("bolivia_qr_url, international_qr_url, international_instructions")
     .eq("id", true)
     .single();
   if (error) throw error;
   return {
     boliviaQrUrl: data.bolivia_qr_url,
+    internationalQrUrl: data.international_qr_url,
     internationalInstructions: data.international_instructions,
   };
 });
 
 export const adminSaveMembershipPaymentSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { internationalInstructions: string; boliviaQrUrl: string | null }) => {
-    const internationalInstructions = input.internationalInstructions?.trim() ?? "";
-    if (internationalInstructions.length > 1200) {
-      throw new Error("Las instrucciones no deben superar 1200 caracteres");
-    }
-    const boliviaQrUrl = input.boliviaQrUrl?.trim() || null;
-    if (boliviaQrUrl && (!boliviaQrUrl.startsWith("https://") || boliviaQrUrl.length > 1000)) {
-      throw new Error("La dirección del QR no es válida");
-    }
-    return { internationalInstructions, boliviaQrUrl };
-  })
+  .inputValidator(
+    (input: {
+      internationalInstructions: string;
+      boliviaQrUrl: string | null;
+      internationalQrUrl: string | null;
+    }) => {
+      const internationalInstructions = input.internationalInstructions?.trim() ?? "";
+      if (internationalInstructions.length > 1200) {
+        throw new Error("Las instrucciones no deben superar 1200 caracteres");
+      }
+      const boliviaQrUrl = input.boliviaQrUrl?.trim() || null;
+      if (boliviaQrUrl && (!boliviaQrUrl.startsWith("https://") || boliviaQrUrl.length > 1000)) {
+        throw new Error("La dirección del QR no es válida");
+      }
+      const internationalQrUrl = input.internationalQrUrl?.trim() || null;
+      if (
+        internationalQrUrl &&
+        (!internationalQrUrl.startsWith("https://") || internationalQrUrl.length > 1000)
+      ) {
+        throw new Error("La dirección del QR internacional no es válida");
+      }
+      return { internationalInstructions, boliviaQrUrl, internationalQrUrl };
+    },
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -335,6 +349,7 @@ export const adminSaveMembershipPaymentSettings = createServerFn({ method: "POST
       .update({
         international_instructions: data.internationalInstructions,
         bolivia_qr_url: data.boliviaQrUrl,
+        international_qr_url: data.internationalQrUrl,
       })
       .eq("id", true);
     if (error) throw error;
