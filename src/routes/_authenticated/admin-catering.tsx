@@ -90,7 +90,7 @@ type FormState = {
   cortes: string;
   guarniciones: string;
   utencilios: string;
-  imageUrl: string;
+  imageUrls: string[];
   active: boolean;
   sortOrder: string;
 };
@@ -105,7 +105,7 @@ const EMPTY_FORM: FormState = {
   cortes: "",
   guarniciones: "",
   utencilios: "",
-  imageUrl: "",
+  imageUrls: [],
   active: true,
   sortOrder: "0",
 };
@@ -207,7 +207,8 @@ function AdminCatering() {
       upsert({
         data: {
           id: vars.id,
-          imageUrl: vars.imageUrl,
+          imageUrl: vars.imageUrls[0] ?? "",
+          imageUrls: vars.imageUrls,
           name: vars.name,
           highlight: vars.highlight,
           price: Number(vars.price) || 0,
@@ -269,11 +270,31 @@ function AdminCatering() {
       cortes: p.cortes.join("\n"),
       guarniciones: p.guarniciones.join("\n"),
       utencilios: p.utencilios.join("\n"),
-      imageUrl: p.image_url,
+      imageUrls: p.image_urls.length ? p.image_urls : p.image_url ? [p.image_url] : [],
       active: p.active,
       sortOrder: String(p.sort_order),
     });
     setDialogOpen(true);
+  };
+
+  const uploadPackageImage = async (file: File, replaceIndex?: number) => {
+    try {
+      const url = await uploadPageMedia(file, "image");
+      setForm((current) => ({
+        ...current,
+        imageUrls:
+          replaceIndex === undefined
+            ? [...current.imageUrls, url]
+            : current.imageUrls.map((image, index) => (index === replaceIndex ? url : image)),
+      }));
+      toast.success(
+        replaceIndex === undefined
+          ? "Imagen subida. Guarda el paquete para publicarla."
+          : "Imagen reemplazada. Guarda el paquete para publicar el cambio.",
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo subir la imagen");
+    }
   };
 
   if (me.isLoading || !me.data) {
@@ -543,57 +564,78 @@ function AdminCatering() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="p-image">Imagen del paquete</Label>
-              {form.imageUrl && (
-                <div className="aspect-video w-full overflow-hidden rounded-xl bg-secondary/30">
-                  <img
-                    src={form.imageUrl}
-                    alt={`Vista previa de ${form.name || "paquete"}`}
-                    className="h-full w-full object-cover"
+              <Label>Imágenes del paquete ({form.imageUrls.length}/10)</Label>
+              {form.imageUrls.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {form.imageUrls.map((imageUrl, index) => (
+                    <div
+                      key={`${index}-${imageUrl}`}
+                      className="space-y-2 rounded-xl border border-border p-3"
+                    >
+                      <div className="aspect-video w-full overflow-hidden rounded-lg bg-secondary/30">
+                        <img
+                          src={imageUrl}
+                          alt={`Imagen ${index + 1} de ${form.name || "paquete"}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor={`p-image-${index}`} className="text-xs">
+                          Imagen {index + 1}
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={uploadingImage}
+                          onClick={() =>
+                            setForm((current) => ({
+                              ...current,
+                              imageUrls: current.imageUrls.filter((_, i) => i !== index),
+                            }))
+                          }
+                        >
+                          Quitar
+                        </Button>
+                      </div>
+                      <Input
+                        id={`p-image-${index}`}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        disabled={uploadingImage}
+                        aria-label={`Cambiar imagen ${index + 1}`}
+                        onChange={(event) => {
+                          const input = event.currentTarget;
+                          const file = input.files?.[0];
+                          if (file) void uploadPackageImage(file, index);
+                          input.value = "";
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {form.imageUrls.length < 10 && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="p-image-add">Añadir imagen</Label>
+                  <Input
+                    id="p-image-add"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={uploadingImage}
+                    onChange={(event) => {
+                      const input = event.currentTarget;
+                      const file = input.files?.[0];
+                      if (file) void uploadPackageImage(file);
+                      input.value = "";
+                    }}
                   />
                 </div>
               )}
-              {!form.imageUrl && (
-                <div className="flex aspect-video w-full items-center justify-center rounded-xl border border-dashed border-border bg-secondary/20 text-sm text-muted-foreground">
-                  La imagen del paquete aparecerá aquí
-                </div>
-              )}
-              <Input
-                id="p-image"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                disabled={uploadingImage}
-                onChange={async (event) => {
-                  const input = event.currentTarget;
-                  const file = input.files?.[0];
-                  if (!file) return;
-                  try {
-                    const url = await uploadPageMedia(file, "image");
-                    setForm((current) => ({ ...current, imageUrl: url }));
-                    toast.success("Imagen subida. Guarda el paquete para publicarla.");
-                  } catch (error) {
-                    toast.error(
-                      error instanceof Error ? error.message : "No se pudo subir la imagen",
-                    );
-                  } finally {
-                    input.value = "";
-                  }
-                }}
-              />
               <p className="text-xs text-muted-foreground">
-                PNG, JPG o WebP · máximo 6 MB. Para guardar la imagen, aplica primero la migración
-                de imágenes de catering en Supabase.
+                Agrega hasta 10 imágenes; puedes reemplazarlas o quitarlas antes de guardar. PNG,
+                JPG o WebP · máximo 6 MB por imagen.
               </p>
-              {form.imageUrl && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setForm((current) => ({ ...current, imageUrl: "" }))}
-                >
-                  Quitar imagen
-                </Button>
-              )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">

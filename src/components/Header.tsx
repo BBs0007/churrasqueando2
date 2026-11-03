@@ -91,13 +91,17 @@ export function Header() {
             key={item.to}
             to={item.to}
             className="font-cond shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-wide text-secondary-foreground"
+            activeOptions={{ exact: false }}
+            activeProps={{ className: "bg-primary text-primary-foreground" }}
           >
             {item.label}
           </Link>
         ))}
         <Link
           to="/puntos-de-venta"
-          className="font-cond shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-foreground"
+          className="font-cond shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-wide text-secondary-foreground"
+          activeOptions={{ exact: false }}
+          activeProps={{ className: "bg-primary text-primary-foreground" }}
         >
           Puntos de ventas
         </Link>

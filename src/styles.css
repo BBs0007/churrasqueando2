@@ -4,6 +4,36 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.club-visual-editor [data-club-edit-field],
+.club-visual-editor [data-club-edit-collection],
+.club-visual-editor [data-club-edit-block],
+.club-visual-editor [data-club-edit-membership-card] {
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color 120ms ease;
+}
+
+.club-visual-editor [data-club-edit-field]:hover,
+.club-visual-editor [data-club-edit-collection]:hover,
+.club-visual-editor [data-club-edit-block]:hover,
+.club-visual-editor [data-club-edit-membership-card]:hover {
+  outline-color: var(--primary);
+}
+
+.club-visual-editor [data-club-hidden="true"] {
+  opacity: 0.45;
+  outline: 1px dashed var(--primary);
+}
+
+.club-visual-editor [data-club-section-id][draggable="true"] {
+  cursor: grab;
+}
+
+.club-visual-editor [data-club-section-dragging="true"] {
+  opacity: 0.55;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -60,7 +90,7 @@
   --popover-foreground: oklch(0.98 0.005 80);
 
   /* Fire orange */
-  --primary: #E0700B;
+  --primary: #e0700b;
   --primary-foreground: oklch(0.15 0.01 40);
 
   --secondary: oklch(0.27 0.02 40);
@@ -81,19 +111,19 @@
 
   --border: oklch(0.3 0.015 40);
   --input: oklch(0.3 0.015 40);
-  --ring: #E0700B;
+  --ring: #e0700b;
 
   --sidebar: oklch(0.18 0.012 40);
   --sidebar-foreground: oklch(0.98 0.005 80);
-  --sidebar-primary: #E0700B;
+  --sidebar-primary: #e0700b;
   --sidebar-primary-foreground: oklch(0.15 0.01 40);
   --sidebar-accent: oklch(0.27 0.02 40);
   --sidebar-accent-foreground: oklch(0.98 0.005 80);
   --sidebar-border: oklch(0.3 0.015 40);
-  --sidebar-ring: #E0700B;
+  --sidebar-ring: #e0700b;
 
-  --brand-orange: #E0700B;
-  --gradient-fire: linear-gradient(135deg, #E0700B, #E0700B);
+  --brand-orange: #e0700b;
+  --gradient-fire: linear-gradient(135deg, #e0700b, #e0700b);
   --gradient-ember: linear-gradient(180deg, transparent, oklch(0.55 0.21 28 / 0.25));
   --shadow-fire: 0 10px 40px -12px oklch(0.62 0.22 35 / 0.55);
   --shadow-card: 0 8px 30px -10px oklch(0 0 0 / 0.6);
@@ -115,24 +145,42 @@
     font-family: var(--font-sans);
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: 0.01em;
   }
 }
 
 @layer utilities {
-  .font-display { font-family: var(--font-display); }
-  .font-cond { font-family: var(--font-cond); }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-cond {
+    font-family: var(--font-cond);
+  }
   .text-gradient-fire {
     background: var(--gradient-fire);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  .bg-gradient-fire { background: var(--gradient-fire); }
-  .shadow-fire { box-shadow: var(--shadow-fire); }
-  .shadow-card { box-shadow: var(--shadow-card); }
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .bg-gradient-fire {
+    background: var(--gradient-fire);
+  }
+  .shadow-fire {
+    box-shadow: var(--shadow-fire);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

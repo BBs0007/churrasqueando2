@@ -287,6 +287,7 @@ export type Database = {
           highlight: string;
           id: string;
           image_url: string | null;
+          image_urls: string[];
           includes_note: string;
           name: string;
           picada: string;
@@ -304,6 +305,7 @@ export type Database = {
           highlight?: string;
           id?: string;
           image_url?: string | null;
+          image_urls?: string[];
           includes_note?: string;
           name: string;
           picada?: string;
@@ -321,6 +323,7 @@ export type Database = {
           highlight?: string;
           id?: string;
           image_url?: string | null;
+          image_urls?: string[];
           includes_note?: string;
           name?: string;
           picada?: string;

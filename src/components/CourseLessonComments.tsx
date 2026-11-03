@@ -1,10 +1,11 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Heart, Loader2, MessageCircle, Reply, Send } from "lucide-react";
+import { Heart, Loader2, MessageCircle, Reply, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
   createCourseLessonComment,
+  deleteCourseLessonComment,
   getCourseLessonComments,
   setCourseLessonCommentLike,
   type CourseLessonComment as CourseComment,
@@ -16,13 +17,16 @@ export function CourseLessonComments({
   lessonId,
   userId,
   isMember,
+  isAdmin,
 }: {
   lessonId: string;
   userId: string;
   isMember: boolean;
+  isAdmin: boolean;
 }) {
   const fetchComments = useServerFn(getCourseLessonComments);
   const createComment = useServerFn(createCourseLessonComment);
+  const deleteComment = useServerFn(deleteCourseLessonComment);
   const setLike = useServerFn(setCourseLessonCommentLike);
   const queryClient = useQueryClient();
   const [body, setBody] = useState("");
@@ -51,6 +55,15 @@ export function CourseLessonComments({
       setLike({ data: { commentId: comment.id, liked: !comment.likedByMe } }),
     onSuccess: async () => queryClient.invalidateQueries({ queryKey }),
     onError: (error) => toast.error(error.message || "No se pudo actualizar el me gusta"),
+  });
+
+  const removeComment = useMutation({
+    mutationFn: (commentId: string) => deleteComment({ data: { commentId } }),
+    onSuccess: async () => {
+      await queryClient.resetQueries({ queryKey });
+      toast.success("Comentario eliminado");
+    },
+    onError: (error) => toast.error(error.message || "No se pudo eliminar el comentario"),
   });
 
   const commentList = comments.data?.pages.flatMap((page) => page.comments) ?? [];
@@ -123,12 +136,19 @@ export function CourseLessonComments({
               comment={comment}
               userId={userId}
               isMember={isMember}
+              isAdmin={isAdmin}
               replyPending={addComment.isPending}
               likePending={toggleLike.isPending}
+              deletePending={removeComment.isPending}
               onReply={(replyBody) =>
                 addComment.mutate({ body: replyBody, parentCommentId: comment.id })
               }
               onLike={() => toggleLike.mutate(comment)}
+              onDelete={() => {
+                if (window.confirm("¿Eliminar este comentario y sus respuestas?")) {
+                  removeComment.mutate(comment.id);
+                }
+              }}
             >
               {comment.replies.map((reply) => (
                 <CommentCard
@@ -136,12 +156,19 @@ export function CourseLessonComments({
                   comment={reply}
                   userId={userId}
                   isMember={isMember}
+                  isAdmin={isAdmin}
                   replyPending={addComment.isPending}
                   likePending={toggleLike.isPending}
+                  deletePending={removeComment.isPending}
                   onReply={(replyBody) =>
                     addComment.mutate({ body: replyBody, parentCommentId: comment.id })
                   }
                   onLike={() => toggleLike.mutate(reply)}
+                  onDelete={() => {
+                    if (window.confirm("¿Eliminar este comentario?")) {
+                      removeComment.mutate(reply.id);
+                    }
+                  }}
                   isReply
                 />
               ))}
@@ -172,20 +199,26 @@ function CommentCard({
   comment,
   userId,
   isMember,
+  isAdmin,
   replyPending,
   likePending,
+  deletePending,
   onReply,
   onLike,
+  onDelete,
   isReply = false,
   children,
 }: {
   comment: CourseComment;
   userId: string;
   isMember: boolean;
+  isAdmin: boolean;
   replyPending: boolean;
   likePending: boolean;
+  deletePending: boolean;
   onReply: (body: string) => void;
   onLike: () => void;
+  onDelete: () => void;
   isReply?: boolean;
   children?: React.ReactNode;
 }) {
@@ -208,19 +241,21 @@ function CommentCard({
         </time>
       </div>
       <p className="mt-2 whitespace-pre-wrap break-words text-sm text-white/70">{comment.body}</p>
-      {isMember && (
+      {(isMember || isAdmin) && (
         <div className="mt-2 flex items-center gap-3">
-          <button
-            type="button"
-            disabled={likePending}
-            onClick={onLike}
-            aria-pressed={comment.likedByMe}
-            className={`inline-flex items-center gap-1 text-xs ${comment.likedByMe ? "text-primary" : "text-white/45 hover:text-white"}`}
-          >
-            <Heart className={`h-3.5 w-3.5 ${comment.likedByMe ? "fill-current" : ""}`} />
-            {comment.likeCount || "Me gusta"}
-          </button>
-          {!isReply && (
+          {isMember && (
+            <button
+              type="button"
+              disabled={likePending}
+              onClick={onLike}
+              aria-pressed={comment.likedByMe}
+              className={`inline-flex items-center gap-1 text-xs ${comment.likedByMe ? "text-primary" : "text-white/45 hover:text-white"}`}
+            >
+              <Heart className={`h-3.5 w-3.5 ${comment.likedByMe ? "fill-current" : ""}`} />
+              {comment.likeCount || "Me gusta"}
+            </button>
+          )}
+          {isMember && !isReply && (
             <button
               type="button"
               onClick={() => setReplyOpen((open) => !open)}
@@ -229,9 +264,25 @@ function CommentCard({
               <Reply className="h-3.5 w-3.5" /> Responder
             </button>
           )}
+          {isAdmin && (
+            <button
+              type="button"
+              disabled={deletePending}
+              onClick={onDelete}
+              aria-label="Eliminar comentario"
+              className="inline-flex items-center gap-1 text-xs text-red-300 hover:text-red-200 disabled:opacity-50"
+            >
+              {deletePending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              Eliminar
+            </button>
+          )}
         </div>
       )}
-      {replyOpen && (
+      {replyOpen && isMember && (
         <form
           className="mt-3 flex gap-2"
           onSubmit={(event) => {

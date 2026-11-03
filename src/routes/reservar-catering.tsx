@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Flame, ArrowLeft, Check, Loader2 } from "lucide-react";
+import { Flame, ArrowLeft, Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -67,14 +67,26 @@ function ReservarCatering() {
   const pageSections = getCoursePageSections(pageContent.catering_page_builder);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   useEffect(() => {
     if (!selectedId && packages.data?.length) setSelectedId(packages.data[0].id);
   }, [packages.data, selectedId]);
   const selected = cateringPackages.find((p) => p.id === selectedId) ?? cateringPackages[0];
   const selectedIndex = selected ? cateringPackages.findIndex((pkg) => pkg.id === selected.id) : 0;
-  const selectedImage =
-    selected?.image_url ||
-    CATERING_EXAMPLE_IMAGES[Math.max(selectedIndex, 0) % CATERING_EXAMPLE_IMAGES.length];
+  const selectedImages = selected
+    ? selected.image_urls.length
+      ? selected.image_urls
+      : selected.image_url
+        ? [selected.image_url]
+        : [CATERING_EXAMPLE_IMAGES[Math.max(selectedIndex, 0) % CATERING_EXAMPLE_IMAGES.length]]
+    : [];
+  const hasConfiguredImages = Boolean(selected?.image_urls.length || selected?.image_url);
+  const currentImageIndex = Math.min(activeImageIndex, Math.max(selectedImages.length - 1, 0));
+  const selectedImage = selectedImages[currentImageIndex];
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [selected?.id]);
 
   if (packages.isLoading) {
     return (
@@ -117,22 +129,6 @@ function ReservarCatering() {
             {pageContent.catering_page_subtitle.replace(/\{min\}/g, String(CATERING_MIN_PEOPLE))}
           </p>
         </div>
-
-        {selectedImage && (
-          <div className="mx-auto mt-6 aspect-video w-full max-w-5xl overflow-hidden rounded-2xl border border-border bg-card shadow-card sm:mt-8">
-            <img
-              src={selectedImage}
-              alt={`${selected.name} ${selected.highlight} · catering Churrasqueando${
-                selected.image_url ? "" : " · imagen de ejemplo"
-              }`}
-              loading="lazy"
-              className="h-full w-full object-cover"
-            />
-            {!selected.image_url && (
-              <span className="sr-only">Imagen ilustrativa del paquete de catering</span>
-            )}
-          </div>
-        )}
 
         <div className="mt-7 grid min-w-0 gap-4 sm:mt-10 sm:gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
           {/* Columna izquierda: opciones */}
@@ -188,6 +184,62 @@ function ReservarCatering() {
                 <p className="font-display text-3xl tracking-wide text-foreground">
                   {selected.price} Bs
                 </p>
+              </div>
+            </div>
+
+            <div className="mx-auto mt-5 w-full max-w-5xl overflow-hidden rounded-2xl border border-border bg-background shadow-card">
+              <div className="relative aspect-[32/9]">
+                <img
+                  src={selectedImage}
+                  alt={`${selected.name} ${selected.highlight} · catering Churrasqueando${
+                    hasConfiguredImages ? "" : " · imagen de ejemplo"
+                  }`}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+                {!hasConfiguredImages && (
+                  <span className="sr-only">Imagen ilustrativa del paquete de catering</span>
+                )}
+                {selectedImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Ver imagen anterior"
+                      onClick={() =>
+                        setActiveImageIndex(
+                          (currentImageIndex - 1 + selectedImages.length) % selectedImages.length,
+                        )
+                      }
+                      className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground shadow transition hover:bg-background sm:left-4 sm:h-11 sm:w-11"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Ver imagen siguiente"
+                      onClick={() =>
+                        setActiveImageIndex((currentImageIndex + 1) % selectedImages.length)
+                      }
+                      className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground shadow transition hover:bg-background sm:right-4 sm:h-11 sm:w-11"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                    <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5 sm:bottom-3">
+                      {selectedImages.map((_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          aria-label={`Ver imagen ${index + 1} de ${selectedImages.length}`}
+                          aria-current={index === currentImageIndex ? "true" : undefined}
+                          onClick={() => setActiveImageIndex(index)}
+                          className={`h-2.5 w-2.5 rounded-full border border-background shadow ${
+                            index === currentImageIndex ? "bg-primary" : "bg-background/70"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

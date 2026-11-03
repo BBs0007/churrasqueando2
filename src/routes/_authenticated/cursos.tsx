@@ -663,7 +663,12 @@ function CourseDetail({
               </a>
             )}
             {active && (
-              <CourseLessonComments lessonId={active.id} userId={userId} isMember={isMember} />
+              <CourseLessonComments
+                lessonId={active.id}
+                userId={userId}
+                isMember={isMember}
+                isAdmin={isAdmin}
+              />
             )}
           </div>
 

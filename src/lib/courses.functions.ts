@@ -1258,6 +1258,35 @@ export const createCourseLessonComment = createServerFn({ method: "POST" })
     } satisfies CourseLessonComment;
   });
 
+export const deleteCourseLessonComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { commentId: string }) => {
+    if (!input?.commentId) throw new Error("Falta el comentario");
+    return { commentId: input.commentId };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: comment, error: commentError } = await supabaseAdmin
+      .from("course_lesson_comments")
+      .select("id, lesson_id")
+      .eq("id", data.commentId)
+      .maybeSingle();
+    if (commentError) throw commentError;
+    if (!comment) throw new Error("No se encontró el comentario");
+
+    const { data: deleted, error } = await supabaseAdmin
+      .from("course_lesson_comments")
+      .delete()
+      .eq("id", data.commentId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    if (!deleted) throw new Error("No se encontró el comentario");
+
+    return { commentId: deleted.id, lessonId: comment.lesson_id };
+  });
+
 export const setCourseLessonCommentLike = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { commentId: string; liked: boolean }) => {

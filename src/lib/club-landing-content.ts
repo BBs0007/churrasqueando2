@@ -54,8 +54,26 @@ export const CLUB_BUILDER_SECTIONS = [
 ] as const;
 
 export type ClubBuilderBlockType =
-  "heading" | "subtitle" | "paragraph" | "image" | "video" | "price" | "button" | "subsection";
+  | "heading"
+  | "subtitle"
+  | "paragraph"
+  | "image"
+  | "video"
+  | "price"
+  | "button"
+  | "card"
+  | "component"
+  | "membership-card"
+  | "subsection";
 export type ClubBuilderContentBlockType = Exclude<ClubBuilderBlockType, "subsection">;
+export type ClubBuilderMembershipCard = {
+  price: string;
+  currency: string;
+  caption: string;
+  regularPrice: string;
+  perks: string[];
+  buttonLabel: string;
+};
 export type ClubBuilderBlock = {
   id: string;
   type: ClubBuilderBlockType;
@@ -64,6 +82,7 @@ export type ClubBuilderBlock = {
   url: string;
   layout: "vertical" | "horizontal";
   children: ClubBuilderBlock[];
+  hidden?: boolean;
 };
 export type ClubBuilderSection = {
   id: string;
@@ -74,7 +93,9 @@ export type ClubBuilderSection = {
   layout: "vertical" | "horizontal";
   blocks: ClubBuilderBlock[];
 };
-export type ClubBuilderSectionOptions = Omit<ClubBuilderSection, "id" | "title" | "enabled">;
+export type ClubBuilderSectionOptions = Omit<ClubBuilderSection, "id" | "title" | "enabled"> & {
+  membershipCardHidden?: boolean;
+};
 export type ClubBuilderLayout = {
   order: string[];
   hiddenSectionIds: string[];
@@ -90,13 +111,70 @@ const BUILDER_BLOCK_TYPES: ClubBuilderBlockType[] = [
   "video",
   "price",
   "button",
+  "card",
+  "component",
+  "membership-card",
   "subsection",
 ];
+
+export function parseClubBuilderMembershipCard(value: string): ClubBuilderMembershipCard | null {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const data = parsed as Record<string, unknown>;
+    if (
+      typeof data.price !== "string" ||
+      typeof data.currency !== "string" ||
+      typeof data.caption !== "string" ||
+      typeof data.regularPrice !== "string" ||
+      !Array.isArray(data.perks) ||
+      data.perks.length > 50 ||
+      !data.perks.every((perk) => typeof perk === "string") ||
+      typeof data.buttonLabel !== "string"
+    ) {
+      return null;
+    }
+    return {
+      price: data.price,
+      currency: data.currency,
+      caption: data.caption,
+      regularPrice: data.regularPrice,
+      perks: data.perks,
+      buttonLabel: data.buttonLabel,
+    };
+  } catch {
+    return null;
+  }
+}
 
 function isSafeBuilderUrl(value: string) {
   return (
     !value || (value.startsWith("/") && !value.startsWith("//")) || /^https?:\/\//i.test(value)
   );
+}
+
+function isValidCopiedComponent(value: string) {
+  try {
+    const snapshot: unknown = JSON.parse(value);
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return false;
+    const data = snapshot as { collection?: unknown; item?: unknown };
+    return (
+      [
+        "club_course_cards",
+        "benefits",
+        "points_steps",
+        "founder_perks",
+        "testimonials",
+        "membership_perks",
+        "faqs",
+      ].includes(String(data.collection)) &&
+      !!data.item &&
+      typeof data.item === "object" &&
+      !Array.isArray(data.item)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
@@ -164,7 +242,10 @@ export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
         !["vertical", "horizontal"].includes(block.layout) ||
         !Array.isArray(block.children) ||
         block.children.length > 20 ||
-        (block.type !== "subsection" && block.children.length > 0)
+        (block.hidden !== undefined && typeof block.hidden !== "boolean") ||
+        (block.type !== "subsection" && block.children.length > 0) ||
+        (block.type === "component" && !isValidCopiedComponent(block.text)) ||
+        (block.type === "membership-card" && !parseClubBuilderMembershipCard(block.text))
       ) {
         throw new Error("Un elemento de sección tiene datos inválidos");
       }
@@ -199,6 +280,8 @@ export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
       !["none", "card", "dark", "fire"].includes(options.background) ||
       !["contained", "full"].includes(options.width) ||
       !["vertical", "horizontal"].includes(options.layout) ||
+      (options.membershipCardHidden !== undefined &&
+        typeof options.membershipCardHidden !== "boolean") ||
       !Array.isArray(options.blocks) ||
       options.blocks.length > 40
     ) {
@@ -224,7 +307,10 @@ export function validateClubBuilderLayout(value: string): ClubBuilderLayout {
         !["vertical", "horizontal"].includes(block.layout) ||
         !Array.isArray(block.children) ||
         block.children.length > 20 ||
-        (block.type !== "subsection" && block.children.length > 0)
+        (block.hidden !== undefined && typeof block.hidden !== "boolean") ||
+        (block.type !== "subsection" && block.children.length > 0) ||
+        (block.type === "component" && !isValidCopiedComponent(block.text)) ||
+        (block.type === "membership-card" && !parseClubBuilderMembershipCard(block.text))
       ) {
         throw new Error("Un elemento de sección existente tiene datos inválidos");
       }
@@ -690,10 +776,23 @@ export function getClubLandingNumber(content: Record<string, string>, key: strin
   return Number.isFinite(parsed) ? parsed : Number(CLUB_LANDING_DEFAULTS[key] ?? 0);
 }
 
-export function getClubLandingCollection<T>(content: Record<string, string>, key: string): T[] {
+export function getClubLandingCollection<T>(
+  content: Record<string, string>,
+  key: string,
+  includeHidden = false,
+): T[] {
   try {
     const parsed: unknown = JSON.parse(getClubLandingText(content, key));
-    if (Array.isArray(parsed)) return parsed as T[];
+    if (Array.isArray(parsed)) {
+      return parsed.filter(
+        (item) =>
+          includeHidden ||
+          !item ||
+          typeof item !== "object" ||
+          !("hidden" in item) ||
+          item.hidden !== true,
+      ) as T[];
+    }
   } catch {
     // Invalid admin-edited JSON falls back to the shipped defaults.
   }

@@ -1,5 +1,20 @@
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ClipboardPaste,
+  Copy,
+  CopyPlus,
+  Eye,
+  EyeOff,
+  Flame,
+  Loader2,
+  Plus,
+  Star,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   CLUB_BUILDER_SECTIONS,
+  parseClubBuilderMembershipCard,
   type ClubBuilderBlock,
   type ClubBuilderBlockType,
   type ClubBuilderContentBlockType,
@@ -22,6 +38,7 @@ const CONTENT_BLOCK_TYPES: { value: ClubBuilderContentBlockType; label: string }
   { value: "image", label: "Imagen" },
   { value: "video", label: "Video" },
   { value: "price", label: "Precio o tarifa" },
+  { value: "card", label: "Tarjeta visual" },
   { value: "button", label: "Botón con enlace" },
 ];
 
@@ -34,6 +51,14 @@ function createBlock(type: ClubBuilderBlockType): ClubBuilderBlock {
     url: "",
     layout: "vertical",
     children: [],
+  };
+}
+
+function copyBlockWithNewIds(block: ClubBuilderBlock): ClubBuilderBlock {
+  return {
+    ...block,
+    id: `block-${crypto.randomUUID()}`,
+    children: block.children.map(copyBlockWithNewIds),
   };
 }
 
@@ -54,10 +79,14 @@ export function ClubLandingBuilderEditor({
   layout,
   onChange,
   onMediaUpload,
+  clipboardBlock,
+  onCopyBlock,
 }: {
   layout: ClubBuilderLayout;
   onChange: (layout: ClubBuilderLayout) => void;
   onMediaUpload: (file: File, type: "image" | "video") => Promise<string>;
+  clipboardBlock: ClubBuilderBlock | null;
+  onCopyBlock: (block: ClubBuilderBlock) => void;
 }) {
   const moveSection = (id: string, offset: number) => {
     const index = layout.order.indexOf(id);
@@ -102,12 +131,19 @@ export function ClubLandingBuilderEditor({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-xl uppercase tracking-wide text-foreground">
-            Constructor de secciones
+            Editor visual de la página
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Ordena o desactiva las secciones existentes, o crea otras con títulos, textos, imágenes,
-            videos, precios y subsecciones. La oferta y el pago conservan sus funciones.
+            Usa las flechas para subir o bajar secciones. Duplica elementos o copia tarjetas de las
+            listas existentes y pégalas en cualquier sección o subsección. La oferta y el pago
+            conservan sus funciones.
           </p>
+          {clipboardBlock && (
+            <p className="mt-2 text-xs font-medium text-primary">
+              Copiado: {clipboardBlock.title || clipboardBlock.type}. Elige una sección y pulsa
+              “Pegar copiado”.
+            </p>
+          )}
         </div>
         <Button
           type="button"
@@ -284,6 +320,8 @@ export function ClubLandingBuilderEditor({
                   <BuilderBlockList
                     blocks={custom.blocks}
                     onMediaUpload={onMediaUpload}
+                    clipboardBlock={clipboardBlock}
+                    onCopyBlock={onCopyBlock}
                     onChange={(blocks) =>
                       onChange(updateSection(layout, id, (section) => ({ ...section, blocks })))
                     }
@@ -296,6 +334,8 @@ export function ClubLandingBuilderEditor({
                   layout={layout}
                   onChange={onChange}
                   onMediaUpload={onMediaUpload}
+                  clipboardBlock={clipboardBlock}
+                  onCopyBlock={onCopyBlock}
                 />
               )}
             </article>
@@ -311,11 +351,15 @@ function BuiltInSectionEditor({
   layout,
   onChange,
   onMediaUpload,
+  clipboardBlock,
+  onCopyBlock,
 }: {
   sectionId: string;
   layout: ClubBuilderLayout;
   onChange: (layout: ClubBuilderLayout) => void;
   onMediaUpload: (file: File, type: "image" | "video") => Promise<string>;
+  clipboardBlock: ClubBuilderBlock | null;
+  onCopyBlock: (block: ClubBuilderBlock) => void;
 }) {
   const options = layout.sectionOptions[sectionId];
   const updateOptions = (updates: Partial<typeof options>) =>
@@ -385,6 +429,8 @@ function BuiltInSectionEditor({
       <BuilderBlockList
         blocks={options.blocks}
         onMediaUpload={onMediaUpload}
+        clipboardBlock={clipboardBlock}
+        onCopyBlock={onCopyBlock}
         onChange={(blocks) => updateOptions({ blocks })}
       />
     </div>
@@ -395,11 +441,15 @@ export function BuilderBlockList({
   blocks,
   onChange,
   onMediaUpload,
+  clipboardBlock,
+  onCopyBlock,
   nested = false,
 }: {
   blocks: ClubBuilderBlock[];
   onChange: (blocks: ClubBuilderBlock[]) => void;
   onMediaUpload: (file: File, type: "image" | "video") => Promise<string>;
+  clipboardBlock?: ClubBuilderBlock | null;
+  onCopyBlock?: (block: ClubBuilderBlock) => void;
   nested?: boolean;
 }) {
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
@@ -420,6 +470,11 @@ export function BuilderBlockList({
     onChange([...blocks, createBlock(type)]);
   };
 
+  const pasteBlock = () => {
+    if (!clipboardBlock || blocks.length >= (nested ? 20 : 40)) return;
+    onChange([...blocks, copyBlockWithNewIds(clipboardBlock)]);
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -427,6 +482,15 @@ export function BuilderBlockList({
           {nested ? "Elementos de la subsección" : "Elementos de la sección"}
         </h3>
         <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={!clipboardBlock || blocks.length >= (nested ? 20 : 40)}
+            onClick={pasteBlock}
+          >
+            <ClipboardPaste className="h-3.5 w-3.5" /> Pegar copiado
+          </Button>
           {CONTENT_BLOCK_TYPES.map((type) => (
             <Button
               key={type.value}
@@ -458,7 +522,12 @@ export function BuilderBlockList({
         </p>
       )}
       {blocks.map((block, index) => (
-        <article key={block.id} className="rounded-xl border border-border bg-card p-3 sm:p-4">
+        <article
+          key={block.id}
+          className={`rounded-xl border border-border bg-card p-3 sm:p-4 ${
+            block.hidden ? "border-dashed border-primary/60 opacity-50" : ""
+          }`}
+        >
           <div className="mb-3 flex items-center justify-between">
             <p className="font-cond text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {block.type === "subsection"
@@ -485,6 +554,45 @@ export function BuilderBlockList({
                 onClick={() => moveBlock(index, 1)}
               >
                 <ArrowDown className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Copiar elemento"
+                title="Copiar para otra sección o subsección"
+                onClick={() => onCopyBlock?.(block)}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Duplicar elemento"
+                title="Duplicar en esta sección"
+                disabled={blocks.length >= (nested ? 20 : 40)}
+                onClick={() =>
+                  onChange([
+                    ...blocks.slice(0, index + 1),
+                    copyBlockWithNewIds(block),
+                    ...blocks.slice(index + 1),
+                  ])
+                }
+              >
+                <CopyPlus className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={block.hidden ? "Mostrar elemento" : "Ocultar elemento"}
+                title={block.hidden ? "Mostrar elemento" : "Ocultar elemento"}
+                onClick={() =>
+                  updateBlock(index, (current) => ({ ...current, hidden: !current.hidden }))
+                }
+              >
+                {block.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </Button>
               <Button
                 type="button"
@@ -521,8 +629,33 @@ export function BuilderBlockList({
                 }
               />
             </div>
-          ) : block.type === "image" ? (
+          ) : block.type === "image" || block.type === "card" ? (
             <div className="grid gap-3 sm:grid-cols-2">
+              {block.type === "card" && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`block-card-title-${block.id}`}>Título de la tarjeta</Label>
+                    <Input
+                      id={`block-card-title-${block.id}`}
+                      value={block.title}
+                      onChange={(event) =>
+                        updateBlock(index, (current) => ({ ...current, title: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor={`block-card-text-${block.id}`}>Descripción</Label>
+                    <Textarea
+                      id={`block-card-text-${block.id}`}
+                      rows={3}
+                      value={block.text}
+                      onChange={(event) =>
+                        updateBlock(index, (current) => ({ ...current, text: event.target.value }))
+                      }
+                    />
+                  </div>
+                </>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor={`block-url-${block.id}`}>URL de imagen</Label>
                 <Input
@@ -583,6 +716,14 @@ export function BuilderBlockList({
                   Subir imagen
                 </Button>
               </div>
+              {block.type === "card" && (
+                <div className="sm:col-span-2">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Vista previa en la página
+                  </p>
+                  <RenderBuilderBlock block={block} />
+                </div>
+              )}
             </div>
           ) : block.type === "video" ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -750,6 +891,8 @@ export function BuilderBlockList({
                   nested
                   blocks={block.children}
                   onMediaUpload={onMediaUpload}
+                  clipboardBlock={clipboardBlock}
+                  onCopyBlock={onCopyBlock}
                   onChange={(children) =>
                     updateBlock(index, (current) => ({ ...current, children }))
                   }
@@ -763,29 +906,120 @@ export function BuilderBlockList({
   );
 }
 
-export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
+export function RenderBuilderBlock({
+  block,
+  sectionId,
+  editorMode = false,
+}: {
+  block: ClubBuilderBlock;
+  sectionId?: string;
+  editorMode?: boolean;
+}) {
+  if (block.hidden && !editorMode) return null;
+  const editorAttributes = {
+    "data-club-edit-block": block.id,
+    ...(block.hidden ? { "data-club-hidden": "true" } : {}),
+    ...(sectionId ? { "data-club-section-id": sectionId } : {}),
+  };
   switch (block.type) {
     case "heading":
       return (
-        <h2 className="font-display text-2xl uppercase tracking-wide text-foreground sm:text-3xl">
+        <h2
+          {...editorAttributes}
+          className="font-display text-2xl uppercase tracking-wide text-foreground sm:text-3xl"
+        >
           {block.title}
         </h2>
       );
     case "subtitle":
       return (
-        <h3 className="font-cond text-lg font-semibold uppercase tracking-wide text-primary">
+        <h3
+          {...editorAttributes}
+          className="font-cond text-lg font-semibold uppercase tracking-wide text-primary"
+        >
           {block.title}
         </h3>
       );
     case "paragraph":
       return (
-        <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+        <p
+          {...editorAttributes}
+          className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground"
+        >
           {block.text}
         </p>
       );
+    case "card":
+      return (
+        <article
+          {...editorAttributes}
+          className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+        >
+          {block.url && (
+            <img
+              src={block.url}
+              alt={block.title}
+              loading="lazy"
+              className="aspect-video w-full object-cover"
+            />
+          )}
+          <div className="space-y-2 p-4">
+            {block.title && (
+              <h3 className="font-display text-lg uppercase tracking-wide text-foreground">
+                {block.title}
+              </h3>
+            )}
+            {block.text && (
+              <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                {block.text}
+              </p>
+            )}
+          </div>
+        </article>
+      );
+    case "component":
+      return <RenderCopiedClubComponent block={block} {...editorAttributes} />;
+    case "membership-card": {
+      const card = parseClubBuilderMembershipCard(block.text);
+      if (!card) return null;
+      return (
+        <article
+          {...editorAttributes}
+          className="h-full rounded-2xl border border-border bg-background/70 p-6 text-center"
+        >
+          <p className="text-xs text-muted-foreground">{block.title}</p>
+          <p className="font-display mt-3 text-5xl text-foreground">
+            {card.price}
+            <span className="text-lg text-muted-foreground"> {card.currency}</span>
+          </p>
+          <div className="mt-4 space-y-2 text-sm text-foreground/90">
+            <p>{card.caption}</p>
+            <p className="text-muted-foreground">{card.regularPrice}</p>
+          </div>
+          <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">
+            {card.perks.map((perk, index) => (
+              <li key={`${block.id}-perk-${index}`} className="flex gap-2">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>{perk}</span>
+              </li>
+            ))}
+          </ul>
+          <a
+            href="/club-pago"
+            className="mt-7 block rounded-md bg-primary px-4 py-2 font-cond text-sm font-semibold uppercase tracking-wide text-primary-foreground"
+          >
+            <Flame className="mr-1 inline h-4 w-4" />
+            {card.buttonLabel}
+          </a>
+        </article>
+      );
+    }
     case "image":
       return block.url ? (
-        <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-secondary/40">
+        <div
+          {...editorAttributes}
+          className="relative aspect-video w-full overflow-hidden rounded-2xl bg-secondary/40"
+        >
           <img
             src={block.url}
             alt={block.title}
@@ -797,6 +1031,7 @@ export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
     case "video":
       return block.url ? (
         <video
+          {...editorAttributes}
           src={block.url}
           controls
           controlsList="nodownload"
@@ -809,7 +1044,10 @@ export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
       ) : null;
     case "price":
       return (
-        <div className="rounded-xl border border-primary/30 bg-background/70 p-4 text-center">
+        <div
+          {...editorAttributes}
+          className="rounded-xl border border-primary/30 bg-background/70 p-4 text-center"
+        >
           {block.title && (
             <p className="font-cond text-xs uppercase tracking-widest text-muted-foreground">
               {block.title}
@@ -822,6 +1060,7 @@ export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
       return block.url ? (
         <Button asChild className="font-cond uppercase tracking-wide">
           <a
+            {...editorAttributes}
             href={block.url}
             target={block.url.startsWith("http") ? "_blank" : undefined}
             rel={block.url.startsWith("http") ? "noreferrer" : undefined}
@@ -832,7 +1071,10 @@ export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
       ) : null;
     case "subsection":
       return (
-        <div className="space-y-3 rounded-xl border border-border/70 bg-background/50 p-4">
+        <div
+          {...editorAttributes}
+          className="space-y-3 rounded-xl border border-border/70 bg-background/50 p-4"
+        >
           <h3 className="font-display text-lg uppercase tracking-wide text-foreground">
             {block.title}
           </h3>
@@ -843,7 +1085,12 @@ export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
             className={block.layout === "horizontal" ? "grid gap-3 sm:grid-cols-2" : "space-y-3"}
           >
             {block.children.map((child) => (
-              <RenderBuilderBlock key={child.id} block={child} />
+              <RenderBuilderBlock
+                key={child.id}
+                block={child}
+                sectionId={sectionId}
+                editorMode={editorMode}
+              />
             ))}
           </div>
         </div>
@@ -851,7 +1098,192 @@ export function RenderBuilderBlock({ block }: { block: ClubBuilderBlock }) {
   }
 }
 
-export function ClubLandingCustomSections({ layout }: { layout: ClubBuilderLayout }) {
+function RenderCopiedClubComponent({
+  block,
+  ...editorAttributes
+}: {
+  block: ClubBuilderBlock;
+  "data-club-edit-block"?: string;
+  "data-club-section-id"?: string;
+}) {
+  let item: Record<string, unknown>;
+  try {
+    const snapshot: unknown = JSON.parse(block.text);
+    if (!snapshot || typeof snapshot !== "object" || !("item" in snapshot)) return null;
+    const value = snapshot.item;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    item = value as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const text = (...keys: string[]) =>
+    keys
+      .map((key) => item[key])
+      .find((value): value is string => typeof value === "string" && !!value.trim()) ?? "";
+  const title = text("title", "question", "name", "label", "subtitle");
+  const description = text("description", "answer", "quote", "text", "bullets");
+  const badge = text("tag", "badge", "role");
+  const image = text("image");
+
+  switch (block.title) {
+    case "club_course_cards":
+      return (
+        <article
+          {...editorAttributes}
+          className="grid gap-5 rounded-3xl border border-border bg-card p-4 sm:grid-cols-[220px_1fr] sm:p-5"
+        >
+          {image && (
+            <img
+              src={image}
+              alt={title}
+              className="aspect-square w-full rounded-2xl object-cover"
+            />
+          )}
+          <div className="space-y-2">
+            {badge && (
+              <span className="font-cond inline-flex rounded-full bg-secondary px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+                {badge}
+              </span>
+            )}
+            <h3 className="font-display text-xl uppercase tracking-wide text-foreground">
+              {title}
+            </h3>
+            {text("subtitle") && (
+              <p className="font-sans text-sm italic text-primary">{text("subtitle")}</p>
+            )}
+            {text("description") && (
+              <p className="text-sm text-muted-foreground">{text("description")}</p>
+            )}
+            {text("bullets") && (
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                {text("bullets")
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter(Boolean)
+                  .map((line, index) => (
+                    <li key={`${block.id}-copied-${index}`}>• {line}</li>
+                  ))}
+              </ul>
+            )}
+          </div>
+        </article>
+      );
+    case "benefits":
+      return (
+        <article
+          {...editorAttributes}
+          className="flex gap-4 rounded-2xl border border-border bg-card p-5"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+            <Star className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-display text-xl uppercase tracking-wide text-foreground">
+                {title}
+              </h3>
+              {badge && (
+                <span className="font-cond rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">
+                  {badge}
+                </span>
+              )}
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+          </div>
+        </article>
+      );
+    case "points_steps":
+      return (
+        <article
+          {...editorAttributes}
+          className="rounded-2xl border border-border/70 bg-background/60 p-5 text-center"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-display text-xl text-primary">
+            <Flame className="h-5 w-5" />
+          </span>
+          <h3 className="font-cond mt-2 text-sm font-semibold uppercase tracking-wide text-foreground">
+            {title}
+          </h3>
+          <p className="mt-2 text-xs text-muted-foreground">{description}</p>
+        </article>
+      );
+    case "founder_perks":
+      return (
+        <span
+          {...editorAttributes}
+          className="font-cond inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+        >
+          <Star className="h-3.5 w-3.5 text-primary" /> {title}
+        </span>
+      );
+    case "testimonials":
+      return (
+        <article {...editorAttributes} className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex gap-0.5 text-primary">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Star key={`${block.id}-star-${index}`} className="h-3.5 w-3.5 fill-primary" />
+            ))}
+          </div>
+          <p className="mt-3 text-sm italic text-muted-foreground">“{description}”</p>
+          <div className="mt-4">
+            <p className="font-cond text-sm font-semibold uppercase tracking-wide text-foreground">
+              {text("name")}
+            </p>
+            <p className="text-xs text-muted-foreground">{text("role")}</p>
+          </div>
+        </article>
+      );
+    case "membership_perks":
+      return (
+        <li {...editorAttributes} className="flex gap-2">
+          <Check className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm text-muted-foreground">{text("text")}</span>
+        </li>
+      );
+    case "faqs":
+      return (
+        <details
+          {...editorAttributes}
+          className="rounded-2xl border border-border bg-card px-5 py-3"
+        >
+          <summary className="font-cond cursor-pointer text-sm font-semibold uppercase tracking-wide text-foreground">
+            {text("question")}
+          </summary>
+          <p className="mt-3 text-sm text-muted-foreground">{text("answer")}</p>
+        </details>
+      );
+    default:
+      return (
+        <article
+          {...editorAttributes}
+          className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+        >
+          {image && <img src={image} alt={title} className="aspect-video w-full object-cover" />}
+          <div className="space-y-2 p-4">
+            {badge && (
+              <span className="font-cond inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                {badge}
+              </span>
+            )}
+            <h3 className="font-display text-lg uppercase tracking-wide text-foreground">
+              {title || block.title}
+            </h3>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+          </div>
+        </article>
+      );
+  }
+}
+
+export function ClubLandingCustomSections({
+  layout,
+  editorMode = false,
+}: {
+  layout: ClubBuilderLayout;
+  editorMode?: boolean;
+}) {
   return (
     <>
       {layout.customSections.map((section) => {
@@ -871,13 +1303,25 @@ export function ClubLandingCustomSections({ layout }: { layout: ClubBuilderLayou
         return (
           <section
             key={section.id}
+            data-club-section-id={section.id}
+            draggable={editorMode}
             style={{ order }}
             className={`mt-14 rounded-3xl px-6 py-10 sm:px-10 ${background} ${width}`}
           >
             <div className={section.width === "contained" ? "mx-auto max-w-4xl" : "w-full"}>
+              {editorMode && (
+                <p className="mb-4 rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                  Sección: {section.title}
+                </p>
+              )}
               <div className={layoutClass}>
                 {section.blocks.map((block) => (
-                  <RenderBuilderBlock key={block.id} block={block} />
+                  <RenderBuilderBlock
+                    key={block.id}
+                    block={block}
+                    sectionId={section.id}
+                    editorMode={editorMode}
+                  />
                 ))}
               </div>
             </div>
@@ -891,12 +1335,19 @@ export function ClubLandingCustomSections({ layout }: { layout: ClubBuilderLayou
 export function ClubLandingBuiltInExtras({
   sectionId,
   layout,
+  excludedBlockTypes = [],
+  editorMode = false,
 }: {
   sectionId: string;
   layout: ClubBuilderLayout;
+  excludedBlockTypes?: ClubBuilderBlock["type"][];
+  editorMode?: boolean;
 }) {
-  const options = layout.sectionOptions[sectionId];
-  if (!options?.blocks.length) return null;
+  const sectionOptions = layout.sectionOptions[sectionId];
+  if (!sectionOptions?.blocks.length) return null;
+  const blocks = sectionOptions.blocks.filter((block) => !excludedBlockTypes.includes(block.type));
+  if (!blocks.length) return null;
+  const options = { ...sectionOptions, blocks };
   const background = {
     none: "",
     card: "border border-border bg-card",
@@ -910,7 +1361,12 @@ export function ClubLandingBuiltInExtras({
     <div className={`mt-8 rounded-2xl p-5 sm:p-7 ${background} ${width}`}>
       <div className={layoutClass}>
         {options.blocks.map((block) => (
-          <RenderBuilderBlock key={block.id} block={block} />
+          <RenderBuilderBlock
+            key={block.id}
+            block={block}
+            sectionId={sectionId}
+            editorMode={editorMode}
+          />
         ))}
       </div>
     </div>

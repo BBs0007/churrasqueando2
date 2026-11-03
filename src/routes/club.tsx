@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/accordion";
 import { useSession } from "@/hooks/useSession";
 import {
+  RenderBuilderBlock,
   ClubLandingBuiltInExtras,
   ClubLandingCustomSections,
 } from "@/components/ClubLandingBuilder";
@@ -93,19 +94,33 @@ const PERK_ICONS: Record<string, React.ReactNode> = {
 };
 
 function ClubPage() {
+  const routeContent = Route.useLoaderData();
+  return <ClubLandingPage initialContent={routeContent} />;
+}
+
+export function ClubLandingPage({
+  initialContent,
+  contentOverride,
+  embedded = false,
+  editorMode = false,
+}: {
+  initialContent?: Record<string, string>;
+  contentOverride?: Record<string, string>;
+  embedded?: boolean;
+  editorMode?: boolean;
+}) {
   const [isPresentationPlaying, setIsPresentationPlaying] = useState(false);
   const fetchClub = useServerFn(getMyClub);
   const fetchContent = useServerFn(getClubContent);
   const fetchPlans = useServerFn(getActiveMembershipPlans);
-  const routeContent = Route.useLoaderData();
   const { session, loading: sessionLoading } = useSession();
 
   const clubContentQuery = useQuery({
     queryKey: ["club-content"],
     queryFn: () => fetchContent(),
-    initialData: routeContent,
+    initialData: initialContent,
   });
-  const c = clubContentQuery.data ?? {};
+  const c = contentOverride ?? clubContentQuery.data ?? {};
   const t = (key: string) => getClubLandingText(c, key);
   const img = (key: string, fallback: string) => c[key]?.trim() || fallback;
   const builderLayout = getClubBuilderLayout(c.club_builder);
@@ -161,21 +176,36 @@ function ClubPage() {
   const foundersUsed = foundersTotal - foundersRemaining;
   const foundersPct = foundersTotal > 0 ? Math.round((foundersUsed / foundersTotal) * 100) : 0;
   const hasPendingMembership = data?.requests.some((request) => request.status === "pending");
-  const benefits = getClubLandingCollection<(typeof CLUB_BENEFITS)[number]>(c, "benefits");
+  const benefits = getClubLandingCollection<(typeof CLUB_BENEFITS)[number]>(
+    c,
+    "benefits",
+    editorMode,
+  );
   const pointsSteps = getClubLandingCollection<(typeof PUNTOS_BRASA_STEPS)[number]>(
     c,
     "points_steps",
+    editorMode,
   );
-  const founderPerks = getClubLandingCollection<(typeof FOUNDER_PERKS)[number]>(c, "founder_perks");
+  const founderPerks = getClubLandingCollection<(typeof FOUNDER_PERKS)[number]>(
+    c,
+    "founder_perks",
+    editorMode,
+  );
   const testimonials = getClubLandingCollection<(typeof CLUB_TESTIMONIALS)[number]>(
     c,
     "testimonials",
+    editorMode,
   );
   const membershipPerks = getClubLandingCollection<{ id?: string; text: string }>(
     c,
     "membership_perks",
+    editorMode,
   );
-  const faqs = getClubLandingCollection<(typeof CLUB_FAQS)[number]>(c, "faqs");
+  const membershipCardBlocks = builderLayout.sectionOptions.membership.blocks.filter(
+    (block) => block.type === "membership-card",
+  );
+  const membershipCardHidden = !!builderLayout.sectionOptions.membership.membershipCardHidden;
+  const faqs = getClubLandingCollection<(typeof CLUB_FAQS)[number]>(c, "faqs", editorMode);
   const clubCourseCards = getClubLandingCollection<{
     id: string;
     title: string;
@@ -184,7 +214,7 @@ function ClubPage() {
     description: string;
     bullets: string;
     image: string;
-  }>(c, "club_course_cards");
+  }>(c, "club_course_cards", editorMode);
   const annualPrice = annualPlan?.price ?? getClubLandingNumber(c, "membership_annual_price");
   const annualCurrency = annualPlan?.currency ?? CURRENCY;
   const regularPrice = getClubLandingNumber(c, "membership_regular_price");
@@ -199,28 +229,41 @@ function ClubPage() {
     <div className="flex flex-col">
       {/* FRANJA DE LANZAMIENTO */}
       <div
+        data-club-section-id="banner"
+        draggable={editorMode}
         hidden={!isSectionVisible("banner")}
         style={sectionStyle("banner")}
         className="-mx-4 mb-6 rounded-none bg-primary px-4 py-3 text-center shadow-fire sm:mx-0 sm:rounded-2xl"
       >
         <div className="flex items-center justify-center gap-2.5">
           <Flame className="h-4 w-4 shrink-0 text-primary-foreground" />
-          <p className="font-cond text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:text-sm">
+          <p
+            data-club-edit-field="launch_banner"
+            className="font-cond text-xs font-semibold uppercase tracking-[0.15em] text-primary-foreground sm:text-sm"
+          >
             {t("launch_banner")}
           </p>
         </div>
-        <ClubLandingBuiltInExtras sectionId="banner" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="banner"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </div>
 
       {/* HERO */}
       <section
+        data-club-section-id="hero"
+        draggable={editorMode}
         hidden={!isSectionVisible("hero")}
         style={sectionStyle("hero")}
         className="relative -mx-4 overflow-hidden rounded-none border-y border-border/70 sm:mx-0 sm:rounded-3xl sm:border"
       >
         <img
+          data-club-edit-field="hero_image"
           src={img("hero_image", clubHero)}
           alt={t("hero_image_alt")}
+          title={editorMode ? "Seleccionar imagen de portada" : undefined}
           width={1600}
           height={900}
           className="absolute inset-0 h-full w-full object-cover"
@@ -230,10 +273,16 @@ function ClubPage() {
           <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-primary/50 text-primary">
             <Sparkles className="h-4 w-4" />
           </span>
-          <p className="font-cond mt-5 text-xs uppercase tracking-[0.4em] text-primary">
+          <p
+            data-club-edit-field="hero_brand"
+            className="font-cond mt-5 text-xs uppercase tracking-[0.4em] text-primary"
+          >
             {t("hero_brand")}
           </p>
-          <h1 className="font-display mx-auto mt-3 max-w-3xl text-3xl uppercase leading-tight tracking-wide text-foreground sm:text-5xl">
+          <h1
+            data-club-edit-field="hero_title"
+            className="font-display mx-auto mt-3 max-w-3xl text-3xl uppercase leading-tight tracking-wide text-foreground sm:text-5xl"
+          >
             {heroTitle === CLUB_LANDING_DEFAULTS.hero_title ? (
               <>
                 La plataforma más completa para{" "}
@@ -243,17 +292,27 @@ function ClubPage() {
               heroTitle
             )}
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
+          <p
+            data-club-edit-field="hero_subtitle"
+            className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base"
+          >
             {t("hero_subtitle")}
           </p>
 
-          <p className="font-cond mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+          <p
+            data-club-edit-field="hero_founder_badge"
+            className="font-cond mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary"
+          >
             <Star className="h-3.5 w-3.5 fill-primary" /> {t("hero_founder_badge")}
           </p>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <Link to={isMember ? "/cursos" : "/club-pago"}>
-              <Button size="lg" className="font-cond uppercase tracking-wide">
+              <Button
+                data-club-edit-field="hero_cta"
+                size="lg"
+                className="font-cond uppercase tracking-wide"
+              >
                 <Flame className="h-4 w-4" />
                 {isMember
                   ? "Ver mis cursos"
@@ -263,7 +322,12 @@ function ClubPage() {
               </Button>
             </Link>
             <a href="#video">
-              <Button size="lg" variant="outline" className="font-cond uppercase tracking-wide">
+              <Button
+                data-club-edit-field="hero_video_cta"
+                size="lg"
+                variant="outline"
+                className="font-cond uppercase tracking-wide"
+              >
                 <Play className="h-4 w-4" /> {t("hero_video_cta")}
               </Button>
             </a>
@@ -295,36 +359,56 @@ function ClubPage() {
 
           <dl className="mx-auto mt-10 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { k: t("hero_stat_courses"), v: t("hero_stat_courses_label") },
-              { k: t("hero_stat_lessons"), v: t("hero_stat_lessons_label") },
-              { k: t("hero_stat_recipes"), v: t("hero_stat_recipes_label") },
-              { k: t("hero_stat_access"), v: t("hero_stat_access_label") },
+              { key: "courses", k: t("hero_stat_courses"), v: t("hero_stat_courses_label") },
+              { key: "lessons", k: t("hero_stat_lessons"), v: t("hero_stat_lessons_label") },
+              { key: "recipes", k: t("hero_stat_recipes"), v: t("hero_stat_recipes_label") },
+              { key: "access", k: t("hero_stat_access"), v: t("hero_stat_access_label") },
             ].map((s) => (
               <div
                 key={s.v}
                 className="rounded-2xl border border-border/70 bg-card/70 px-3 py-4 backdrop-blur"
               >
-                <dt className="font-display text-2xl text-primary">{s.k}</dt>
-                <dd className="font-cond text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                <dt
+                  data-club-edit-field={`hero_stat_${s.key}`}
+                  className="font-display text-2xl text-primary"
+                >
+                  {s.k}
+                </dt>
+                <dd
+                  data-club-edit-field={`hero_stat_${s.key}_label`}
+                  className="font-cond text-[11px] uppercase tracking-[0.2em] text-muted-foreground"
+                >
                   {s.v}
                 </dd>
               </div>
             ))}
           </dl>
-          <ClubLandingBuiltInExtras sectionId="hero" layout={builderLayout} />
+          <ClubLandingBuiltInExtras
+            sectionId="hero"
+            layout={builderLayout}
+            editorMode={editorMode}
+          />
         </div>
       </section>
 
       {/* EL PROBLEMA */}
       <section
+        data-club-section-id="problem"
+        draggable={editorMode}
         hidden={!isSectionVisible("problem")}
         style={sectionStyle("problem")}
         className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 text-center sm:px-12 sm:py-16"
       >
-        <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">
+        <p
+          data-club-edit-field="problem_eyebrow"
+          className="font-cond text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("problem_eyebrow")}
         </p>
-        <h2 className="font-display mx-auto mt-3 max-w-2xl text-2xl uppercase leading-tight tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="problem_title"
+          className="font-display mx-auto mt-3 max-w-2xl text-2xl uppercase leading-tight tracking-wide text-foreground sm:text-4xl"
+        >
           {problemTitle === CLUB_LANDING_DEFAULTS.problem_title ? (
             <>
               ¿Cansado de que cada asado sea una <span className="text-primary">lotería</span>?
@@ -333,29 +417,45 @@ function ClubPage() {
             problemTitle
           )}
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
+        <p
+          data-club-edit-field="problem_body"
+          className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base"
+        >
           {t("problem_body")}
         </p>
-        <ClubLandingBuiltInExtras sectionId="problem" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="problem"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* VIDEO */}
       <section
+        data-club-section-id="video"
+        draggable={editorMode}
         id="video"
         hidden={!isSectionVisible("video")}
         style={sectionStyle("video")}
         className="mt-14 scroll-mt-24"
       >
-        <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
+        <p
+          data-club-edit-field="video_eyebrow"
+          className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("video_eyebrow")}
         </p>
-        <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="video_title"
+          className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl"
+        >
           {t("video_title")}
         </h2>
 
         <div className="relative mt-8 overflow-hidden rounded-3xl border border-border bg-black">
           {isPresentationPlaying && t("video_url") ? (
             <video
+              data-club-edit-field="video_url"
               src={t("video_url")}
               poster={img("video_image", clubVideo)}
               controls
@@ -370,6 +470,7 @@ function ClubPage() {
           ) : (
             <>
               <img
+                data-club-edit-field="video_image"
                 src={img("video_image", clubVideo)}
                 alt={t("video_image_alt")}
                 loading="lazy"
@@ -378,12 +479,16 @@ function ClubPage() {
                 className="aspect-video w-full object-cover"
               />
               <div className="absolute inset-0 bg-background/45" />
-              <span className="font-cond absolute right-4 top-4 rounded-full bg-background/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground backdrop-blur">
+              <span
+                data-club-edit-field="video_badge"
+                className="font-cond absolute right-4 top-4 rounded-full bg-background/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground backdrop-blur"
+              >
                 {t("video_badge")}
               </span>
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
                 <button
                   type="button"
+                  data-club-edit-field={editorMode ? "video_url" : undefined}
                   aria-label={
                     t("video_url")
                       ? "Reproducir presentación del Club"
@@ -400,7 +505,10 @@ function ClubPage() {
                 >
                   <Play className="h-8 w-8" />
                 </button>
-                <p className="font-display px-6 text-xl uppercase tracking-wide text-foreground sm:text-2xl">
+                <p
+                  data-club-edit-field="video_overlay_title"
+                  className="font-display px-6 text-xl uppercase tracking-wide text-foreground sm:text-2xl"
+                >
                   {t("video_overlay_title")}
                 </p>
                 {!t("video_url") && (
@@ -409,28 +517,46 @@ function ClubPage() {
                   </p>
                 )}
               </div>
-              <span className="font-cond absolute bottom-4 right-4 rounded-full bg-background/85 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+              <span
+                data-club-edit-field="video_duration"
+                className="font-cond absolute bottom-4 right-4 rounded-full bg-background/85 px-3 py-1 text-xs text-muted-foreground backdrop-blur"
+              >
                 {t("video_duration")}
               </span>
             </>
           )}
         </div>
-        <ClubLandingBuiltInExtras sectionId="video" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="video"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* CURSOS */}
       <section
+        data-club-section-id="courses"
+        draggable={editorMode}
         hidden={!isSectionVisible("courses")}
         style={sectionStyle("courses")}
         className="mt-14"
       >
-        <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
+        <p
+          data-club-edit-field="courses_eyebrow"
+          className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("courses_eyebrow")}
         </p>
-        <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="courses_title"
+          className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl"
+        >
           {t("courses_title")}
         </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground">
+        <p
+          data-club-edit-field="courses_description"
+          className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground"
+        >
           {t("courses_description")}
         </p>
 
@@ -438,6 +564,11 @@ function ClubPage() {
           {clubCourseCards.map((course, index) => (
             <article
               key={course.id || `${course.title}-${index}`}
+              data-club-edit-collection="club_course_cards"
+              data-club-edit-id={course.id}
+              data-club-hidden={
+                editorMode && "hidden" in course && course.hidden === true ? "true" : undefined
+              }
               className="grid gap-6 rounded-3xl border border-border bg-card p-4 sm:grid-cols-[280px_1fr] sm:p-6"
             >
               <div className="relative aspect-square overflow-hidden rounded-2xl bg-background">
@@ -516,7 +647,10 @@ function ClubPage() {
                     </Button>
                   ) : (
                     <Link to="/club-pago">
-                      <Button className="font-cond uppercase tracking-wide">
+                      <Button
+                        data-club-edit-field="courses_cta"
+                        className="font-cond uppercase tracking-wide"
+                      >
                         <Lock className="h-4 w-4" /> {t("courses_cta")}
                       </Button>
                     </Link>
@@ -526,24 +660,44 @@ function ClubPage() {
             </article>
           ))}
         </div>
-        <ClubLandingBuiltInExtras sectionId="courses" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="courses"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* BENEFICIOS */}
       <section
+        data-club-section-id="benefits"
+        draggable={editorMode}
         hidden={!isSectionVisible("benefits")}
         style={sectionStyle("benefits")}
         className="mt-14"
       >
-        <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
+        <p
+          data-club-edit-field="benefits_eyebrow"
+          className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("benefits_eyebrow")}
         </p>
-        <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="benefits_title"
+          className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl"
+        >
           {t("benefits_title")}
         </h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {benefits.map((b) => (
-            <div key={b.id} className="flex gap-4 rounded-2xl border border-border bg-card p-5">
+            <div
+              key={b.id}
+              data-club-edit-collection="benefits"
+              data-club-edit-id={b.id}
+              data-club-hidden={
+                editorMode && "hidden" in b && b.hidden === true ? "true" : undefined
+              }
+              className="flex gap-4 rounded-2xl border border-border bg-card p-5"
+            >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                 {BENEFIT_ICONS[b.icon]}
               </span>
@@ -569,22 +723,37 @@ function ClubPage() {
             </div>
           ))}
         </div>
-        <ClubLandingBuiltInExtras sectionId="benefits" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="benefits"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* PUNTOS BRASA */}
       <section
+        data-club-section-id="points"
+        draggable={editorMode}
         hidden={!isSectionVisible("points")}
         style={sectionStyle("points")}
         className="mt-14 rounded-3xl border border-border bg-card px-6 py-12 sm:px-10"
       >
-        <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
+        <p
+          data-club-edit-field="points_eyebrow"
+          className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("points_eyebrow")}
         </p>
-        <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="points_title"
+          className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl"
+        >
           {t("points_title")}
         </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground">
+        <p
+          data-club-edit-field="points_description"
+          className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground"
+        >
           {t("points_description")}
         </p>
 
@@ -592,6 +761,11 @@ function ClubPage() {
           {pointsSteps.map((s, index) => (
             <div
               key={s.id ?? `points-step-${index}`}
+              data-club-edit-collection="points_steps"
+              data-club-edit-id={s.id}
+              data-club-hidden={
+                editorMode && "hidden" in s && s.hidden === true ? "true" : undefined
+              }
               className="rounded-2xl border border-border/70 bg-background/60 p-5 text-center"
             >
               <p className="font-display text-3xl text-primary">{index + 1}</p>
@@ -603,22 +777,37 @@ function ClubPage() {
           ))}
         </div>
 
-        <p className="mx-auto mt-6 max-w-2xl text-center text-xs text-muted-foreground">
+        <p
+          data-club-edit-field="points_note"
+          className="mx-auto mt-6 max-w-2xl text-center text-xs text-muted-foreground"
+        >
           {t("points_note")}
         </p>
-        <ClubLandingBuiltInExtras sectionId="points" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="points"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* SOCIOS FUNDADORES */}
       <section
+        data-club-section-id="founders"
+        draggable={editorMode}
         hidden={!isSectionVisible("founders")}
         style={sectionStyle("founders")}
         className="mt-14 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card px-6 py-12 text-center sm:px-10 sm:py-16"
       >
-        <p className="font-cond text-xs uppercase tracking-[0.35em] text-primary">
+        <p
+          data-club-edit-field="founders_eyebrow"
+          className="font-cond text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("founders_eyebrow")}
         </p>
-        <h2 className="font-display mx-auto mt-2 max-w-xl text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="founders_title"
+          className="font-display mx-auto mt-2 max-w-xl text-3xl uppercase tracking-wide text-foreground sm:text-4xl"
+        >
           {foundersTitle === CLUB_LANDING_DEFAULTS.founders_title ? (
             <>
               Sé <span className="text-gradient-fire">socio fundador</span>
@@ -627,7 +816,10 @@ function ClubPage() {
             foundersTitle
           )}
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
+        <p
+          data-club-edit-field="founders_description"
+          className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base"
+        >
           {t("founders_description")}
         </p>
 
@@ -635,6 +827,11 @@ function ClubPage() {
           {founderPerks.map((p) => (
             <span
               key={p.id}
+              data-club-edit-collection="founder_perks"
+              data-club-edit-id={p.id}
+              data-club-hidden={
+                editorMode && "hidden" in p && p.hidden === true ? "true" : undefined
+              }
               className="font-cond inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
             >
               <span className="text-primary">{PERK_ICONS[p.icon]}</span> {p.label}
@@ -645,42 +842,69 @@ function ClubPage() {
         <div className="mx-auto mt-8 max-w-md">
           <Progress value={foundersPct} className="h-2" />
           <div className="font-cond mt-2 flex justify-between text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            <span>{t("founders_quota_label")}</span>
+            <span data-club-edit-field="founders_quota_label">{t("founders_quota_label")}</span>
             <span className="text-primary">
-              {t("founders_remaining_label")} {foundersRemaining} de {foundersTotal}
+              <span data-club-edit-field="founders_remaining_label">
+                {t("founders_remaining_label")}
+              </span>{" "}
+              {foundersRemaining} de {foundersTotal}
             </span>
           </div>
         </div>
 
         <Link to="/club-pago" className="mt-8 inline-block">
           <Button size="lg" className="font-cond uppercase tracking-wide">
-            <Star className="h-4 w-4" /> {t("founders_cta")}
+            <Star className="h-4 w-4" />{" "}
+            <span data-club-edit-field="founders_cta">{t("founders_cta")}</span>
           </Button>
         </Link>
-        <ClubLandingBuiltInExtras sectionId="founders" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="founders"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* TESTIMONIOS */}
       <section
+        data-club-section-id="testimonials"
+        draggable={editorMode}
         hidden={!isSectionVisible("testimonials")}
         style={sectionStyle("testimonials")}
         className="mt-14"
       >
-        <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
+        <p
+          data-club-edit-field="testimonials_eyebrow"
+          className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("testimonials_eyebrow")}
         </p>
-        <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="testimonials_title"
+          className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl"
+        >
           {t("testimonials_title")}
         </h2>
         {testimonialsNote.trim() && (
-          <p className="mt-2 text-center text-xs italic text-muted-foreground">
+          <p
+            data-club-edit-field="testimonials_note"
+            className="mt-2 text-center text-xs italic text-muted-foreground"
+          >
             {testimonialsNote}
           </p>
         )}
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {testimonials.map((t) => (
-            <div key={t.id} className="rounded-2xl border border-border bg-card p-5">
+            <div
+              key={t.id}
+              data-club-edit-collection="testimonials"
+              data-club-edit-id={t.id}
+              data-club-hidden={
+                editorMode && "hidden" in t && t.hidden === true ? "true" : undefined
+              }
+              className="rounded-2xl border border-border bg-card p-5"
+            >
               <div className="flex gap-0.5 text-primary">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className="h-3.5 w-3.5 fill-primary" />
@@ -701,11 +925,17 @@ function ClubPage() {
             </div>
           ))}
         </div>
-        <ClubLandingBuiltInExtras sectionId="testimonials" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="testimonials"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* GARANTÍA */}
       <section
+        data-club-section-id="guarantee"
+        draggable={editorMode}
         hidden={!isSectionVisible("guarantee")}
         style={sectionStyle("guarantee")}
         className="mt-10"
@@ -715,101 +945,175 @@ function ClubPage() {
             <Heart className="h-5 w-5" />
           </span>
           <div>
-            <h3 className="font-display text-lg uppercase tracking-wide text-foreground">
+            <h3
+              data-club-edit-field="guarantee_title"
+              className="font-display text-lg uppercase tracking-wide text-foreground"
+            >
               {t("guarantee_title")}
             </h3>
-            <p className="mt-1 text-sm text-muted-foreground">{t("guarantee_body")}</p>
+            <p data-club-edit-field="guarantee_body" className="mt-1 text-sm text-muted-foreground">
+              {t("guarantee_body")}
+            </p>
           </div>
         </div>
-        <ClubLandingBuiltInExtras sectionId="guarantee" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="guarantee"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* SUSCRIPCIÓN */}
       <section
+        data-club-section-id="membership"
+        draggable={editorMode}
         id="suscribirse"
         hidden={!isSectionVisible("membership")}
         style={sectionStyle("membership")}
         className="mt-14 scroll-mt-24 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card p-6 sm:p-10"
       >
-        <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
+        <p
+          data-club-edit-field="membership_eyebrow"
+          className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("membership_eyebrow")}
         </p>
-        <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="membership_title"
+          className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl"
+        >
           {t("membership_title")}
         </h2>
 
-        <div className="mx-auto mt-8 max-w-md rounded-2xl border border-border bg-background/70 p-6 text-center">
-          <p className="text-xs text-muted-foreground">{t("membership_course_intro")}</p>
-          <p className="font-display mt-3 text-5xl text-foreground">
-            {annualPrice}
-            <span className="text-lg text-muted-foreground"> {annualCurrency} / año</span>
-          </p>
-          <div className="mt-4 space-y-2 text-sm text-foreground/90">
-            <p>{t("membership_price_caption")}</p>
-            <p className="text-muted-foreground">
-              Precio real luego: {regularPrice} {CURRENCY} anual
+        <div
+          className={`mx-auto mt-8 ${
+            membershipCardBlocks.length
+              ? "grid w-full max-w-4xl items-stretch gap-4 sm:grid-cols-2"
+              : "max-w-md"
+          }`}
+        >
+          <div
+            data-club-edit-membership-card="true"
+            data-club-hidden={membershipCardHidden ? "true" : undefined}
+            data-club-membership-intro={t("membership_course_intro")}
+            hidden={membershipCardHidden && !editorMode}
+            data-club-membership-card={JSON.stringify({
+              price: String(annualPrice),
+              currency: `${annualCurrency} / año`,
+              caption: t("membership_price_caption"),
+              regularPrice: `Precio real luego: ${regularPrice} ${CURRENCY} anual`,
+              perks: membershipPerks.map((perk) => perk.text),
+              buttonLabel: "Suscribirme · Elegir método de pago",
+            })}
+            className={`h-full rounded-2xl border border-border bg-background/70 p-6 text-center ${
+              membershipCardHidden ? "opacity-50" : ""
+            }`}
+          >
+            <p
+              data-club-edit-field="membership_course_intro"
+              className="text-xs text-muted-foreground"
+            >
+              {t("membership_course_intro")}
             </p>
-          </div>
+            <p className="font-display mt-3 text-5xl text-foreground">
+              {annualPrice}
+              <span className="text-lg text-muted-foreground"> {annualCurrency} / año</span>
+            </p>
+            <div className="mt-4 space-y-2 text-sm text-foreground/90">
+              <p data-club-edit-field="membership_price_caption">{t("membership_price_caption")}</p>
+              <p data-club-edit-field="membership_regular_price" className="text-muted-foreground">
+                Precio real luego: {regularPrice} {CURRENCY} anual
+              </p>
+            </div>
 
-          <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">
-            {membershipPerks.map((perk) => (
-              <li key={perk.id ?? perk.text} className="flex gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span>{perk.text}</span>
-              </li>
-            ))}
-          </ul>
+            <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">
+              {membershipPerks.map((perk) => (
+                <li
+                  key={perk.id ?? perk.text}
+                  data-club-edit-collection="membership_perks"
+                  data-club-edit-id={perk.id ?? perk.text}
+                  data-club-hidden={
+                    editorMode && "hidden" in perk && perk.hidden === true ? "true" : undefined
+                  }
+                  className="flex gap-2"
+                >
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span>{perk.text}</span>
+                </li>
+              ))}
+            </ul>
 
-          <div className="mt-7">
-            {!session ? (
-              <div className="space-y-3">
-                <Link to="/club-pago" className="block">
-                  <Button className="w-full font-cond uppercase tracking-wide">
-                    <Flame className="h-4 w-4" /> Suscribirme · Elegir método de pago
-                  </Button>
-                </Link>
-                <p className="text-xs text-muted-foreground">
-                  Primero crea tu cuenta; el acceso se activa después de verificar el pago.
-                </p>
-              </div>
-            ) : isMember ? (
-              <div className="rounded-xl border border-border/70 bg-card p-4 text-sm text-muted-foreground">
-                <p className="font-display text-lg uppercase tracking-wide text-foreground">
-                  Tu membresía está activa
-                </p>
-                <p className="mt-1">
-                  Disfruta de todos los beneficios. Tienes {profile?.points ?? 0} Puntos de Brasa.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Link to="/club-pago" className="block">
-                  <Button className="w-full font-cond uppercase tracking-wide">
-                    {hasPendingMembership ? (
-                      <AlertCircle className="h-4 w-4" />
-                    ) : (
-                      <Flame className="h-4 w-4" />
-                    )}
-                    {hasPendingMembership ? "Ver estado del pago" : "Suscribirme"}
-                  </Button>
-                </Link>
-                <p className="text-xs text-muted-foreground">
-                  Tras enviar el comprobante, el administrador verificará el pago antes de activar
-                  tu membresía.
-                </p>
-              </div>
-            )}
+            <div className="mt-7">
+              {!session ? (
+                <div className="space-y-3">
+                  <Link to="/club-pago" className="block">
+                    <Button className="w-full font-cond uppercase tracking-wide">
+                      <Flame className="h-4 w-4" /> Suscribirme · Elegir método de pago
+                    </Button>
+                  </Link>
+                  <p className="text-xs text-muted-foreground">
+                    Primero crea tu cuenta; el acceso se activa después de verificar el pago.
+                  </p>
+                </div>
+              ) : isMember ? (
+                <div className="rounded-xl border border-border/70 bg-card p-4 text-sm text-muted-foreground">
+                  <p className="font-display text-lg uppercase tracking-wide text-foreground">
+                    Tu membresía está activa
+                  </p>
+                  <p className="mt-1">
+                    Disfruta de todos los beneficios. Tienes {profile?.points ?? 0} Puntos de Brasa.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Link to="/club-pago" className="block">
+                    <Button className="w-full font-cond uppercase tracking-wide">
+                      {hasPendingMembership ? (
+                        <AlertCircle className="h-4 w-4" />
+                      ) : (
+                        <Flame className="h-4 w-4" />
+                      )}
+                      {hasPendingMembership ? "Ver estado del pago" : "Suscribirme"}
+                    </Button>
+                  </Link>
+                  <p className="text-xs text-muted-foreground">
+                    Tras enviar el comprobante, el administrador verificará el pago antes de activar
+                    tu membresía.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
+          {membershipCardBlocks.map((block) => (
+            <RenderBuilderBlock key={block.id} block={block} sectionId="membership" />
+          ))}
         </div>
-        <ClubLandingBuiltInExtras sectionId="membership" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="membership"
+          layout={builderLayout}
+          excludedBlockTypes={["membership-card"]}
+          editorMode={editorMode}
+        />
       </section>
 
       {/* FAQ */}
-      <section hidden={!isSectionVisible("faq")} style={sectionStyle("faq")} className="mt-14">
-        <p className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary">
+      <section
+        data-club-section-id="faq"
+        draggable={editorMode}
+        hidden={!isSectionVisible("faq")}
+        style={sectionStyle("faq")}
+        className="mt-14"
+      >
+        <p
+          data-club-edit-field="faq_eyebrow"
+          className="font-cond text-center text-xs uppercase tracking-[0.35em] text-primary"
+        >
           {t("faq_eyebrow")}
         </p>
-        <h2 className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl">
+        <h2
+          data-club-edit-field="faq_title"
+          className="font-display mt-2 text-center text-3xl uppercase tracking-wide text-foreground sm:text-4xl"
+        >
           {t("faq_title")}
         </h2>
 
@@ -817,6 +1121,11 @@ function ClubPage() {
           {faqs.map((f) => (
             <AccordionItem
               key={f.id}
+              data-club-edit-collection="faqs"
+              data-club-edit-id={f.id}
+              data-club-hidden={
+                editorMode && "hidden" in f && f.hidden === true ? "true" : undefined
+              }
               value={f.id}
               className="rounded-2xl border border-border bg-card px-5"
             >
@@ -829,33 +1138,47 @@ function ClubPage() {
             </AccordionItem>
           ))}
         </Accordion>
-        <ClubLandingBuiltInExtras sectionId="faq" layout={builderLayout} />
+        <ClubLandingBuiltInExtras sectionId="faq" layout={builderLayout} editorMode={editorMode} />
       </section>
 
       {/* FOOTER MINI */}
       <div
+        data-club-section-id="footer"
+        draggable={editorMode}
         hidden={!isSectionVisible("footer")}
         style={sectionStyle("footer")}
         className="mt-16 border-t border-border pt-8 text-center"
       >
         <img
           src={img("footer_logo", logo)}
+          data-club-edit-field="footer_logo"
           alt={t("footer_logo_alt")}
           width={40}
           height={40}
           className="mx-auto h-10 w-10 rounded-xl object-cover ring-1 ring-primary/40"
         />
-        <p className="font-display mt-3 text-xl uppercase tracking-wide text-foreground">
+        <p
+          data-club-edit-field="footer_brand"
+          className="font-display mt-3 text-xl uppercase tracking-wide text-foreground"
+        >
           {t("footer_brand")}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {t("hero_brand")} · {t("footer_location")} · {t("footer_website")}
+          {t("hero_brand")} ·{" "}
+          <span data-club-edit-field="footer_location">{t("footer_location")}</span> ·{" "}
+          <span data-club-edit-field="footer_website">{t("footer_website")}</span>
         </p>
-        <ClubLandingBuiltInExtras sectionId="footer" layout={builderLayout} />
+        <ClubLandingBuiltInExtras
+          sectionId="footer"
+          layout={builderLayout}
+          editorMode={editorMode}
+        />
       </div>
-      <ClubLandingCustomSections layout={builderLayout} />
+      <ClubLandingCustomSections layout={builderLayout} editorMode={editorMode} />
     </div>
   );
+
+  if (embedded) return content;
 
   if (session && data) {
     return (

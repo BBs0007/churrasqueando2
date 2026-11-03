@@ -6,6 +6,7 @@ import type { Database } from "@/integrations/supabase/types";
 export type CateringPackage = {
   id: string;
   image_url: string;
+  image_urls: string[];
   name: string;
   highlight: string;
   price: number;
@@ -25,6 +26,11 @@ function mapPackage(row: CateringPackageRow): CateringPackage {
   return {
     id: row.id,
     image_url: row.image_url ?? "",
+    image_urls: stringList(row.image_urls).length
+      ? stringList(row.image_urls)
+      : row.image_url
+        ? [row.image_url]
+        : [],
     name: row.name,
     highlight: row.highlight ?? "",
     price: Number(row.price),
@@ -48,7 +54,7 @@ function stringList(value: unknown): string[] {
 function throwCateringPackageError(error: { code?: string; message: string }) {
   if (error.code === "42703" || error.code === "PGRST204" || error.message.includes("image_url")) {
     throw new Error(
-      "La base de datos aún no tiene el campo de imagen de Catering. Aplica la migración 20261026220000_catering_package_images.sql en Supabase.",
+      "La base de datos aún no tiene los campos de imágenes de Catering. Aplica las migraciones 20261026220000_catering_package_images.sql y 20261103000000_catering_package_carousel.sql en Supabase.",
     );
   }
   throw error;
@@ -92,6 +98,7 @@ export const adminUpsertCateringPackage = createServerFn({ method: "POST" })
     (input: {
       id?: string;
       imageUrl: string;
+      imageUrls?: string[];
       name: string;
       highlight: string;
       price: number;
@@ -109,19 +116,35 @@ export const adminUpsertCateringPackage = createServerFn({ method: "POST" })
       if (name.length > 100) throw new Error("Nombre demasiado largo");
       if (!(input.price >= 0)) throw new Error("Precio inválido");
       const imageUrl = input.imageUrl?.trim() ?? "";
-      if (
-        imageUrl.length > 2_000 ||
-        (imageUrl &&
-          !(
-            (imageUrl.startsWith("/") && !imageUrl.startsWith("//")) ||
-            /^https?:\/\//i.test(imageUrl)
-          ))
-      ) {
+      const requestedImageUrls =
+        input.imageUrls === undefined ? (imageUrl ? [imageUrl] : []) : input.imageUrls;
+      if (!Array.isArray(requestedImageUrls) || requestedImageUrls.length > 10) {
+        throw new Error("Cada paquete puede tener hasta 10 imágenes");
+      }
+      const normalizedImageUrls = requestedImageUrls.map((url) => {
+        if (typeof url !== "string") throw new Error("La URL de imagen no es válida");
+        const normalized = url.trim();
+        if (
+          normalized.length > 2_000 ||
+          (normalized &&
+            !(
+              (normalized.startsWith("/") &&
+                !normalized.startsWith("//") &&
+                !normalized.includes("\\")) ||
+              /^https?:\/\/\S+$/i.test(normalized)
+            ))
+        ) {
+          throw new Error("La URL de imagen no es válida");
+        }
+        return normalized;
+      });
+      if (normalizedImageUrls.some((url) => !url)) {
         throw new Error("La URL de imagen no es válida");
       }
       return {
         id: input.id,
-        imageUrl,
+        imageUrl: normalizedImageUrls[0] ?? "",
+        imageUrls: normalizedImageUrls,
         name,
         highlight: input.highlight?.trim() ?? "",
         price: input.price,
@@ -142,7 +165,8 @@ export const adminUpsertCateringPackage = createServerFn({ method: "POST" })
 
     const payload = {
       name: data.name,
-      image_url: data.imageUrl,
+      image_url: data.imageUrl || null,
+      image_urls: data.imageUrls,
       highlight: data.highlight,
       price: data.price,
       portion: data.portion,
@@ -170,6 +194,7 @@ export const adminUpsertCateringPackage = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throwCateringPackageError(error);
+    if (!created) throw new Error("No se pudo crear el paquete de Catering");
     return { ok: true, id: created.id };
   });
 
