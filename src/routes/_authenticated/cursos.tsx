@@ -213,6 +213,7 @@ function CursosPage() {
               unlocked={unlocked}
               userId={me.data.profile.id}
               isMember={me.data.isMember}
+              isAdmin={isAdmin}
               onBack={() => setOpenCourseId(null)}
             />
           )}
@@ -240,12 +241,14 @@ function CourseDetail({
   unlocked,
   userId,
   isMember,
+  isAdmin,
   onBack,
 }: {
   course: ClubCourse;
   unlocked: boolean;
   userId: string;
   isMember: boolean;
+  isAdmin: boolean;
   onBack: () => void;
 }) {
   const fetchSubcourses = useServerFn(getPublicCourseSubcourses);
