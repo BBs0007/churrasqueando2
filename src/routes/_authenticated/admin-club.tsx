@@ -65,6 +65,7 @@ function AdminClub() {
   const internationalQrInputRef = useRef<HTMLInputElement>(null);
   const [qrUrl, setQrUrl] = useState("");
   const [internationalQrUrl, setInternationalQrUrl] = useState("");
+  const [boliviaInstructions, setBoliviaInstructions] = useState("");
   const [internationalInstructions, setInternationalInstructions] = useState("");
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null);
@@ -133,6 +134,7 @@ function AdminClub() {
     if (paymentSettings.data) {
       setQrUrl(paymentSettings.data.boliviaQrUrl ?? "");
       setInternationalQrUrl(paymentSettings.data.internationalQrUrl ?? "");
+      setBoliviaInstructions(paymentSettings.data.boliviaInstructions);
       setInternationalInstructions(paymentSettings.data.internationalInstructions);
     }
   }, [paymentSettings.data]);
@@ -174,6 +176,7 @@ function AdminClub() {
         data: {
           boliviaQrUrl: qrUrl.trim() || null,
           internationalQrUrl: internationalQrUrl.trim() || null,
+          boliviaInstructions,
           internationalInstructions,
         },
       }),
@@ -505,6 +508,20 @@ function AdminClub() {
                 )}
                 Reemplazar QR
               </Button>
+              <label
+                htmlFor="bolivia-payment-instructions"
+                className="mt-5 block text-sm font-semibold text-foreground"
+              >
+                Instrucciones nacionales (debajo del QR)
+              </label>
+              <Textarea
+                id="bolivia-payment-instructions"
+                value={boliviaInstructions}
+                onChange={(event) => setBoliviaInstructions(event.target.value)}
+                maxLength={1200}
+                placeholder="Escribe instrucciones para pagos por QR o transferencia en Bolivia."
+                className="mt-2 min-h-36"
+              />
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">QR internacional</p>
@@ -607,8 +624,12 @@ function AdminClub() {
                 </p>
                 <p className="text-xs text-primary">
                   {Number(r.amount).toFixed(2)} {r.currency} · {r.plan} ·{" "}
-                  {r.payment_method === "bolivia_qr" ? "QR Bolivia" : "Internacional"} ·{" "}
-                  {r.country_code === "BO" ? "Bolivia" : "Otro país"} · {r.status}
+                  {r.payment_method === "bolivia_qr"
+                    ? "QR Bolivia"
+                    : r.payment_method === "stripe"
+                      ? "Tarjeta · Stripe"
+                      : "Internacional"}{" "}
+                  · {r.country_code === "BO" ? "Bolivia" : "Otro país"} · {r.status}
                 </p>
               </div>
               {r.status === "pending" && (

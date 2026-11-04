@@ -544,8 +544,16 @@ function AdminClubContenido() {
   };
 
   const duplicateSelectedMembershipCard = () => {
-    if (selectedTarget?.kind !== "membership-card") return;
-    const block = createMembershipCardBlockFromPreview();
+    if (
+      selectedTarget?.kind !== "membership-card" &&
+      !(selectedTarget?.kind === "block" && selectedBlock?.type === "membership-card")
+    ) {
+      return;
+    }
+    const block =
+      selectedTarget.kind === "block" && selectedBlock?.type === "membership-card"
+        ? cloneBlock(selectedBlock)
+        : createMembershipCardBlockFromPreview();
     if (!block) {
       toast.error("No se pudo duplicar la tarjeta de membresía");
       return;
@@ -822,6 +830,20 @@ function AdminClubContenido() {
     if (!selectedBlock || !selectedMembershipCard) return;
     if (field === "intro") {
       updateSelectedBlock({ title: value });
+      return;
+    }
+    if (field === "priceByCurrency.Bs" || field === "priceByCurrency.USD") {
+      const currency = field.endsWith(".Bs") ? "Bs" : "USD";
+      updateSelectedBlock({
+        text: JSON.stringify({
+          ...selectedMembershipCard,
+          priceByCurrency: {
+            Bs: selectedMembershipCard.priceByCurrency?.Bs ?? "",
+            USD: selectedMembershipCard.priceByCurrency?.USD ?? "",
+            [currency]: value,
+          },
+        }),
+      });
       return;
     }
     const updated = {
@@ -1163,7 +1185,10 @@ function AdminClubContenido() {
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={selectedTarget?.kind !== "membership-card"}
+                disabled={
+                  selectedTarget?.kind !== "membership-card" &&
+                  !(selectedTarget?.kind === "block" && selectedBlock?.type === "membership-card")
+                }
                 onClick={duplicateSelectedMembershipCard}
               >
                 <CopyPlus className="h-4 w-4" /> Duplicar tarjeta
@@ -1489,12 +1514,6 @@ function AdminClubContenido() {
             <div className="space-y-4">
               {[
                 { key: "intro", label: "Texto introductorio", value: selectedBlock.title },
-                { key: "price", label: "Precio", value: selectedMembershipCard.price },
-                {
-                  key: "currency",
-                  label: "Moneda y período",
-                  value: selectedMembershipCard.currency,
-                },
                 {
                   key: "caption",
                   label: "Descripción del precio",
@@ -1517,6 +1536,28 @@ function AdminClubContenido() {
                     id={`membership-copy-${field.key}`}
                     value={field.value}
                     onChange={(event) => updateMembershipBlockField(field.key, event.target.value)}
+                  />
+                </div>
+              ))}
+              {(
+                [
+                  ["Bs", "Precio nacional (Bs)", selectedMembershipCard.priceByCurrency?.Bs],
+                  [
+                    "USD",
+                    "Precio internacional (USD)",
+                    selectedMembershipCard.priceByCurrency?.USD,
+                  ],
+                ] as const
+              ).map(([currency, label, value]) => (
+                <div key={currency} className="space-y-2">
+                  <Label htmlFor={`membership-copy-price-${currency}`}>{label}</Label>
+                  <Input
+                    id={`membership-copy-price-${currency}`}
+                    inputMode="decimal"
+                    value={value ?? ""}
+                    onChange={(event) =>
+                      updateMembershipBlockField(`priceByCurrency.${currency}`, event.target.value)
+                    }
                   />
                 </div>
               ))}

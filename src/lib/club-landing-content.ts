@@ -69,6 +69,7 @@ export type ClubBuilderContentBlockType = Exclude<ClubBuilderBlockType, "subsect
 export type ClubBuilderMembershipCard = {
   price: string;
   currency: string;
+  priceByCurrency?: { Bs: string; USD: string };
   caption: string;
   regularPrice: string;
   perks: string[];
@@ -117,6 +118,18 @@ const BUILDER_BLOCK_TYPES: ClubBuilderBlockType[] = [
   "subsection",
 ];
 
+function isPriceByCurrency(value: unknown): value is { Bs: string; USD: string } {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "Bs" in value &&
+    typeof value.Bs === "string" &&
+    "USD" in value &&
+    typeof value.USD === "string"
+  );
+}
+
 export function parseClubBuilderMembershipCard(value: string): ClubBuilderMembershipCard | null {
   try {
     const parsed: unknown = JSON.parse(value);
@@ -125,6 +138,7 @@ export function parseClubBuilderMembershipCard(value: string): ClubBuilderMember
     if (
       typeof data.price !== "string" ||
       typeof data.currency !== "string" ||
+      (data.priceByCurrency !== undefined && !isPriceByCurrency(data.priceByCurrency)) ||
       typeof data.caption !== "string" ||
       typeof data.regularPrice !== "string" ||
       !Array.isArray(data.perks) ||
@@ -137,6 +151,7 @@ export function parseClubBuilderMembershipCard(value: string): ClubBuilderMember
     return {
       price: data.price,
       currency: data.currency,
+      ...(isPriceByCurrency(data.priceByCurrency) ? { priceByCurrency: data.priceByCurrency } : {}),
       caption: data.caption,
       regularPrice: data.regularPrice,
       perks: data.perks,

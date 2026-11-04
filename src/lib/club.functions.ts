@@ -41,7 +41,7 @@ export type ClubRequest = {
   currency: string;
   membership_plan_id: string | null;
   status: "pending" | "approved" | "rejected";
-  payment_method: "bolivia_qr" | "binance";
+  payment_method: "bolivia_qr" | "binance" | "stripe";
   country_code: "BO" | "INT";
   created_at: string;
 };
@@ -300,16 +300,105 @@ export const requestMembership = createServerFn({ method: "POST" })
     return { ok: true, alreadyPending: false, request };
   });
 
+export const createStripeMembershipCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { planId: string }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(input?.planId ?? "")) {
+      throw new Error("Selecciona un plan de membresía válido");
+    }
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!secretKey || !webhookSecret) {
+      throw new Error("El pago con tarjeta aún no está configurado. Elige otro método de pago.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: plan, error: planError }, { data: pending, error: pendingError }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("club_membership_plans")
+          .select("id, name, price, currency, active")
+          .eq("id", data.planId)
+          .eq("active", true)
+          .single(),
+        supabaseAdmin
+          .from("membership_requests")
+          .select("id")
+          .eq("user_id", context.userId)
+          .eq("status", "pending")
+          .limit(1)
+          .maybeSingle(),
+      ]);
+    if (planError) throw planError;
+    if (pendingError) throw pendingError;
+    if (!plan) throw new Error("El plan seleccionado ya no está disponible");
+    if (plan.currency !== "USD") {
+      throw new Error("El pago con tarjeta está disponible para planes internacionales en USD");
+    }
+    if (pending) {
+      throw new Error("Ya tienes una solicitud pendiente. Espera a que sea revisada.");
+    }
+    if (!Number.isFinite(plan.price) || plan.price <= 0) {
+      throw new Error("El precio del plan no es válido");
+    }
+    const unitAmount = Math.round(Number(plan.price) * 100);
+    if (!Number.isInteger(unitAmount) || unitAmount < 50 || unitAmount > 99_999_999) {
+      throw new Error("El precio en USD debe estar entre 0,50 y 999.999,99 para pagar con Stripe");
+    }
+
+    const appUrl = process.env.APP_URL ?? "https://churrasqueando.shop";
+    const parsedAppUrl = new URL(appUrl);
+    if (parsedAppUrl.protocol !== "https:" && parsedAppUrl.hostname !== "localhost") {
+      throw new Error("La dirección pública de la aplicación debe usar HTTPS");
+    }
+    const origin = parsedAppUrl.origin;
+    const form = new URLSearchParams({
+      mode: "payment",
+      success_url: `${origin}/club-pago?country=INT&stripe=success`,
+      cancel_url: `${origin}/club-pago?country=INT&stripe=cancelled`,
+      client_reference_id: context.userId,
+      "line_items[0][price_data][currency]": "usd",
+      "line_items[0][price_data][product_data][name]": plan.name,
+      "line_items[0][price_data][unit_amount]": String(unitAmount),
+      "line_items[0][quantity]": "1",
+      "metadata[user_id]": context.userId,
+      "metadata[plan_id]": plan.id,
+      "metadata[plan_name]": plan.name,
+    });
+    const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form,
+    });
+    if (!response.ok) {
+      console.error("[Stripe] Checkout session creation failed", response.status);
+      throw new Error("No se pudo iniciar el pago con tarjeta. Intenta nuevamente.");
+    }
+    const session = (await response.json()) as { url?: string | null };
+    if (!session.url || !session.url.startsWith("https://checkout.stripe.com/")) {
+      throw new Error("Stripe no devolvió un enlace de pago válido");
+    }
+    return { url: session.url };
+  });
+
 export const getMembershipPaymentSettings = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("membership_payment_settings")
-    .select("bolivia_qr_url, international_qr_url, international_instructions")
+    .select(
+      "bolivia_qr_url, bolivia_instructions, international_qr_url, international_instructions",
+    )
     .eq("id", true)
     .single();
   if (error) throw error;
   return {
     boliviaQrUrl: data.bolivia_qr_url,
+    boliviaInstructions: data.bolivia_instructions,
     internationalQrUrl: data.international_qr_url,
     internationalInstructions: data.international_instructions,
   };
@@ -319,13 +408,18 @@ export const adminSaveMembershipPaymentSettings = createServerFn({ method: "POST
   .middleware([requireSupabaseAuth])
   .inputValidator(
     (input: {
+      boliviaInstructions: string;
       internationalInstructions: string;
       boliviaQrUrl: string | null;
       internationalQrUrl: string | null;
     }) => {
       const internationalInstructions = input.internationalInstructions?.trim() ?? "";
+      const boliviaInstructions = input.boliviaInstructions?.trim() ?? "";
       if (internationalInstructions.length > 1200) {
         throw new Error("Las instrucciones no deben superar 1200 caracteres");
+      }
+      if (boliviaInstructions.length > 1200) {
+        throw new Error("Las instrucciones de Bolivia no deben superar 1200 caracteres");
       }
       const boliviaQrUrl = input.boliviaQrUrl?.trim() || null;
       if (boliviaQrUrl && (!boliviaQrUrl.startsWith("https://") || boliviaQrUrl.length > 1000)) {
@@ -338,7 +432,7 @@ export const adminSaveMembershipPaymentSettings = createServerFn({ method: "POST
       ) {
         throw new Error("La dirección del QR internacional no es válida");
       }
-      return { internationalInstructions, boliviaQrUrl, internationalQrUrl };
+      return { boliviaInstructions, internationalInstructions, boliviaQrUrl, internationalQrUrl };
     },
   )
   .handler(async ({ data, context }) => {
@@ -347,6 +441,7 @@ export const adminSaveMembershipPaymentSettings = createServerFn({ method: "POST
     const { error } = await supabaseAdmin
       .from("membership_payment_settings")
       .update({
+        bolivia_instructions: data.boliviaInstructions,
         international_instructions: data.internationalInstructions,
         bolivia_qr_url: data.boliviaQrUrl,
         international_qr_url: data.internationalQrUrl,

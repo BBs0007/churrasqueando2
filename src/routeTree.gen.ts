@@ -36,6 +36,7 @@ import { Route as AuthenticatedCuentaRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedCursosRouteImport } from './routes/_authenticated/cursos'
 import { Route as AuthenticatedPromocionesRouteImport } from './routes/_authenticated/promociones'
 import { Route as AuthenticatedExamenFinalSubcourseIdRouteImport } from './routes/_authenticated/examen-final.$subcourseId'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api.stripe.webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -183,6 +184,11 @@ const AuthenticatedExamenFinalSubcourseIdRoute =
     path: '/examen-final/$subcourseId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/cursos': typeof AuthenticatedCursosRoute
   '/promociones': typeof AuthenticatedPromocionesRoute
   '/examen-final/$subcourseId': typeof AuthenticatedExamenFinalSubcourseIdRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/cursos': typeof AuthenticatedCursosRoute
   '/promociones': typeof AuthenticatedPromocionesRoute
   '/examen-final/$subcourseId': typeof AuthenticatedExamenFinalSubcourseIdRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/_authenticated/cursos': typeof AuthenticatedCursosRoute
   '/_authenticated/promociones': typeof AuthenticatedPromocionesRoute
   '/_authenticated/examen-final/$subcourseId': typeof AuthenticatedExamenFinalSubcourseIdRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/cursos'
     | '/promociones'
     | '/examen-final/$subcourseId'
+    | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/cursos'
     | '/promociones'
     | '/examen-final/$subcourseId'
+    | '/api/stripe/webhook'
   id:
     | '__root__'
     | '/'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cursos'
     | '/_authenticated/promociones'
     | '/_authenticated/examen-final/$subcourseId'
+    | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -371,6 +383,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TiendaRoute: typeof TiendaRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -564,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExamenFinalSubcourseIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -620,6 +640,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TiendaRoute: TiendaRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

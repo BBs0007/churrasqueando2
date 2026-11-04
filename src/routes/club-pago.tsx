@@ -6,14 +6,26 @@ import { AlertCircle, ArrowLeft, CheckCircle2, Flame, Loader2, MessageCircle } f
 import { toast } from "sonner";
 import { ClubShell } from "@/components/ClubShell";
 import { Button } from "@/components/ui/button";
-import { getMyClub, getMembershipPaymentSettings, requestMembership } from "@/lib/club.functions";
+import {
+  createStripeMembershipCheckout,
+  getMyClub,
+  getMembershipPaymentSettings,
+  requestMembership,
+} from "@/lib/club.functions";
 import { useSession } from "@/hooks/useSession";
 import { getActiveMembershipPlans, type MembershipPlan } from "@/lib/membership-plans.functions";
 import { CLUB_WHATSAPP } from "@/lib/club";
 import qrDefault from "@/assets/club/membership-qr.jpeg";
 import internationalQrDefault from "@/assets/club/international-payment-qr.jpeg";
 
+type CountryCode = "BO" | "INT";
+
 export const Route = createFileRoute("/club-pago")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    country: search.country === "BO" || search.country === "INT" ? search.country : undefined,
+    stripe:
+      search.stripe === "success" || search.stripe === "cancelled" ? search.stripe : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Pago de membresía · Club Churrasqueando" },
@@ -25,8 +37,6 @@ export const Route = createFileRoute("/club-pago")({
   }),
   component: ClubPaymentPage,
 });
-
-type CountryCode = "BO" | "INT";
 
 function detectCountryFromBrowser(): CountryCode {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -44,13 +54,15 @@ function formatPrice(price: number, currency: string) {
 }
 
 function ClubPaymentPage() {
+  const search = Route.useSearch();
   const queryClient = useQueryClient();
   const { session, loading: sessionLoading } = useSession();
   const fetchClub = useServerFn(getMyClub);
   const fetchSettings = useServerFn(getMembershipPaymentSettings);
   const fetchPlans = useServerFn(getActiveMembershipPlans);
   const createRequest = useServerFn(requestMembership);
-  const [countryCode, setCountryCode] = useState<CountryCode>("BO");
+  const createStripeCheckout = useServerFn(createStripeMembershipCheckout);
+  const [countryCode, setCountryCode] = useState<CountryCode>(search.country ?? "BO");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [changePlan, setChangePlan] = useState(false);
 
@@ -69,8 +81,8 @@ function ClubPaymentPage() {
   });
 
   useEffect(() => {
-    setCountryCode(detectCountryFromBrowser());
-  }, []);
+    setCountryCode(search.country ?? detectCountryFromBrowser());
+  }, [search.country]);
   useEffect(() => {
     if (!selectedPlanId && plans.data?.length) {
       const annual = plans.data.find((plan) => plan.interval === "annual");
@@ -147,6 +159,17 @@ function ClubPaymentPage() {
     onError: (error: unknown) =>
       toast.error(error instanceof Error ? error.message : "No se pudo registrar la solicitud"),
   });
+  const stripeCheckoutMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedPlan) throw new Error("Selecciona un plan activo");
+      return createStripeCheckout({ data: { planId: selectedPlan.id } });
+    },
+    onSuccess: ({ url }) => window.location.assign(url),
+    onError: (error: unknown) =>
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo iniciar el pago con tarjeta",
+      ),
+  });
 
   const points = club.data?.profile.points;
   const requestWhatsappHref = pendingRequest
@@ -217,11 +240,28 @@ function ClubPaymentPage() {
           <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
             {isMember && !changePlan
               ? "Puedes revisar tus beneficios o elegir otro plan cuando decidas cambiar o renovar."
-              : "Selecciona el plan que prefieras, realiza el pago y envíanos el comprobante por WhatsApp. El acceso se activa después de verificar el pago."}
+              : "Selecciona el plan y el método de pago. La membresía se activa cuando el equipo confirme tu pago."}
           </p>
         </header>
+        {search.stripe === "cancelled" && (
+          <p className="mb-4 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+            El pago con tarjeta fue cancelado. Puedes elegir otro método o intentarlo nuevamente.
+          </p>
+        )}
 
-        {isMember && !changePlan ? (
+        {search.stripe === "success" ? (
+          <section className="rounded-2xl border border-primary/40 bg-primary/10 p-5 text-center sm:p-7">
+            <CheckCircle2 className="mx-auto h-10 w-10 text-primary" />
+            <h2 className="font-display mt-3 text-2xl uppercase text-foreground">Pago recibido</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Stripe notificará el pago de forma segura. El equipo verificará la solicitud y
+              activará tu membresía; no necesitas volver a pagar.
+            </p>
+            <Button asChild className="mt-5 font-cond uppercase tracking-wide">
+              <Link to="/club">Volver al Club</Link>
+            </Button>
+          </section>
+        ) : isMember && !changePlan ? (
           <section className="rounded-2xl border border-primary/40 bg-primary/10 p-5 text-center sm:p-7">
             <CheckCircle2 className="mx-auto h-10 w-10 text-primary" />
             <h2 className="font-display mt-3 text-2xl uppercase text-foreground">
@@ -265,7 +305,7 @@ function ClubPaymentPage() {
                 </p>
               </div>
             </div>
-            {requestWhatsappHref && (
+            {pendingRequest.payment_method !== "stripe" && requestWhatsappHref && (
               <Button asChild className="mt-5 w-full font-cond uppercase tracking-wide">
                 <a href={requestWhatsappHref} target="_blank" rel="noreferrer">
                   <MessageCircle className="h-4 w-4" /> Enviar comprobante por WhatsApp
@@ -409,9 +449,21 @@ function ClubPaymentPage() {
                       alt="Código QR para pagar la membresía del Club Churrasqueando"
                       className="mx-auto mt-4 max-h-[360px] w-full max-w-xs rounded-xl bg-white object-contain p-2"
                     />
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Si necesitas datos para transferencia o efectivo, consúltanos por WhatsApp.
-                    </p>
+                    {settings.isLoading ? (
+                      <Loader2 className="mx-auto mt-3 h-5 w-5 animate-spin text-primary" />
+                    ) : settings.isError ? (
+                      <p role="alert" className="mt-2 text-sm text-destructive">
+                        No se pudieron cargar las instrucciones nacionales.
+                      </p>
+                    ) : settings.data?.boliviaInstructions ? (
+                      <p className="mt-3 whitespace-pre-wrap break-words text-left text-sm text-muted-foreground">
+                        {settings.data.boliviaInstructions}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Si necesitas datos para transferencia o efectivo, consúltanos por WhatsApp.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div>
@@ -447,7 +499,13 @@ function ClubPaymentPage() {
             {!session ? (
               <div className="mt-4 space-y-3">
                 <Button asChild className="w-full font-cond uppercase tracking-wide">
-                  <Link to="/auth" search={{ redirect: "/club-pago", mode: "signup" }}>
+                  <Link
+                    to="/auth"
+                    search={{
+                      redirect: `/club-pago?country=${countryCode}`,
+                      mode: "signup",
+                    }}
+                  >
                     <Flame className="h-4 w-4" /> Crear cuenta para continuar
                   </Link>
                 </Button>
@@ -493,6 +551,22 @@ function ClubPaymentPage() {
                   <MessageCircle className="h-4 w-4" />
                 )}
                 Registrar solicitud y continuar
+              </Button>
+            )}
+            {session && !pendingRequest && countryCode === "INT" && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!selectedPlan || stripeCheckoutMutation.isPending}
+                onClick={() => stripeCheckoutMutation.mutate()}
+                className="mt-3 w-full font-cond uppercase tracking-wide"
+              >
+                {stripeCheckoutMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span className="font-sans text-sm font-bold">VISA · Mastercard</span>
+                )}
+                Pagar con tarjeta · Stripe
               </Button>
             )}
             {isMember && changePlan && (

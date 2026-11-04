@@ -638,18 +638,21 @@ export type Database = {
       membership_payment_settings: {
         Row: {
           bolivia_qr_url: string | null;
+          bolivia_instructions: string;
           id: boolean;
           international_instructions: string;
           international_qr_url: string | null;
         };
         Insert: {
           bolivia_qr_url?: string | null;
+          bolivia_instructions?: string;
           id?: boolean;
           international_instructions?: string;
           international_qr_url?: string | null;
         };
         Update: {
           bolivia_qr_url?: string | null;
+          bolivia_instructions?: string;
           id?: boolean;
           international_instructions?: string;
           international_qr_url?: string | null;

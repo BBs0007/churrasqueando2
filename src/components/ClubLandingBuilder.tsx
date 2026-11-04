@@ -910,10 +910,14 @@ export function RenderBuilderBlock({
   block,
   sectionId,
   editorMode = false,
+  membershipCurrency,
+  membershipPlanPrice,
 }: {
   block: ClubBuilderBlock;
   sectionId?: string;
   editorMode?: boolean;
+  membershipCurrency?: "Bs" | "USD";
+  membershipPlanPrice?: number;
 }) {
   if (block.hidden && !editorMode) return null;
   const editorAttributes = {
@@ -982,6 +986,13 @@ export function RenderBuilderBlock({
     case "membership-card": {
       const card = parseClubBuilderMembershipCard(block.text);
       if (!card) return null;
+      const cardPrice =
+        (membershipCurrency &&
+          (card.priceByCurrency?.[membershipCurrency] ||
+            (card.currency.includes(membershipCurrency) && card.price) ||
+            (membershipPlanPrice !== undefined && String(membershipPlanPrice)))) ||
+        (!membershipCurrency && card.price);
+      const cardCurrency = membershipCurrency ?? card.currency;
       return (
         <article
           {...editorAttributes}
@@ -989,12 +1000,14 @@ export function RenderBuilderBlock({
         >
           <p className="text-xs text-muted-foreground">{block.title}</p>
           <p className="font-display mt-3 text-5xl text-foreground">
-            {card.price}
-            <span className="text-lg text-muted-foreground"> {card.currency}</span>
+            {cardPrice || "Consultar"}
+            <span className="text-lg text-muted-foreground"> {cardCurrency} / año</span>
           </p>
           <div className="mt-4 space-y-2 text-sm text-foreground/90">
             <p>{card.caption}</p>
-            <p className="text-muted-foreground">{card.regularPrice}</p>
+            {membershipCurrency !== "USD" && (
+              <p className="text-muted-foreground">{card.regularPrice}</p>
+            )}
           </div>
           <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">
             {card.perks.map((perk, index) => (
@@ -1005,7 +1018,7 @@ export function RenderBuilderBlock({
             ))}
           </ul>
           <a
-            href="/club-pago"
+            href={`/club-pago?country=${membershipCurrency === "USD" ? "INT" : "BO"}`}
             className="mt-7 block rounded-md bg-primary px-4 py-2 font-cond text-sm font-semibold uppercase tracking-wide text-primary-foreground"
           >
             <Flame className="mr-1 inline h-4 w-4" />

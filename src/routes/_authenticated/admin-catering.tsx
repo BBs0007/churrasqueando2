@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  UtensilsCrossed,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getMyClub } from "@/lib/club.functions";
 import {
@@ -572,31 +580,79 @@ function AdminCatering() {
                       key={`${index}-${imageUrl}`}
                       className="space-y-2 rounded-xl border border-border p-3"
                     >
-                      <div className="aspect-video w-full overflow-hidden rounded-lg bg-secondary/30">
+                      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+                        <img
+                          src={imageUrl}
+                          alt=""
+                          aria-hidden="true"
+                          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl"
+                        />
                         <img
                           src={imageUrl}
                           alt={`Imagen ${index + 1} de ${form.name || "paquete"}`}
-                          className="h-full w-full object-cover"
+                          className="relative z-[1] h-full w-full object-contain p-1"
                         />
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <Label htmlFor={`p-image-${index}`} className="text-xs">
                           Imagen {index + 1}
                         </Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={uploadingImage}
-                          onClick={() =>
-                            setForm((current) => ({
-                              ...current,
-                              imageUrls: current.imageUrls.filter((_, i) => i !== index),
-                            }))
-                          }
-                        >
-                          Quitar
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={`Mover imagen ${index + 1} a la izquierda`}
+                            title="Mover a la izquierda"
+                            disabled={index === 0 || uploadingImage}
+                            onClick={() =>
+                              setForm((current) => {
+                                const imageUrls = [...current.imageUrls];
+                                [imageUrls[index - 1], imageUrls[index]] = [
+                                  imageUrls[index],
+                                  imageUrls[index - 1],
+                                ];
+                                return { ...current, imageUrls };
+                              })
+                            }
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={`Mover imagen ${index + 1} a la derecha`}
+                            title="Mover a la derecha"
+                            disabled={index === form.imageUrls.length - 1 || uploadingImage}
+                            onClick={() =>
+                              setForm((current) => {
+                                const imageUrls = [...current.imageUrls];
+                                [imageUrls[index], imageUrls[index + 1]] = [
+                                  imageUrls[index + 1],
+                                  imageUrls[index],
+                                ];
+                                return { ...current, imageUrls };
+                              })
+                            }
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingImage}
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                imageUrls: current.imageUrls.filter((_, i) => i !== index),
+                              }))
+                            }
+                          >
+                            Quitar
+                          </Button>
+                        </div>
                       </div>
                       <Input
                         id={`p-image-${index}`}

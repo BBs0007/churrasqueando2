@@ -188,14 +188,21 @@ function ReservarCatering() {
             </div>
 
             <div className="mx-auto mt-5 w-full max-w-5xl overflow-hidden rounded-2xl border border-border bg-background shadow-card">
-              <div className="relative aspect-[32/9]">
+              <div className="relative aspect-[16/7] overflow-hidden bg-black">
+                <img
+                  src={selectedImage}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
+                />
                 <img
                   src={selectedImage}
                   alt={`${selected.name} ${selected.highlight} · catering Churrasqueando${
                     hasConfiguredImages ? "" : " · imagen de ejemplo"
                   }`}
                   loading="lazy"
-                  className="h-full w-full object-cover"
+                  className="relative z-[1] h-full w-full object-contain p-1 sm:p-2"
                 />
                 {!hasConfiguredImages && (
                   <span className="sr-only">Imagen ilustrativa del paquete de catering</span>
@@ -210,7 +217,7 @@ function ReservarCatering() {
                           (currentImageIndex - 1 + selectedImages.length) % selectedImages.length,
                         )
                       }
-                      className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground shadow transition hover:bg-background sm:left-4 sm:h-11 sm:w-11"
+                      className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground shadow transition hover:bg-background sm:left-4 sm:h-11 sm:w-11"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </button>
@@ -220,11 +227,11 @@ function ReservarCatering() {
                       onClick={() =>
                         setActiveImageIndex((currentImageIndex + 1) % selectedImages.length)
                       }
-                      className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground shadow transition hover:bg-background sm:right-4 sm:h-11 sm:w-11"
+                      className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground shadow transition hover:bg-background sm:right-4 sm:h-11 sm:w-11"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>
-                    <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5 sm:bottom-3">
+                    <div className="absolute inset-x-0 bottom-2 z-10 flex justify-center gap-1.5 sm:bottom-3">
                       {selectedImages.map((_, index) => (
                         <button
                           key={index}

@@ -110,6 +110,7 @@ export function ClubLandingPage({
   editorMode?: boolean;
 }) {
   const [isPresentationPlaying, setIsPresentationPlaying] = useState(false);
+  const [membershipCountry, setMembershipCountry] = useState<"BO" | "INT">("BO");
   const fetchClub = useServerFn(getMyClub);
   const fetchContent = useServerFn(getClubContent);
   const fetchPlans = useServerFn(getActiveMembershipPlans);
@@ -162,7 +163,10 @@ export function ClubLandingPage({
     queryKey: ["club", "membership-plans"],
     queryFn: () => fetchPlans(),
   });
-  const annualPlan = plans.data?.find((plan) => plan.interval === "annual");
+  const membershipCurrency = membershipCountry === "BO" ? "Bs" : "USD";
+  const annualPlan = plans.data?.find(
+    (plan) => plan.interval === "annual" && plan.currency === membershipCurrency,
+  );
 
   const profile = data?.profile;
   const isMember = !!data?.isMember;
@@ -215,8 +219,16 @@ export function ClubLandingPage({
     bullets: string;
     image: string;
   }>(c, "club_course_cards", editorMode);
-  const annualPrice = annualPlan?.price ?? getClubLandingNumber(c, "membership_annual_price");
-  const annualCurrency = annualPlan?.currency ?? CURRENCY;
+  const annualPrice =
+    annualPlan?.price ??
+    (membershipCountry === "BO" ? getClubLandingNumber(c, "membership_annual_price") : null);
+  const annualCurrency = membershipCurrency;
+  const membershipPriceByCurrency = {
+    Bs:
+      plans.data?.find((plan) => plan.interval === "annual" && plan.currency === "Bs")?.price ??
+      getClubLandingNumber(c, "membership_annual_price"),
+    USD: plans.data?.find((plan) => plan.interval === "annual" && plan.currency === "USD")?.price,
+  };
   const regularPrice = getClubLandingNumber(c, "membership_regular_price");
   const testimonialsNote = Object.hasOwn(c, "testimonials_note")
     ? c.testimonials_note
@@ -984,11 +996,37 @@ export function ClubLandingPage({
         >
           {t("membership_title")}
         </h2>
+        <div
+          role="group"
+          className="mx-auto mt-5 grid max-w-md grid-cols-2 gap-2 rounded-xl border border-border bg-background/60 p-1"
+          aria-label="Moneda de la membresía"
+        >
+          {(
+            [
+              ["BO", "Nacional · Bs"],
+              ["INT", "Internacional · USD"],
+            ] as const
+          ).map(([country, label]) => (
+            <button
+              key={country}
+              type="button"
+              aria-pressed={membershipCountry === country}
+              onClick={() => setMembershipCountry(country)}
+              className={`rounded-lg px-3 py-2.5 font-cond text-sm font-bold uppercase tracking-wide transition-colors ${
+                membershipCountry === country
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <div
-          className={`mx-auto mt-8 ${
+          className={`mx-auto mt-5 ${
             membershipCardBlocks.length
-              ? "grid w-full max-w-4xl items-stretch gap-4 sm:grid-cols-2"
+              ? "grid w-full max-w-6xl items-stretch gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))]"
               : "max-w-md"
           }`}
         >
@@ -998,8 +1036,15 @@ export function ClubLandingPage({
             data-club-membership-intro={t("membership_course_intro")}
             hidden={membershipCardHidden && !editorMode}
             data-club-membership-card={JSON.stringify({
-              price: String(annualPrice),
+              price: String(annualPrice ?? ""),
               currency: `${annualCurrency} / año`,
+              priceByCurrency: {
+                Bs: String(membershipPriceByCurrency.Bs),
+                USD:
+                  membershipPriceByCurrency.USD === undefined
+                    ? ""
+                    : String(membershipPriceByCurrency.USD),
+              },
               caption: t("membership_price_caption"),
               regularPrice: `Precio real luego: ${regularPrice} ${CURRENCY} anual`,
               perks: membershipPerks.map((perk) => perk.text),
@@ -1016,14 +1061,19 @@ export function ClubLandingPage({
               {t("membership_course_intro")}
             </p>
             <p className="font-display mt-3 text-5xl text-foreground">
-              {annualPrice}
+              {annualPrice ?? "—"}
               <span className="text-lg text-muted-foreground"> {annualCurrency} / año</span>
             </p>
             <div className="mt-4 space-y-2 text-sm text-foreground/90">
               <p data-club-edit-field="membership_price_caption">{t("membership_price_caption")}</p>
-              <p data-club-edit-field="membership_regular_price" className="text-muted-foreground">
-                Precio real luego: {regularPrice} {CURRENCY} anual
-              </p>
+              {membershipCountry === "BO" && (
+                <p
+                  data-club-edit-field="membership_regular_price"
+                  className="text-muted-foreground"
+                >
+                  Precio real luego: {regularPrice} {CURRENCY} anual
+                </p>
+              )}
             </div>
 
             <ul className="mt-6 space-y-2.5 text-left text-sm text-muted-foreground">
@@ -1046,7 +1096,7 @@ export function ClubLandingPage({
             <div className="mt-7">
               {!session ? (
                 <div className="space-y-3">
-                  <Link to="/club-pago" className="block">
+                  <Link to="/club-pago" search={{ country: membershipCountry }} className="block">
                     <Button className="w-full font-cond uppercase tracking-wide">
                       <Flame className="h-4 w-4" /> Suscribirme · Elegir método de pago
                     </Button>
@@ -1066,7 +1116,7 @@ export function ClubLandingPage({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <Link to="/club-pago" className="block">
+                  <Link to="/club-pago" search={{ country: membershipCountry }} className="block">
                     <Button className="w-full font-cond uppercase tracking-wide">
                       {hasPendingMembership ? (
                         <AlertCircle className="h-4 w-4" />
@@ -1085,7 +1135,13 @@ export function ClubLandingPage({
             </div>
           </div>
           {membershipCardBlocks.map((block) => (
-            <RenderBuilderBlock key={block.id} block={block} sectionId="membership" />
+            <RenderBuilderBlock
+              key={block.id}
+              block={block}
+              sectionId="membership"
+              membershipCurrency={membershipCurrency}
+              membershipPlanPrice={annualPlan?.price}
+            />
           ))}
         </div>
         <ClubLandingBuiltInExtras
