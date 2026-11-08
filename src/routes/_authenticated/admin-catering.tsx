@@ -169,7 +169,7 @@ function AdminCatering() {
         if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
           throw new Error("Usa una imagen PNG, JPG o WebP");
         }
-        if (file.size > 6_000_000) throw new Error("La imagen no debe superar 6 MB");
+        if (file.size > 12_000_000) throw new Error("La imagen no debe superar 12 MB");
         const result = await uploadImage({
           data: { fileName: file.name, dataUrl: await fileToDataUrl(file) },
         });
@@ -690,7 +690,7 @@ function AdminCatering() {
               )}
               <p className="text-xs text-muted-foreground">
                 Agrega hasta 10 imágenes; puedes reemplazarlas o quitarlas antes de guardar. PNG,
-                JPG o WebP · máximo 6 MB por imagen.
+                JPG o WebP · máximo 12 MB por imagen.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

@@ -134,7 +134,7 @@ export const adminUploadClubImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { fileName: string; dataUrl: string }) => {
     if (!input?.dataUrl?.startsWith("data:image/")) throw new Error("Selecciona una imagen válida");
-    if (input.dataUrl.length > 8_100_000) throw new Error("La imagen es demasiado grande");
+    if (input.dataUrl.length > 16_100_000) throw new Error("La imagen es demasiado grande");
     return input;
   })
   .handler(async ({ data, context }) => {
