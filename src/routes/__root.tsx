@@ -105,6 +105,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Churrasqueando.shop" },
       {
+        name: "facebook-domain-verification",
+        content: "22mn182qw5w65ogh53gg1s0qqsk991",
+      },
+      {
         name: "twitter:description",
         content: "Carnes, productos y experiencias para disfrutar el mejor asado.",
       },
