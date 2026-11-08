@@ -21,8 +21,8 @@ import {
 } from "@/lib/catering.functions";
 import {
   adminCreateClubVideoUploadUrl,
+  adminCreateClubImageUploadUrl,
   adminSaveClubContent,
-  adminUploadClubImage,
   getClubContent,
 } from "@/lib/club-content.functions";
 import { CATERING_PAGE_DEFAULTS } from "@/lib/catering-page-content";
@@ -61,18 +61,6 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { CURRENCY } from "@/data/products";
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") resolve(reader.result);
-      else reject(new Error("No se pudo leer la imagen"));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer la imagen"));
-    reader.readAsDataURL(file);
-  });
-}
 
 export const Route = createFileRoute("/_authenticated/admin-catering")({
   head: () => ({
@@ -125,7 +113,7 @@ function AdminCatering() {
   const remove = useServerFn(adminDeleteCateringPackage);
   const fetchContent = useServerFn(getClubContent);
   const saveContent = useServerFn(adminSaveClubContent);
-  const uploadImage = useServerFn(adminUploadClubImage);
+  const createImageUploadUrl = useServerFn(adminCreateClubImageUploadUrl);
   const createVideoUploadUrl = useServerFn(adminCreateClubVideoUploadUrl);
   const queryClient = useQueryClient();
 
@@ -170,10 +158,13 @@ function AdminCatering() {
           throw new Error("Usa una imagen PNG, JPG o WebP");
         }
         if (file.size > 12_000_000) throw new Error("La imagen no debe superar 12 MB");
-        const result = await uploadImage({
-          data: { fileName: file.name, dataUrl: await fileToDataUrl(file) },
-        });
-        return result.url;
+        const signed = await createImageUploadUrl({ data: { contentType: file.type } });
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { error } = await supabase.storage
+          .from("club-content")
+          .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type });
+        if (error) throw error;
+        return signed.publicUrl;
       }
 
       if (!["video/mp4", "video/webm", "video/ogg"].includes(file.type)) {

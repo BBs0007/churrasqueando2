@@ -161,6 +161,31 @@ export const adminUploadClubImage = createServerFn({ method: "POST" })
     return { ok: true, url: pub.publicUrl };
   });
 
+export const adminCreateClubImageUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { contentType: string }) => {
+    const extensions: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+    };
+    const extension = extensions[input?.contentType];
+    if (!extension) throw new Error("Usa una imagen PNG, JPG o WebP");
+    return { contentType: input.contentType, extension };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const path = `${context.userId}/${crypto.randomUUID()}.${data.extension}`;
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("club-content")
+      .createSignedUploadUrl(path);
+    if (error) throw error;
+
+    const { data: publicData } = supabaseAdmin.storage.from("club-content").getPublicUrl(path);
+    return { path, token: signed.token, publicUrl: publicData.publicUrl };
+  });
+
 export const adminCreateClubVideoUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { contentType: string }) => {
