@@ -2,7 +2,19 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, Mail, Lock, User, ArrowLeft, Flame, MapPin, Cake, Phone } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  Lock,
+  User,
+  ArrowLeft,
+  Flame,
+  MapPin,
+  Cake,
+  Phone,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -70,6 +82,8 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [address, setAddress] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [phone, setPhone] = useState("");
@@ -187,6 +201,9 @@ function AuthPage() {
         if (error) throw error;
         setInfo("Te enviamos un correo para restablecer tu contraseña.");
       } else if (mode === "signup") {
+        if (password !== confirmPassword) {
+          throw new Error("Las contraseñas no coinciden");
+        }
         const dial = COUNTRY_CODES.find((c) => c.code === countryCode)?.dial ?? "+591";
         const fullPhone = `${dial} ${phone.trim()}`;
         const { data, error } = await supabase.auth.signUp({
@@ -362,22 +379,60 @@ function AuthPage() {
               </div>
             )}
 
-            {mode === "login" && !googleProfileRequired && (
+            {(mode === "login" || mode === "signup") && !googleProfileRequired && (
               <div className="space-y-1.5">
-                <Label htmlFor="password">Contraseña</Label>
+                <Label htmlFor="password">
+                  {mode === "signup" ? "Crea una contraseña" : "Contraseña"}
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    className="pl-9"
+                    placeholder={mode === "signup" ? "Mínimo 12 caracteres" : "Tu contraseña"}
+                    className="pl-9 pr-10"
                     required
-                    minLength={6}
+                    minLength={mode === "signup" ? 12 : 6}
+                    maxLength={128}
+                    autoComplete={mode === "signup" ? "new-password" : "current-password"}
                   />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
+                {mode === "signup" && (
+                  <>
+                    <p className="text-xs text-muted-foreground">Usa entre 12 y 128 caracteres.</p>
+                    <Label htmlFor="confirmPassword" className="mt-3 block">
+                      Confirma tu contraseña
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="confirmPassword"
+                        type={showPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Repite tu contraseña"
+                        className="pl-9"
+                        required
+                        minLength={12}
+                        maxLength={128}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                    {confirmPassword && password !== confirmPassword && (
+                      <p className="text-xs text-destructive">Las contraseñas no coinciden.</p>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
@@ -469,7 +524,7 @@ function AuthPage() {
             </Button>
           </form>
 
-          {mode !== "forgot" && !googleProfileRequired && (
+          {mode === "login" && !googleProfileRequired && (
             <>
               <div className="my-5 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
@@ -485,7 +540,7 @@ function AuthPage() {
                 disabled={loading}
                 className="w-full font-cond uppercase tracking-wide"
               >
-                Continuar con Google
+                Ingresar con Google
               </Button>
             </>
           )}

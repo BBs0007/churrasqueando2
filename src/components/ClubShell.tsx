@@ -16,6 +16,7 @@ import {
   FileEdit,
   Gift,
   AlertCircle,
+  KeyRound,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -179,6 +180,11 @@ export function ClubShell({
                   <DropdownMenuItem asChild>
                     <Link to="/admin-clientes" className="flex items-center gap-2">
                       <Users className="h-3.5 w-3.5" /> Clientes
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin-cuentas" className="flex items-center gap-2">
+                      <KeyRound className="h-3.5 w-3.5" /> Cuentas y contraseñas
                     </Link>
                   </DropdownMenuItem>
 

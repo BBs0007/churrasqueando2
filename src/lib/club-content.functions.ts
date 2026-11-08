@@ -81,17 +81,30 @@ export const adminSaveClubContent = createServerFn({ method: "POST" })
         });
       }
     }
-    for (const key of [
-      "membership_annual_price",
-      "membership_regular_price",
-      "founders_total",
-      "founders_remaining",
-    ]) {
+    for (const key of ["membership_annual_price", "membership_regular_price"]) {
       if (
         key in entries &&
         (!/^\d+$/.test(entries[key]) ||
           Number(entries[key]) > 1_000_000 ||
-          (key !== "founders_remaining" && Number(entries[key]) < 1))
+          Number(entries[key]) < 1)
+      ) {
+        throw new Error(`El campo ${key} debe ser un número entero válido`);
+      }
+    }
+    if (
+      "membership_annual_price_usd" in entries &&
+      (!/^\d+(?:\.\d{1,2})?$/.test(entries.membership_annual_price_usd) ||
+        Number(entries.membership_annual_price_usd) < 1 ||
+        Number(entries.membership_annual_price_usd) > 1_000_000)
+    ) {
+      throw new Error("El precio mostrado internacional debe ser un número válido en USD");
+    }
+    for (const key of ["founders_total", "founders_remaining"]) {
+      if (
+        key in entries &&
+        (!/^\d+$/.test(entries[key]) ||
+          Number(entries[key]) > 1_000_000 ||
+          Number(entries[key]) < (key === "founders_remaining" ? 0 : 1))
       ) {
         throw new Error(`El campo ${key} debe ser un número entero válido`);
       }

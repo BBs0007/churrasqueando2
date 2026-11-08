@@ -26,6 +26,7 @@ import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminClubRouteImport } from './routes/_authenticated/admin-club'
 import { Route as AuthenticatedAdminClubContenidoRouteImport } from './routes/_authenticated/admin-club-contenido'
 import { Route as AuthenticatedAdminCodigosRouteImport } from './routes/_authenticated/admin-codigos'
+import { Route as AuthenticatedAdminCuentasRouteImport } from './routes/_authenticated/admin-cuentas'
 import { Route as AuthenticatedAdminCursosRouteImport } from './routes/_authenticated/admin-cursos'
 import { Route as AuthenticatedAdminProductosRouteImport } from './routes/_authenticated/admin-productos'
 import { Route as AuthenticatedAdminPromocionesRouteImport } from './routes/_authenticated/admin-promociones'
@@ -126,6 +127,12 @@ const AuthenticatedAdminCodigosRoute =
     path: '/admin-codigos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminCuentasRoute =
+  AuthenticatedAdminCuentasRouteImport.update({
+    id: '/admin-cuentas',
+    path: '/admin-cuentas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminCursosRoute =
   AuthenticatedAdminCursosRouteImport.update({
     id: '/admin-cursos',
@@ -207,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/admin-club': typeof AuthenticatedAdminClubRoute
   '/admin-club-contenido': typeof AuthenticatedAdminClubContenidoRoute
   '/admin-codigos': typeof AuthenticatedAdminCodigosRoute
+  '/admin-cuentas': typeof AuthenticatedAdminCuentasRoute
   '/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/admin-productos': typeof AuthenticatedAdminProductosRoute
   '/admin-promociones': typeof AuthenticatedAdminPromocionesRoute
@@ -236,6 +244,7 @@ export interface FileRoutesByTo {
   '/admin-club': typeof AuthenticatedAdminClubRoute
   '/admin-club-contenido': typeof AuthenticatedAdminClubContenidoRoute
   '/admin-codigos': typeof AuthenticatedAdminCodigosRoute
+  '/admin-cuentas': typeof AuthenticatedAdminCuentasRoute
   '/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/admin-productos': typeof AuthenticatedAdminProductosRoute
   '/admin-promociones': typeof AuthenticatedAdminPromocionesRoute
@@ -267,6 +276,7 @@ export interface FileRoutesById {
   '/_authenticated/admin-club': typeof AuthenticatedAdminClubRoute
   '/_authenticated/admin-club-contenido': typeof AuthenticatedAdminClubContenidoRoute
   '/_authenticated/admin-codigos': typeof AuthenticatedAdminCodigosRoute
+  '/_authenticated/admin-cuentas': typeof AuthenticatedAdminCuentasRoute
   '/_authenticated/admin-cursos': typeof AuthenticatedAdminCursosRoute
   '/_authenticated/admin-productos': typeof AuthenticatedAdminProductosRoute
   '/_authenticated/admin-promociones': typeof AuthenticatedAdminPromocionesRoute
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/admin-club'
     | '/admin-club-contenido'
     | '/admin-codigos'
+    | '/admin-cuentas'
     | '/admin-cursos'
     | '/admin-productos'
     | '/admin-promociones'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/admin-club'
     | '/admin-club-contenido'
     | '/admin-codigos'
+    | '/admin-cuentas'
     | '/admin-cursos'
     | '/admin-productos'
     | '/admin-promociones'
@@ -357,6 +369,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin-club'
     | '/_authenticated/admin-club-contenido'
     | '/_authenticated/admin-codigos'
+    | '/_authenticated/admin-cuentas'
     | '/_authenticated/admin-cursos'
     | '/_authenticated/admin-productos'
     | '/_authenticated/admin-promociones'
@@ -507,6 +520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCodigosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin-cuentas': {
+      id: '/_authenticated/admin-cuentas'
+      path: '/admin-cuentas'
+      fullPath: '/admin-cuentas'
+      preLoaderRoute: typeof AuthenticatedAdminCuentasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin-cursos': {
       id: '/_authenticated/admin-cursos'
       path: '/admin-cursos'
@@ -593,6 +613,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminClubRoute: typeof AuthenticatedAdminClubRoute
   AuthenticatedAdminClubContenidoRoute: typeof AuthenticatedAdminClubContenidoRoute
   AuthenticatedAdminCodigosRoute: typeof AuthenticatedAdminCodigosRoute
+  AuthenticatedAdminCuentasRoute: typeof AuthenticatedAdminCuentasRoute
   AuthenticatedAdminCursosRoute: typeof AuthenticatedAdminCursosRoute
   AuthenticatedAdminProductosRoute: typeof AuthenticatedAdminProductosRoute
   AuthenticatedAdminPromocionesRoute: typeof AuthenticatedAdminPromocionesRoute
@@ -611,6 +632,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminClubRoute: AuthenticatedAdminClubRoute,
   AuthenticatedAdminClubContenidoRoute: AuthenticatedAdminClubContenidoRoute,
   AuthenticatedAdminCodigosRoute: AuthenticatedAdminCodigosRoute,
+  AuthenticatedAdminCuentasRoute: AuthenticatedAdminCuentasRoute,
   AuthenticatedAdminCursosRoute: AuthenticatedAdminCursosRoute,
   AuthenticatedAdminProductosRoute: AuthenticatedAdminProductosRoute,
   AuthenticatedAdminPromocionesRoute: AuthenticatedAdminPromocionesRoute,

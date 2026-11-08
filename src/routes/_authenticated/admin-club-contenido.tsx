@@ -1397,10 +1397,16 @@ function AdminClubContenido() {
           {selectedTarget?.kind === "membership-card" && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Edita el contenido de la tarjeta. El precio principal se toma del plan anual activo.
+                Edita el contenido y los precios mostrados en la página del Club. Estos valores son
+                independientes de los planes y precios del proceso de pago.
               </p>
               {[
                 { key: "membership_course_intro", label: "Texto introductorio" },
+                { key: "membership_annual_price", label: "Precio mostrado nacional (Bs)" },
+                {
+                  key: "membership_annual_price_usd",
+                  label: "Precio mostrado internacional (USD)",
+                },
                 { key: "membership_price_caption", label: "Descripción del precio" },
                 { key: "membership_regular_price", label: "Precio regular" },
               ].map((field) => (

@@ -507,6 +507,7 @@ export const CLUB_LANDING_DEFAULTS: Record<string, string> = {
   membership_title: "Sumate al Club",
   membership_course_intro: `Un solo curso suelto cuesta ${CLUB.singleCoursePriceBs} Bs. Adentro del Club los tenés los ${CLUB.coursesCount}.`,
   membership_annual_price: String(CLUB_LAUNCH_OFFER.annualPriceBs),
+  membership_annual_price_usd: "89",
   membership_price_caption: "Precio de lanzamiento, solo membresía anual",
   membership_regular_price: String(CLUB_LAUNCH_OFFER.realAnnualPriceBs),
   membership_period_label: "Bs / año",
@@ -711,7 +712,7 @@ export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
     id: "membership",
     title: "Oferta y suscripción",
     description:
-      "Información comercial y lista de beneficios. Los planes y precios se editan en Solicitudes del Club.",
+      "Edita la información y los precios que se muestran en la página del Club. Estos precios visuales son independientes de los planes disponibles en el flujo de pago.",
     fields: [
       { key: "membership_eyebrow", label: "Texto pequeño", type: "text" },
       { key: "membership_title", label: "Título", type: "text" },
@@ -719,6 +720,12 @@ export const CLUB_LANDING_SECTIONS: ClubLandingSection[] = [
         key: "membership_course_intro",
         label: "Texto sobre el valor de los cursos",
         type: "textarea",
+      },
+      { key: "membership_annual_price", label: "Precio mostrado nacional (Bs)", type: "number" },
+      {
+        key: "membership_annual_price_usd",
+        label: "Precio mostrado internacional (USD)",
+        type: "number",
       },
       { key: "membership_price_caption", label: "Texto del precio", type: "text" },
       { key: "membership_regular_price", label: "Precio anual regular (Bs)", type: "number" },

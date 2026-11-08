@@ -911,13 +911,11 @@ export function RenderBuilderBlock({
   sectionId,
   editorMode = false,
   membershipCurrency,
-  membershipPlanPrice,
 }: {
   block: ClubBuilderBlock;
   sectionId?: string;
   editorMode?: boolean;
   membershipCurrency?: "Bs" | "USD";
-  membershipPlanPrice?: number;
 }) {
   if (block.hidden && !editorMode) return null;
   const editorAttributes = {
@@ -989,8 +987,7 @@ export function RenderBuilderBlock({
       const cardPrice =
         (membershipCurrency &&
           (card.priceByCurrency?.[membershipCurrency] ||
-            (card.currency.includes(membershipCurrency) && card.price) ||
-            (membershipPlanPrice !== undefined && String(membershipPlanPrice)))) ||
+            (card.currency.includes(membershipCurrency) && card.price))) ||
         (!membershipCurrency && card.price);
       const cardCurrency = membershipCurrency ?? card.currency;
       return (

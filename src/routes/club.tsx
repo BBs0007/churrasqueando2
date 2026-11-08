@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { getMyClub } from "@/lib/club.functions";
 import { getClubContent } from "@/lib/club-content.functions";
-import { getActiveMembershipPlans } from "@/lib/membership-plans.functions";
 import {
   CLUB_BUILDER_SECTIONS,
   CLUB_LANDING_DEFAULTS,
@@ -113,7 +112,6 @@ export function ClubLandingPage({
   const [membershipCountry, setMembershipCountry] = useState<"BO" | "INT">("BO");
   const fetchClub = useServerFn(getMyClub);
   const fetchContent = useServerFn(getClubContent);
-  const fetchPlans = useServerFn(getActiveMembershipPlans);
   const { session, loading: sessionLoading } = useSession();
 
   const clubContentQuery = useQuery({
@@ -159,14 +157,7 @@ export function ClubLandingPage({
     enabled: !!session,
   });
 
-  const plans = useQuery({
-    queryKey: ["club", "membership-plans"],
-    queryFn: () => fetchPlans(),
-  });
   const membershipCurrency = membershipCountry === "BO" ? "Bs" : "USD";
-  const annualPlan = plans.data?.find(
-    (plan) => plan.interval === "annual" && plan.currency === membershipCurrency,
-  );
 
   const profile = data?.profile;
   const isMember = !!data?.isMember;
@@ -219,15 +210,14 @@ export function ClubLandingPage({
     bullets: string;
     image: string;
   }>(c, "club_course_cards", editorMode);
-  const annualPrice =
-    annualPlan?.price ??
-    (membershipCountry === "BO" ? getClubLandingNumber(c, "membership_annual_price") : null);
+  const annualPrice = getClubLandingNumber(
+    c,
+    membershipCountry === "BO" ? "membership_annual_price" : "membership_annual_price_usd",
+  );
   const annualCurrency = membershipCurrency;
   const membershipPriceByCurrency = {
-    Bs:
-      plans.data?.find((plan) => plan.interval === "annual" && plan.currency === "Bs")?.price ??
-      getClubLandingNumber(c, "membership_annual_price"),
-    USD: plans.data?.find((plan) => plan.interval === "annual" && plan.currency === "USD")?.price,
+    Bs: getClubLandingNumber(c, "membership_annual_price"),
+    USD: getClubLandingNumber(c, "membership_annual_price_usd"),
   };
   const regularPrice = getClubLandingNumber(c, "membership_regular_price");
   const testimonialsNote = Object.hasOwn(c, "testimonials_note")
@@ -1036,7 +1026,7 @@ export function ClubLandingPage({
             data-club-membership-intro={t("membership_course_intro")}
             hidden={membershipCardHidden && !editorMode}
             data-club-membership-card={JSON.stringify({
-              price: String(annualPrice ?? ""),
+              price: String(annualPrice),
               currency: `${annualCurrency} / año`,
               priceByCurrency: {
                 Bs: String(membershipPriceByCurrency.Bs),
@@ -1140,7 +1130,6 @@ export function ClubLandingPage({
               block={block}
               sectionId="membership"
               membershipCurrency={membershipCurrency}
-              membershipPlanPrice={annualPlan?.price}
             />
           ))}
         </div>

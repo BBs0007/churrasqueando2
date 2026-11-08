@@ -28,6 +28,99 @@ export type AdminCustomer = {
   created_at: string;
 };
 
+export type AdminAuthAccount = {
+  id: string;
+  email: string;
+  full_name: string;
+  role: "admin" | "client";
+  created_at: string;
+};
+
+export const adminListAuthAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const authUsers: Awaited<
+      ReturnType<typeof supabaseAdmin.auth.admin.listUsers>
+    >["data"]["users"] = [];
+    const perPage = 1000;
+
+    for (let page = 1; page <= 50; page += 1) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error) throw error;
+      authUsers.push(...data.users);
+      if (data.users.length < perPage) break;
+      if (page === 50) throw new Error("Hay demasiadas cuentas para mostrarlas en una sola lista");
+    }
+
+    const uniqueUsers = [...new Map(authUsers.map((user) => [user.id, user])).values()];
+    const profileNames = new Map<string, string>();
+    const adminIds = new Set<string>();
+    const batchSize = 500;
+    for (let start = 0; start < uniqueUsers.length; start += batchSize) {
+      const userIds = uniqueUsers.slice(start, start + batchSize).map((user) => user.id);
+      const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }] =
+        await Promise.all([
+          supabaseAdmin.from("profiles").select("id, full_name").in("id", userIds),
+          supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", userIds),
+        ]);
+      if (profilesError) throw profilesError;
+      if (rolesError) throw rolesError;
+      for (const profile of profiles ?? []) {
+        profileNames.set(profile.id, profile.full_name);
+      }
+      for (const role of roles ?? []) {
+        if (role.role === "admin") adminIds.add(role.user_id);
+      }
+    }
+
+    return uniqueUsers
+      .map((user) => {
+        const metadataName =
+          typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
+        return {
+          id: user.id,
+          email: user.email ?? "",
+          full_name: profileNames.get(user.id) || metadataName || "",
+          role: adminIds.has(user.id) ? ("admin" as const) : ("client" as const),
+          created_at: user.created_at,
+        };
+      })
+      .sort((left, right) => right.created_at.localeCompare(left.created_at));
+  });
+
+export const adminChangeAccountPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string; password: string }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(input?.userId ?? "")) {
+      throw new Error("Selecciona una cuenta válida");
+    }
+    if (
+      typeof input.password !== "string" ||
+      input.password.length < 12 ||
+      input.password.length > 128
+    ) {
+      throw new Error("La contraseña debe tener entre 12 y 128 caracteres");
+    }
+    return { userId: input.userId, password: input.password };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: user, error: userError } = await supabaseAdmin.auth.admin.getUserById(
+      data.userId,
+    );
+    if (userError) throw userError;
+    if (!user.user) throw new Error("No se encontró la cuenta seleccionada");
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      password: data.password,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
+
 export const adminListCustomers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
