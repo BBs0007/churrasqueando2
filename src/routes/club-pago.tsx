@@ -402,6 +402,24 @@ function ClubPaymentPage() {
               )}
             </section>
 
+            <section
+              aria-label="Pagos por tarjeta"
+              className="mt-4 rounded-2xl border border-border bg-card p-4 text-center sm:p-6"
+            >
+              <h2 className="font-cond text-sm font-semibold uppercase tracking-wide text-foreground">
+                Pagos por tarjeta
+              </h2>
+              <Button asChild className="mt-3 w-full font-cond uppercase tracking-wide sm:w-auto">
+                <a href="https://pay.hotmart.com/B108400476R" target="_blank" rel="noreferrer">
+                  Pagar por tarjeta
+                </a>
+              </Button>
+            </section>
+
+            <h2 className="font-cond mt-6 text-center text-sm font-bold uppercase tracking-[0.2em] text-primary">
+              Métodos de pagos por QR
+            </h2>
+
             <section aria-label="Pasos para activar" className="mt-4 grid grid-cols-3 gap-2">
               {["Elige y paga", "Guarda el comprobante", "Envíalo por WhatsApp"].map(
                 (step, index) => (

@@ -130,6 +130,64 @@ function errorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+const MAX_LESSON_UPLOAD_SIZE = 1024 * 1024 * 1024;
+const TUS_CHUNK_SIZE = 6 * 1024 * 1024;
+
+async function uploadLessonFile(
+  bucketName: "course-videos" | "course-materials",
+  path: string,
+  file: File,
+  contentType: string,
+  onProgress: (percentage: number) => void,
+) {
+  const [{ Upload }, { supabase }] = await Promise.all([
+    import("tus-js-client"),
+    import("@/integrations/supabase/client"),
+  ]);
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (!data.session) throw new Error("Tu sesión expiró. Inicia sesión e intenta nuevamente.");
+
+  const projectUrl = new URL(import.meta.env["VITE_SUPABASE_URL"]);
+  const storageHost = projectUrl.hostname.endsWith(".supabase.co")
+    ? projectUrl.hostname.replace(".supabase.co", ".storage.supabase.co")
+    : projectUrl.host;
+  const endpoint = `${projectUrl.protocol}//${storageHost}/storage/v1/upload/resumable`;
+  const apiKey = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+  if (!apiKey) throw new Error("Falta la clave pública de Supabase para subir el archivo.");
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new Upload(file, {
+      endpoint,
+      chunkSize: TUS_CHUNK_SIZE,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: { apikey: apiKey },
+      metadata: {
+        bucketName,
+        objectName: path,
+        contentType,
+        cacheControl: "3600",
+      },
+      uploadDataDuringCreation: true,
+      storeFingerprintForResuming: false,
+      onBeforeRequest: async (request) => {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!sessionData.session) {
+          throw new Error("Tu sesión expiró. Inicia sesión e intenta nuevamente.");
+        }
+        request.setHeader("authorization", `Bearer ${sessionData.session.access_token}`);
+      },
+      onProgress: (bytesSent, bytesTotal) => {
+        if (bytesTotal) onProgress(Math.round((bytesSent / bytesTotal) * 100));
+      },
+      onError: reject,
+      onSuccess: () => resolve(),
+    });
+    upload.start();
+  });
+}
+
 function AdminCursos() {
   const fetchClub = useServerFn(getMyClub);
   const fetchCourses = useServerFn(adminListCourses);
@@ -1326,7 +1384,8 @@ function LessonsDialog({
   const [form, setForm] = useState(emptyLessonForm());
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<CourseLesson | null>(null);
 
   const upsertMutation = useMutation({
@@ -1381,22 +1440,22 @@ function LessonsDialog({
       toast.error("Selecciona un archivo de video");
       return;
     }
+    if (file.size > MAX_LESSON_UPLOAD_SIZE) {
+      toast.error("El video no debe superar 1 GB");
+      return;
+    }
     setUploadingVideo(true);
-    setUploadProgress(0);
+    setVideoUploadProgress(0);
     try {
-      const { path, token, publicUrl } = await createUploadUrl({ data: { fileName: file.name } });
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { error } = await supabase.storage
-        .from("course-videos")
-        .uploadToSignedUrl(path, token, file);
-      if (error) throw error;
+      const { path, publicUrl } = await createUploadUrl({ data: { fileName: file.name } });
+      await uploadLessonFile("course-videos", path, file, file.type, setVideoUploadProgress);
       setForm((f) => ({ ...f, videoUrl: publicUrl }));
       toast.success("Video subido");
     } catch (err: unknown) {
       toast.error(errorMessage(err, "No se pudo subir el video"));
     } finally {
       setUploadingVideo(false);
-      setUploadProgress(0);
+      setVideoUploadProgress(0);
       if (videoInputRef.current) videoInputRef.current.value = "";
     }
   };
@@ -1408,26 +1467,30 @@ function LessonsDialog({
       toast.error("Selecciona un archivo PDF");
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error("El PDF no debe superar 20 MB");
+    if (file.size > MAX_LESSON_UPLOAD_SIZE) {
+      toast.error("El PDF no debe superar 1 GB");
       return;
     }
     setUploadingPdf(true);
+    setPdfUploadProgress(0);
     try {
-      const { path, token, publicUrl } = await createPdfUploadUrl({
+      const { path, publicUrl } = await createPdfUploadUrl({
         data: { fileName: file.name },
       });
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { error } = await supabase.storage
-        .from("course-materials")
-        .uploadToSignedUrl(path, token, file, { contentType: "application/pdf" });
-      if (error) throw error;
+      await uploadLessonFile(
+        "course-materials",
+        path,
+        file,
+        "application/pdf",
+        setPdfUploadProgress,
+      );
       setForm((f) => ({ ...f, pdfUrl: publicUrl }));
       toast.success("PDF subido");
     } catch (err: unknown) {
       toast.error(errorMessage(err, "No se pudo subir el PDF"));
     } finally {
       setUploadingPdf(false);
+      setPdfUploadProgress(0);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
     }
   };
@@ -1516,7 +1579,7 @@ function LessonsDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Video</Label>
+            <Label>Video (máximo 1 GB)</Label>
             {form.videoUrl ? (
               <video
                 src={form.videoUrl}
@@ -1560,6 +1623,11 @@ function LessonsDialog({
                 </Button>
               )}
             </div>
+            {uploadingVideo && (
+              <p role="status" className="text-xs text-muted-foreground">
+                Subiendo video: {videoUploadProgress}%
+              </p>
+            )}
             <input
               ref={videoInputRef}
               type="file"
@@ -1569,7 +1637,7 @@ function LessonsDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="l-pdf">Material PDF (opcional)</Label>
+            <Label htmlFor="l-pdf">Material PDF (opcional, máximo 1 GB)</Label>
             {form.pdfUrl ? (
               <a
                 href={form.pdfUrl}
@@ -1611,6 +1679,11 @@ function LessonsDialog({
                 </Button>
               )}
             </div>
+            {uploadingPdf && (
+              <p role="status" className="text-xs text-muted-foreground">
+                Subiendo PDF: {pdfUploadProgress}%
+              </p>
+            )}
             <input
               id="l-pdf"
               ref={pdfInputRef}
